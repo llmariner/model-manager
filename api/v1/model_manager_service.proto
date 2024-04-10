@@ -1,0 +1,68 @@
+syntax = "proto3";
+
+package llmoperator.models.server.v1;
+
+import "google/api/annotations.proto";
+
+option go_package = "github.com/llm-operator/model-manager/api/v1";
+
+// The API specification fllows OpenAPI API specification (https://platform.openai.com/docs/api-reference/models).
+
+message Model {
+  string id = 1;
+  int64 created = 2;
+  string object = 3;
+  string owned_by = 4;
+}
+
+message ListModelsRequest {
+  string object = 1;
+  repeated Model model = 2;
+}
+
+message ListModelsResponse {
+  string object = 1;
+  repeated Model data = 2;
+}
+
+message GetModelRequest {
+  string id = 1;
+}
+
+message DeleteModelRequest {
+  string id = 1;
+}
+
+message DeleteModelResponse {
+  string id = 1;
+  string object = 2;
+  bool deleted = 3;
+}
+
+service ModelsService {
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
+    option (google.api.http) = {
+      get: "/v1/models"
+    };
+  }
+
+  rpc GetModel(GetModelRequest) returns (Model) {
+    option (google.api.http) = {
+      get: "/v1/models/{id}"
+    };
+  }
+
+  rpc DeleteModel(DeleteModelRequest) returns (DeleteModelResponse) {
+    option (google.api.http) = {
+      delete: "/v1/models/{id}"
+    };
+  }
+}
+
+message CreateModelRequest {
+}
+
+service ModelsInternalService {
+  rpc CreateModel(CreateModelRequest) returns (Model) {
+  }
+}
