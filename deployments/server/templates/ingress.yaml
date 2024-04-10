@@ -1,7 +1,7 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: {{ include "model-manager-server.fullname" . }}-ollama
+  name: {{ include "model-manager-server.fullname" . }}-http
   labels:
     {{- include "model-manager-server.labels" . | nindent 4 }}
 spec:
