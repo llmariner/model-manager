@@ -40,7 +40,7 @@ func (s *S) GetModel(k ModelKey) (*Model, error) {
 	return &m, nil
 }
 
-// ListModelsByTenantID finds jobs.
+// ListModelsByTenantID finds models.
 func (s *S) ListModelsByTenantID(tenantID string) ([]*Model, error) {
 	var ms []*Model
 	if err := s.db.Where("tenant_id = ?", tenantID).Find(&ms).Error; err != nil {
