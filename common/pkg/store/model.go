@@ -4,6 +4,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// Model represents a model.
 type Model struct {
 	gorm.Model
 
@@ -31,7 +32,7 @@ func (s *S) CreateModel(k ModelKey) (*Model, error) {
 	return m, nil
 }
 
-// GeteModel returns a model by model ID and tenant ID.
+// GetModel returns a model by model ID and tenant ID.
 func (s *S) GetModel(k ModelKey) (*Model, error) {
 	var m Model
 	if err := s.db.Where("model_id = ? AND tenant_id = ?", k.ModelID, k.TenantID).Take(&m).Error; err != nil {
