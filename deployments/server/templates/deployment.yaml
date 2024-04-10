@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "model-manager-server.fullname" . }}
+  labels:
+    {{- include "model-manager-server.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "model-manager-server.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "model-manager-server.selectorLabels" . | nindent 8 }}
+    spec:
+      containers:
+      - name: model-manager-server
+        image: "{{ .Values.image.repository }}:{{ .Values.version }}"
+        imagePullPolicy: {{ .Values.image.pullPolicy }}
+        args:
+        - run
+        - --config
+        - /etc/config/config.yaml
+        ports:
+        - name: grpc
+          containerPort: {{ .Values.grpcPort }}
+          protocol: TCP
+        - name: http
+          containerPort: {{ .Values.httpPort }}
+          protocol: TCP
+        volumeMounts:
+        - name: config
+          mountPath: /etc/config
+          readOnly: true
+        env:
+        - name: {{ .Values.database.passwordEnvName }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.databaseSecret.name }}
+              key: {{ .Values.databaseSecret.key }}
+      volumes:
+      - name: config
+        configMap:
+          name: {{ include "model-manager-server.fullname" . }}
