@@ -16,8 +16,6 @@ message Model {
 }
 
 message ListModelsRequest {
-  string object = 1;
-  repeated Model model = 2;
 }
 
 message ListModelsResponse {
