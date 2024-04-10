@@ -85,6 +85,7 @@ func (s *S) DeleteModel(
 	}, nil
 }
 
+// CreateModel creates a model.
 func (s *IS) CreateModel(
 	ctx context.Context,
 	req *v1.CreateModelRequest,
