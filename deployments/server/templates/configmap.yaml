@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "model-manager-server.fullname" . }}
+  labels:
+    {{- include "model-manager-server.labels" . | nindent 4 }}
+data:
+  config.yaml: |
+    grpcPort: {{ .Values.grpcPort }}
+    httpPort: {{ .Values.httpPort }}
+    database:
+      host: {{ .Values.database.host }}
+      port: {{ .Values.database.port }}
+      database: {{ .Values.database.database }}
+      username: {{ .Values.database.username }}
+      passwordEnvName: {{ .Values.database.passwordEnvName }}
