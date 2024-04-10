@@ -24,10 +24,11 @@ func TestModel(t *testing.T) {
 	_, err := st.GetModel(k)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	err = st.CreateModel(k)
+	_, err = st.CreateModel(k)
 	assert.NoError(t, err)
 
 	gotM, err := st.GetModel(k)
+	assert.NoError(t, err)
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, tenantID, gotM.TenantID)
 
@@ -39,7 +40,7 @@ func TestModel(t *testing.T) {
 		ModelID:  "m1",
 		TenantID: "tid1",
 	}
-	err = st.CreateModel(k1)
+	_, err = st.CreateModel(k1)
 	assert.NoError(t, err)
 
 	gotMs, err = st.ListModelsByTenantID(tenantID)

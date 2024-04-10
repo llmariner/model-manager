@@ -1,6 +1,8 @@
 package store
 
-import "fmt"
+import (
+	"fmt"
+)
 
 var (
 	// ErrConcurrentUpdate is returned when there is a concurrent update.

@@ -1,5 +1,6 @@
-grpcPort: 8081
 httpPort: 8080
+grpcPort: 8081
+internalGrpcPort: 8082
 
 database:
   host:

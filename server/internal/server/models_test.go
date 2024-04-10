@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
@@ -21,7 +22,7 @@ func TestModels(t *testing.T) {
 		ModelID:  modelID,
 		TenantID: fakeTenantID,
 	}
-	err := st.CreateModel(k)
+	_, err := st.CreateModel(k)
 	assert.NoError(t, err)
 
 	srv := New(st)
@@ -42,7 +43,7 @@ func TestModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	getResp, err = srv.GetModel(ctx, &v1.GetModelRequest{
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
 	})
 	assert.Error(t, err)
@@ -51,4 +52,19 @@ func TestModels(t *testing.T) {
 	listResp, err = srv.ListModels(ctx, &v1.ListModelsRequest{})
 	assert.NoError(t, err)
 	assert.Len(t, listResp.Data, 0)
+}
+
+func TestCreatModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := NewInternal(st)
+	ctx := context.Background()
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		BaseModel: "my-model",
+		Suffix:    "fine-tuning",
+		TenantId:  "tid",
+	})
+	assert.NoError(t, err)
+	assert.True(t, strings.HasPrefix(m.Id, "ft:my-model:fine-tuning:"))
 }

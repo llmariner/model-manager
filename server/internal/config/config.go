@@ -16,8 +16,9 @@ type DebugConfig struct {
 
 // Config is the configuration.
 type Config struct {
-	GRPCPort int `yaml:"grpcPort"`
-	HTTPPort int `yaml:"httpPort"`
+	HTTPPort         int `yaml:"httpPort"`
+	GRPCPort         int `yaml:"grpcPort"`
+	InternalGRPCPort int `yaml:"internalGrpcPort"`
 
 	Database db.Config `yaml:"database"`
 
@@ -26,11 +27,14 @@ type Config struct {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
+	if c.HTTPPort <= 0 {
+		return fmt.Errorf("httpPort must be greater than 0")
+	}
 	if c.GRPCPort <= 0 {
 		return fmt.Errorf("grpcPort must be greater than 0")
 	}
-	if c.HTTPPort <= 0 {
-		return fmt.Errorf("httpPort must be greater than 0")
+	if c.InternalGRPCPort <= 0 {
+		return fmt.Errorf("internalGrpcPort must be greater than 0")
 	}
 
 	if c.Debug.Standalone {

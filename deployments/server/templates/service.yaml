@@ -1,6 +1,24 @@
 apiVersion: v1
 kind: Service
 metadata:
+  name: {{ include "model-manager-server.fullname" . }}-http
+  labels:
+    {{- include "model-manager-server.labels" . | nindent 4 }}
+spec:
+  type: ClusterIP
+  ports:
+    - port: {{ .Values.httpPort }}
+      targetPort: http
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "model-manager-server.selectorLabels" . | nindent 4 }}
+
+---
+
+apiVersion: v1
+kind: Service
+metadata:
   name: {{ include "model-manager-server.fullname" . }}-grpc
   labels:
     {{- include "model-manager-server.labels" . | nindent 4 }}
@@ -21,15 +39,17 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "model-manager-server.fullname" . }}-http
+  name: {{ include "model-manager-server.fullname" . }}-internal-grpc
   labels:
     {{- include "model-manager-server.labels" . | nindent 4 }}
+  annotations:
+    konghq.com/protocol: grpc
 spec:
   type: ClusterIP
   ports:
-    - port: {{ .Values.httpPort }}
-      targetPort: http
-      protocol: TCP
-      name: http
+  - name: grpc
+    port: {{ .Values.internalGrpcPort }}
+    protocol: TCP
+    targetPort: internal-grpc
   selector:
     {{- include "model-manager-server.selectorLabels" . | nindent 4 }}
