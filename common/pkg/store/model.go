@@ -20,15 +20,15 @@ type ModelKey struct {
 }
 
 // CreateModel creates a model.
-func (s *S) CreateModel(k ModelKey) error {
+func (s *S) CreateModel(k ModelKey) (*Model, error) {
 	m := &Model{
 		ModelID:  k.ModelID,
 		TenantID: k.TenantID,
 	}
 	if err := s.db.Create(m).Error; err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return m, nil
 }
 
 // GeteModel returns a model by model ID and tenant ID.

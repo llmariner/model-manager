@@ -12,6 +12,7 @@ make build-server
 ```yaml
 httpPort: 8080
 grpcPort: 8081
+internalGrpcPort: 8082
 
 debug:
   standalone: true
@@ -33,4 +34,6 @@ You can then hit the endpoint.
 
 ```bash
 curl http://localhost:8080/v1/models
+
+grpcurl -d '{"base_model": "base", "suffix": "suffix", "tenant_id": "fake-tenant-id"}' -plaintext localhost:8082 list llmoperator.models.server.v1.ModelsInternalService/CreateModel
 ```

@@ -60,6 +60,13 @@ service ModelsService {
 }
 
 message CreateModelRequest {
+  string base_model = 1;
+  string suffix = 2;
+
+  // TODO(kenji): Fix this.
+  string model_path = 3;
+
+  string tenant_id = 4;
 }
 
 service ModelsInternalService {

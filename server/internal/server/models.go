@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
@@ -10,6 +11,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
+
+	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 const (
@@ -81,6 +84,53 @@ func (s *S) DeleteModel(
 		Object:  "model",
 		Deleted: true,
 	}, nil
+}
+
+func (s *IS) CreateModel(
+	ctx context.Context,
+	req *v1.CreateModelRequest,
+) (*v1.Model, error) {
+	if req.BaseModel == "" {
+		return nil, status.Error(codes.InvalidArgument, "base_model is required")
+	}
+	if req.Suffix == "" {
+		return nil, status.Error(codes.InvalidArgument, "suffix is required")
+	}
+	if req.TenantId == "" {
+		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
+	}
+
+	id, err := s.genenerateModelID(req.BaseModel, req.Suffix)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
+	}
+
+	m, err := s.store.CreateModel(store.ModelKey{
+		ModelID:  id,
+		TenantID: req.TenantId,
+	})
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+	}
+
+	return toModelProto(m), nil
+}
+
+func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
+	const randomLength = 5
+	base := fmt.Sprintf("ft:%s:%s:", baseModel, suffix)
+
+	// Randomly create an ID and retry if it already exists.
+	for {
+
+		id := fmt.Sprintf("%s%s", base, rand.SafeEncodeString(rand.String(randomLength)))
+		if _, err := s.store.GetModel(store.ModelKey{
+			ModelID:  id,
+			TenantID: fakeTenantID,
+		}); errors.Is(err, gorm.ErrRecordNotFound) {
+			return id, nil
+		}
+	}
 }
 
 func toModelProto(m *store.Model) *v1.Model {

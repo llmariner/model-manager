@@ -6,8 +6,9 @@ metadata:
     {{- include "model-manager-server.labels" . | nindent 4 }}
 data:
   config.yaml: |
-    grpcPort: {{ .Values.grpcPort }}
     httpPort: {{ .Values.httpPort }}
+    grpcPort: {{ .Values.grpcPort }}
+    internalGrpcPort: {{ .Values.internalGrpcPort }}
     database:
       host: {{ .Values.database.host }}
       port: {{ .Values.database.port }}

@@ -80,6 +80,11 @@ func run(ctx context.Context, c *config.Config) error {
 		errCh <- s.Run(c.GRPCPort)
 	}()
 
+	go func() {
+		s := server.NewInternal(st)
+		errCh <- s.Run(c.InternalGRPCPort)
+	}()
+
 	return <-errCh
 }
 
