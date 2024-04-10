@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/common/pkg/store"
@@ -134,7 +133,6 @@ func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
 }
 
 func toModelProto(m *store.Model) *v1.Model {
-	log.Printf("m.ModelID: %s, %s", m.ModelID, m.CreatedAt.UTC())
 	return &v1.Model{
 		Id:      m.ModelID,
 		Object:  "model",
