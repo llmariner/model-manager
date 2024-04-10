@@ -36,14 +36,6 @@
             }
           }
         },
-        "parameters": [
-          {
-            "name": "object",
-            "in": "query",
-            "required": false,
-            "type": "string"
-          }
-        ],
         "tags": [
           "ModelsService"
         ]
