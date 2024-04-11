@@ -96,3 +96,51 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 }
+
+func TestGetModelPath(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	const modelID = "m0"
+
+	isrv := NewInternal(st, "models")
+	ctx := context.Background()
+	_, err := isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+		Id:       modelID,
+		TenantId: fakeTenantID,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: fakeTenantID,
+	}
+	_, err = st.CreateModel(store.ModelSpec{
+		Key:         k,
+		Path:        "model-path",
+		IsPublished: false,
+	})
+	assert.NoError(t, err)
+
+	_, err = isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+		Id:       modelID,
+		TenantId: fakeTenantID,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	_, err = isrv.PublishModel(ctx, &v1.PublishModelRequest{
+		Id:       modelID,
+		TenantId: fakeTenantID,
+	})
+	assert.NoError(t, err)
+
+	resp, err := isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+		Id:       modelID,
+		TenantId: fakeTenantID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "model-path", resp.Path)
+
+}

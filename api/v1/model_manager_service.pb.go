@@ -554,6 +554,108 @@ func (*PublishModelResponse) Descriptor() ([]byte, []int) {
 	return file_api_v1_model_manager_service_proto_rawDescGZIP(), []int{9}
 }
 
+type GetModelPathRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Id       string `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
+	TenantId string `protobuf:"bytes,2,opt,name=tenant_id,json=tenantId,proto3" json:"tenant_id,omitempty"`
+}
+
+func (x *GetModelPathRequest) Reset() {
+	*x = GetModelPathRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_v1_model_manager_service_proto_msgTypes[10]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetModelPathRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelPathRequest) ProtoMessage() {}
+
+func (x *GetModelPathRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_model_manager_service_proto_msgTypes[10]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelPathRequest.ProtoReflect.Descriptor instead.
+func (*GetModelPathRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_model_manager_service_proto_rawDescGZIP(), []int{10}
+}
+
+func (x *GetModelPathRequest) GetId() string {
+	if x != nil {
+		return x.Id
+	}
+	return ""
+}
+
+func (x *GetModelPathRequest) GetTenantId() string {
+	if x != nil {
+		return x.TenantId
+	}
+	return ""
+}
+
+type GetModelPathResponse struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Path string `protobuf:"bytes,1,opt,name=path,proto3" json:"path,omitempty"`
+}
+
+func (x *GetModelPathResponse) Reset() {
+	*x = GetModelPathResponse{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_v1_model_manager_service_proto_msgTypes[11]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetModelPathResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetModelPathResponse) ProtoMessage() {}
+
+func (x *GetModelPathResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_model_manager_service_proto_msgTypes[11]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetModelPathResponse.ProtoReflect.Descriptor instead.
+func (*GetModelPathResponse) Descriptor() ([]byte, []int) {
+	return file_api_v1_model_manager_service_proto_rawDescGZIP(), []int{11}
+}
+
+func (x *GetModelPathResponse) GetPath() string {
+	if x != nil {
+		return x.Path
+	}
+	return ""
+}
+
 var File_api_v1_model_manager_service_proto protoreflect.FileDescriptor
 
 var file_api_v1_model_manager_service_proto_rawDesc = []byte{
@@ -603,7 +705,14 @@ var file_api_v1_model_manager_service_proto_rawDesc = []byte{
 	0x52, 0x02, 0x69, 0x64, 0x12, 0x1b, 0x0a, 0x09, 0x74, 0x65, 0x6e, 0x61, 0x6e, 0x74, 0x5f, 0x69,
 	0x64, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52, 0x08, 0x74, 0x65, 0x6e, 0x61, 0x6e, 0x74, 0x49,
 	0x64, 0x22, 0x16, 0x0a, 0x14, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x4d, 0x6f, 0x64, 0x65,
-	0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x32, 0x9c, 0x03, 0x0a, 0x0d, 0x4d, 0x6f,
+	0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x42, 0x0a, 0x13, 0x47, 0x65, 0x74,
+	0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74,
+	0x12, 0x0e, 0x0a, 0x02, 0x69, 0x64, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x02, 0x69, 0x64,
+	0x12, 0x1b, 0x0a, 0x09, 0x74, 0x65, 0x6e, 0x61, 0x6e, 0x74, 0x5f, 0x69, 0x64, 0x18, 0x02, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x08, 0x74, 0x65, 0x6e, 0x61, 0x6e, 0x74, 0x49, 0x64, 0x22, 0x2a, 0x0a,
+	0x14, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x52, 0x65, 0x73,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20,
+	0x01, 0x28, 0x09, 0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x32, 0x9c, 0x03, 0x0a, 0x0d, 0x4d, 0x6f,
 	0x64, 0x65, 0x6c, 0x73, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x83, 0x01, 0x0a, 0x0a,
 	0x4c, 0x69, 0x73, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x12, 0x2f, 0x2e, 0x6c, 0x6c, 0x6d,
 	0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x6f, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e,
@@ -629,7 +738,7 @@ var file_api_v1_model_manager_service_proto_rawDesc = []byte{
 	0x73, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x44, 0x65, 0x6c, 0x65,
 	0x74, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22,
 	0x17, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x11, 0x2a, 0x0f, 0x2f, 0x76, 0x31, 0x2f, 0x6d, 0x6f, 0x64,
-	0x65, 0x6c, 0x73, 0x2f, 0x7b, 0x69, 0x64, 0x7d, 0x32, 0x8c, 0x02, 0x0a, 0x15, 0x4d, 0x6f, 0x64,
+	0x65, 0x6c, 0x73, 0x2f, 0x7b, 0x69, 0x64, 0x7d, 0x32, 0x85, 0x03, 0x0a, 0x15, 0x4d, 0x6f, 0x64,
 	0x65, 0x6c, 0x73, 0x49, 0x6e, 0x74, 0x65, 0x72, 0x6e, 0x61, 0x6c, 0x53, 0x65, 0x72, 0x76, 0x69,
 	0x63, 0x65, 0x12, 0x7a, 0x0a, 0x0d, 0x52, 0x65, 0x67, 0x69, 0x73, 0x74, 0x65, 0x72, 0x4d, 0x6f,
 	0x64, 0x65, 0x6c, 0x12, 0x32, 0x2e, 0x6c, 0x6c, 0x6d, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x6f,
@@ -646,10 +755,18 @@ var file_api_v1_model_manager_service_proto_rawDesc = []byte{
 	0x74, 0x1a, 0x32, 0x2e, 0x6c, 0x6c, 0x6d, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x6f, 0x72, 0x2e,
 	0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31,
 	0x2e, 0x50, 0x75, 0x62, 0x6c, 0x69, 0x73, 0x68, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x2e, 0x5a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75,
-	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x6c, 0x6d, 0x2d, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74,
-	0x6f, 0x72, 0x2f, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x2d, 0x6d, 0x61, 0x6e, 0x61, 0x67, 0x65, 0x72,
-	0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x77, 0x0a, 0x0c, 0x47, 0x65, 0x74, 0x4d, 0x6f,
+	0x64, 0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x12, 0x31, 0x2e, 0x6c, 0x6c, 0x6d, 0x6f, 0x70, 0x65,
+	0x72, 0x61, 0x74, 0x6f, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e, 0x73, 0x65, 0x72,
+	0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x50,
+	0x61, 0x74, 0x68, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x1a, 0x32, 0x2e, 0x6c, 0x6c, 0x6d,
+	0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x6f, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e,
+	0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74, 0x4d, 0x6f, 0x64,
+	0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00,
+	0x42, 0x2e, 0x5a, 0x2c, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c,
+	0x6c, 0x6d, 0x2d, 0x6f, 0x70, 0x65, 0x72, 0x61, 0x74, 0x6f, 0x72, 0x2f, 0x6d, 0x6f, 0x64, 0x65,
+	0x6c, 0x2d, 0x6d, 0x61, 0x6e, 0x61, 0x67, 0x65, 0x72, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x31,
+	0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
 }
 
 var (
@@ -664,7 +781,7 @@ func file_api_v1_model_manager_service_proto_rawDescGZIP() []byte {
 	return file_api_v1_model_manager_service_proto_rawDescData
 }
 
-var file_api_v1_model_manager_service_proto_msgTypes = make([]protoimpl.MessageInfo, 10)
+var file_api_v1_model_manager_service_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_api_v1_model_manager_service_proto_goTypes = []interface{}{
 	(*Model)(nil),                 // 0: llmoperator.models.server.v1.Model
 	(*ListModelsRequest)(nil),     // 1: llmoperator.models.server.v1.ListModelsRequest
@@ -676,24 +793,28 @@ var file_api_v1_model_manager_service_proto_goTypes = []interface{}{
 	(*RegisterModelResponse)(nil), // 7: llmoperator.models.server.v1.RegisterModelResponse
 	(*PublishModelRequest)(nil),   // 8: llmoperator.models.server.v1.PublishModelRequest
 	(*PublishModelResponse)(nil),  // 9: llmoperator.models.server.v1.PublishModelResponse
+	(*GetModelPathRequest)(nil),   // 10: llmoperator.models.server.v1.GetModelPathRequest
+	(*GetModelPathResponse)(nil),  // 11: llmoperator.models.server.v1.GetModelPathResponse
 }
 var file_api_v1_model_manager_service_proto_depIdxs = []int32{
-	0, // 0: llmoperator.models.server.v1.ListModelsResponse.data:type_name -> llmoperator.models.server.v1.Model
-	1, // 1: llmoperator.models.server.v1.ModelsService.ListModels:input_type -> llmoperator.models.server.v1.ListModelsRequest
-	3, // 2: llmoperator.models.server.v1.ModelsService.GetModel:input_type -> llmoperator.models.server.v1.GetModelRequest
-	4, // 3: llmoperator.models.server.v1.ModelsService.DeleteModel:input_type -> llmoperator.models.server.v1.DeleteModelRequest
-	6, // 4: llmoperator.models.server.v1.ModelsInternalService.RegisterModel:input_type -> llmoperator.models.server.v1.RegisterModelRequest
-	8, // 5: llmoperator.models.server.v1.ModelsInternalService.PublishModel:input_type -> llmoperator.models.server.v1.PublishModelRequest
-	2, // 6: llmoperator.models.server.v1.ModelsService.ListModels:output_type -> llmoperator.models.server.v1.ListModelsResponse
-	0, // 7: llmoperator.models.server.v1.ModelsService.GetModel:output_type -> llmoperator.models.server.v1.Model
-	5, // 8: llmoperator.models.server.v1.ModelsService.DeleteModel:output_type -> llmoperator.models.server.v1.DeleteModelResponse
-	7, // 9: llmoperator.models.server.v1.ModelsInternalService.RegisterModel:output_type -> llmoperator.models.server.v1.RegisterModelResponse
-	9, // 10: llmoperator.models.server.v1.ModelsInternalService.PublishModel:output_type -> llmoperator.models.server.v1.PublishModelResponse
-	6, // [6:11] is the sub-list for method output_type
-	1, // [1:6] is the sub-list for method input_type
-	1, // [1:1] is the sub-list for extension type_name
-	1, // [1:1] is the sub-list for extension extendee
-	0, // [0:1] is the sub-list for field type_name
+	0,  // 0: llmoperator.models.server.v1.ListModelsResponse.data:type_name -> llmoperator.models.server.v1.Model
+	1,  // 1: llmoperator.models.server.v1.ModelsService.ListModels:input_type -> llmoperator.models.server.v1.ListModelsRequest
+	3,  // 2: llmoperator.models.server.v1.ModelsService.GetModel:input_type -> llmoperator.models.server.v1.GetModelRequest
+	4,  // 3: llmoperator.models.server.v1.ModelsService.DeleteModel:input_type -> llmoperator.models.server.v1.DeleteModelRequest
+	6,  // 4: llmoperator.models.server.v1.ModelsInternalService.RegisterModel:input_type -> llmoperator.models.server.v1.RegisterModelRequest
+	8,  // 5: llmoperator.models.server.v1.ModelsInternalService.PublishModel:input_type -> llmoperator.models.server.v1.PublishModelRequest
+	10, // 6: llmoperator.models.server.v1.ModelsInternalService.GetModelPath:input_type -> llmoperator.models.server.v1.GetModelPathRequest
+	2,  // 7: llmoperator.models.server.v1.ModelsService.ListModels:output_type -> llmoperator.models.server.v1.ListModelsResponse
+	0,  // 8: llmoperator.models.server.v1.ModelsService.GetModel:output_type -> llmoperator.models.server.v1.Model
+	5,  // 9: llmoperator.models.server.v1.ModelsService.DeleteModel:output_type -> llmoperator.models.server.v1.DeleteModelResponse
+	7,  // 10: llmoperator.models.server.v1.ModelsInternalService.RegisterModel:output_type -> llmoperator.models.server.v1.RegisterModelResponse
+	9,  // 11: llmoperator.models.server.v1.ModelsInternalService.PublishModel:output_type -> llmoperator.models.server.v1.PublishModelResponse
+	11, // 12: llmoperator.models.server.v1.ModelsInternalService.GetModelPath:output_type -> llmoperator.models.server.v1.GetModelPathResponse
+	7,  // [7:13] is the sub-list for method output_type
+	1,  // [1:7] is the sub-list for method input_type
+	1,  // [1:1] is the sub-list for extension type_name
+	1,  // [1:1] is the sub-list for extension extendee
+	0,  // [0:1] is the sub-list for field type_name
 }
 
 func init() { file_api_v1_model_manager_service_proto_init() }
@@ -822,6 +943,30 @@ func file_api_v1_model_manager_service_proto_init() {
 				return nil
 			}
 		}
+		file_api_v1_model_manager_service_proto_msgTypes[10].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetModelPathRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_v1_model_manager_service_proto_msgTypes[11].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetModelPathResponse); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -829,7 +974,7 @@ func file_api_v1_model_manager_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_v1_model_manager_service_proto_rawDesc,
 			NumEnums:      0,
-			NumMessages:   10,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

@@ -77,10 +77,22 @@ message PublishModelRequest {
 message PublishModelResponse {
 }
 
+message GetModelPathRequest {
+  string id = 1;
+  string tenant_id = 2;
+}
+
+message GetModelPathResponse {
+  string path = 1;
+}
+
 service ModelsInternalService {
   rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse) {
   }
 
   rpc PublishModel(PublishModelRequest) returns (PublishModelResponse) {
+  }
+
+  rpc GetModelPath(GetModelPathRequest) returns (GetModelPathResponse) {
   }
 }
