@@ -2,6 +2,10 @@ httpPort: 8080
 grpcPort: 8081
 internalGrpcPort: 8082
 
+objectStore:
+  s3:
+    pathPrefix: models
+
 database:
   host:
   port: 5432

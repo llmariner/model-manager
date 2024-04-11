@@ -9,6 +9,9 @@ data:
     httpPort: {{ .Values.httpPort }}
     grpcPort: {{ .Values.grpcPort }}
     internalGrpcPort: {{ .Values.internalGrpcPort }}
+    objectStore:
+      s3:
+	pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
     database:
       host: {{ .Values.database.host }}
       port: {{ .Values.database.port }}

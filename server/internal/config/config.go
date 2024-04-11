@@ -8,6 +8,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// S3Config is the S3 configuration.
+type S3Config struct {
+	PathPrefix string `yaml:"pathPrefix"`
+}
+
+// ObjectStoreConfig is the object store configuration.
+type ObjectStoreConfig struct {
+	S3 S3Config `yaml:"s3"`
+}
+
+// Validate validates the object store configuration.
+func (c *ObjectStoreConfig) Validate() error {
+	if c.S3.PathPrefix == "" {
+		return fmt.Errorf("s3 path prefix must be set")
+	}
+	return nil
+}
+
 // DebugConfig is the debug configuration.
 type DebugConfig struct {
 	Standalone bool   `yaml:"standalone"`
@@ -22,6 +40,8 @@ type Config struct {
 
 	Database db.Config `yaml:"database"`
 
+	ObjectStore ObjectStoreConfig `yaml:"objectStore"`
+
 	Debug DebugConfig `yaml:"debug"`
 }
 
@@ -35,6 +55,10 @@ func (c *Config) Validate() error {
 	}
 	if c.InternalGRPCPort <= 0 {
 		return fmt.Errorf("internalGrpcPort must be greater than 0")
+	}
+
+	if err := c.ObjectStore.Validate(); err != nil {
+		return fmt.Errorf("object store: %s", err)
 	}
 
 	if c.Debug.Standalone {
