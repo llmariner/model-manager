@@ -23,7 +23,7 @@ func (s *S) ListModels(
 	ctx context.Context,
 	req *v1.ListModelsRequest,
 ) (*v1.ListModelsResponse, error) {
-	ms, err := s.store.ListModelsByTenantID(fakeTenantID)
+	ms, err := s.store.ListModelsByTenantID(fakeTenantID, true)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
@@ -50,7 +50,7 @@ func (s *S) GetModel(
 	m, err := s.store.GetModel(store.ModelKey{
 		ModelID:  req.Id,
 		TenantID: fakeTenantID,
-	})
+	}, true)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -85,11 +85,11 @@ func (s *S) DeleteModel(
 	}, nil
 }
 
-// CreateModel creates a model.
-func (s *IS) CreateModel(
+// RegisterModel registers a model.
+func (s *IS) RegisterModel(
 	ctx context.Context,
-	req *v1.CreateModelRequest,
-) (*v1.Model, error) {
+	req *v1.RegisterModelRequest,
+) (*v1.RegisterModelResponse, error) {
 	if req.BaseModel == "" {
 		return nil, status.Error(codes.InvalidArgument, "base_model is required")
 	}
@@ -105,15 +105,51 @@ func (s *IS) CreateModel(
 		return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
 	}
 
-	m, err := s.store.CreateModel(store.ModelKey{
-		ModelID:  id,
-		TenantID: req.TenantId,
+	var path string
+	_, err = s.store.CreateModel(store.ModelSpec{
+		Key: store.ModelKey{
+			ModelID:  id,
+			TenantID: req.TenantId,
+		},
+		IsPublished: false,
+		Path:        path,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
 	}
 
-	return toModelProto(m), nil
+	return &v1.RegisterModelResponse{
+		Id:   id,
+		Path: path,
+	}, nil
+}
+
+// PublishModel publishes a model.
+func (s *IS) PublishModel(
+	ctx context.Context,
+	req *v1.PublishModelRequest,
+) (*v1.PublishModelResponse, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if req.TenantId == "" {
+		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
+	}
+
+	err := s.store.UpdateModel(
+		store.ModelKey{
+			ModelID:  req.Id,
+			TenantID: req.TenantId,
+		},
+		true,
+	)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+	}
+	return &v1.PublishModelResponse{}, nil
 }
 
 func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
@@ -127,7 +163,7 @@ func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
 		if _, err := s.store.GetModel(store.ModelKey{
 			ModelID:  id,
 			TenantID: fakeTenantID,
-		}); errors.Is(err, gorm.ErrRecordNotFound) {
+		}, false); errors.Is(err, gorm.ErrRecordNotFound) {
 			return id, nil
 		}
 	}

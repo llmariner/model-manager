@@ -176,7 +176,8 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ModelsInternalServiceClient interface {
-	CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error)
+	RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error)
+	PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error)
 }
 
 type modelsInternalServiceClient struct {
@@ -187,9 +188,18 @@ func NewModelsInternalServiceClient(cc grpc.ClientConnInterface) ModelsInternalS
 	return &modelsInternalServiceClient{cc}
 }
 
-func (c *modelsInternalServiceClient) CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error) {
-	out := new(Model)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/CreateModel", in, out, opts...)
+func (c *modelsInternalServiceClient) RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error) {
+	out := new(RegisterModelResponse)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/RegisterModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsInternalServiceClient) PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error) {
+	out := new(PublishModelResponse)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/PublishModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -200,7 +210,8 @@ func (c *modelsInternalServiceClient) CreateModel(ctx context.Context, in *Creat
 // All implementations must embed UnimplementedModelsInternalServiceServer
 // for forward compatibility
 type ModelsInternalServiceServer interface {
-	CreateModel(context.Context, *CreateModelRequest) (*Model, error)
+	RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error)
+	PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error)
 	mustEmbedUnimplementedModelsInternalServiceServer()
 }
 
@@ -208,8 +219,11 @@ type ModelsInternalServiceServer interface {
 type UnimplementedModelsInternalServiceServer struct {
 }
 
-func (UnimplementedModelsInternalServiceServer) CreateModel(context.Context, *CreateModelRequest) (*Model, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method CreateModel not implemented")
+func (UnimplementedModelsInternalServiceServer) RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method RegisterModel not implemented")
+}
+func (UnimplementedModelsInternalServiceServer) PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method PublishModel not implemented")
 }
 func (UnimplementedModelsInternalServiceServer) mustEmbedUnimplementedModelsInternalServiceServer() {}
 
@@ -224,20 +238,38 @@ func RegisterModelsInternalServiceServer(s grpc.ServiceRegistrar, srv ModelsInte
 	s.RegisterService(&ModelsInternalService_ServiceDesc, srv)
 }
 
-func _ModelsInternalService_CreateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(CreateModelRequest)
+func _ModelsInternalService_RegisterModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(RegisterModelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).CreateModel(ctx, in)
+		return srv.(ModelsInternalServiceServer).RegisterModel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/CreateModel",
+		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/RegisterModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).CreateModel(ctx, req.(*CreateModelRequest))
+		return srv.(ModelsInternalServiceServer).RegisterModel(ctx, req.(*RegisterModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsInternalService_PublishModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PublishModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsInternalServiceServer).PublishModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/PublishModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsInternalServiceServer).PublishModel(ctx, req.(*PublishModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -250,8 +282,12 @@ var ModelsInternalService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ModelsInternalServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "CreateModel",
-			Handler:    _ModelsInternalService_CreateModel_Handler,
+			MethodName: "RegisterModel",
+			Handler:    _ModelsInternalService_RegisterModel_Handler,
+		},
+		{
+			MethodName: "PublishModel",
+			Handler:    _ModelsInternalService_PublishModel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

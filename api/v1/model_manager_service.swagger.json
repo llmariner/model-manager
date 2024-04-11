@@ -173,6 +173,21 @@
           "type": "string"
         }
       }
+    },
+    "v1PublishModelResponse": {
+      "type": "object"
+    },
+    "v1RegisterModelResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "path": {
+          "type": "string",
+          "description": "path is the path where the model is stored."
+        }
+      }
     }
   }
 }

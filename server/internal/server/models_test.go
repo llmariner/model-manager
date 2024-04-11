@@ -22,7 +22,10 @@ func TestModels(t *testing.T) {
 		ModelID:  modelID,
 		TenantID: fakeTenantID,
 	}
-	_, err := st.CreateModel(k)
+	_, err := st.CreateModel(store.ModelSpec{
+		Key:         k,
+		IsPublished: true,
+	})
 	assert.NoError(t, err)
 
 	srv := New(st)
@@ -54,17 +57,42 @@ func TestModels(t *testing.T) {
 	assert.Len(t, listResp.Data, 0)
 }
 
-func TestCreatModel(t *testing.T) {
+func TestRegisterAndPublishModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := NewInternal(st)
+	srv := New(st)
+	isrv := NewInternal(st)
 	ctx := context.Background()
-	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+	resp, err := isrv.RegisterModel(ctx, &v1.RegisterModelRequest{
 		BaseModel: "my-model",
 		Suffix:    "fine-tuning",
-		TenantId:  "tid",
+		TenantId:  fakeTenantID,
 	})
 	assert.NoError(t, err)
-	assert.True(t, strings.HasPrefix(m.Id, "ft:my-model:fine-tuning:"))
+	modelID := resp.Id
+	assert.True(t, strings.HasPrefix(modelID, "ft:my-model:fine-tuning:"))
+
+	m, err := st.GetModel(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: fakeTenantID,
+	}, false)
+	assert.False(t, m.IsPublished)
+
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: modelID,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	_, err = isrv.PublishModel(ctx, &v1.PublishModelRequest{
+		Id:       modelID,
+		TenantId: fakeTenantID,
+	})
+	assert.NoError(t, err)
+
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
 }
