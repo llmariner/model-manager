@@ -152,6 +152,36 @@ func (s *IS) PublishModel(
 	return &v1.PublishModelResponse{}, nil
 }
 
+// GetModelPath gets a model path.
+func (s *IS) GetModelPath(
+	ctx context.Context,
+	req *v1.GetModelPathRequest,
+) (*v1.GetModelPathResponse, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if req.TenantId == "" {
+		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
+	}
+
+	m, err := s.store.GetModel(
+		store.ModelKey{
+			ModelID:  req.Id,
+			TenantID: req.TenantId,
+		},
+		true,
+	)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+	}
+	return &v1.GetModelPathResponse{
+		Path: m.Path,
+	}, nil
+}
+
 func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
 	const randomLength = 5
 	base := fmt.Sprintf("ft:%s:%s:", baseModel, suffix)
