@@ -21,18 +21,23 @@ func TestModel(t *testing.T) {
 		ModelID:  modelID,
 		TenantID: tenantID,
 	}
-	_, err := st.GetModel(k)
+	_, err := st.GetModel(k, true)
+	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	_, err = st.CreateModel(k)
+	_, err = st.CreateModel(ModelSpec{
+		Key:         k,
+		Path:        "path",
+		IsPublished: true,
+	})
 	assert.NoError(t, err)
 
-	gotM, err := st.GetModel(k)
+	gotM, err := st.GetModel(k, true)
 	assert.NoError(t, err)
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, tenantID, gotM.TenantID)
 
-	gotMs, err := st.ListModelsByTenantID(tenantID)
+	gotMs, err := st.ListModelsByTenantID(tenantID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 
@@ -40,20 +45,100 @@ func TestModel(t *testing.T) {
 		ModelID:  "m1",
 		TenantID: "tid1",
 	}
-	_, err = st.CreateModel(k1)
+	_, err = st.CreateModel(ModelSpec{
+		Key:         k1,
+		Path:        "path",
+		IsPublished: true,
+	})
 	assert.NoError(t, err)
 
-	gotMs, err = st.ListModelsByTenantID(tenantID)
+	gotMs, err = st.ListModelsByTenantID(tenantID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 
 	err = st.DeleteModel(k)
 	assert.NoError(t, err)
 
-	gotMs, err = st.ListModelsByTenantID(tenantID)
+	gotMs, err = st.ListModelsByTenantID(tenantID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 0)
 
 	err = st.DeleteModel(k)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+}
+
+func TestModel_Unpublished(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID  = "m0"
+		tenantID = "tid0"
+	)
+
+	k := ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	_, err := st.CreateModel(ModelSpec{
+		Key:         k,
+		Path:        "path",
+		IsPublished: false,
+	})
+	assert.NoError(t, err)
+
+	gotM, err := st.GetModel(k, false)
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, gotM.ModelID)
+	assert.Equal(t, tenantID, gotM.TenantID)
+
+	_, err = st.GetModel(k, true)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+
+	gotMs, err := st.ListModelsByTenantID(tenantID, false)
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, 1)
+
+	gotMs, err = st.ListModelsByTenantID(tenantID, true)
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, 0)
+}
+
+func TestUpdateModel(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID  = "m0"
+		tenantID = "tid0"
+	)
+
+	k := ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	err := st.UpdateModel(k, false)
+	assert.Error(t, err)
+
+	_, err = st.CreateModel(ModelSpec{
+		Key:         k,
+		Path:        "path",
+		IsPublished: false,
+	})
+	assert.NoError(t, err)
+
+	got, err := st.GetModel(k, false)
+	assert.NoError(t, err)
+	assert.False(t, got.IsPublished)
+
+	err = st.UpdateModel(k, true)
+	got, err = st.GetModel(k, false)
+	assert.NoError(t, err)
+	assert.True(t, got.IsPublished)
+
+	err = st.UpdateModel(k, false)
+	got, err = st.GetModel(k, false)
+	assert.NoError(t, err)
+	assert.False(t, got.IsPublished)
 }

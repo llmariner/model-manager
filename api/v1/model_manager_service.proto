@@ -57,17 +57,30 @@ service ModelsService {
   }
 }
 
-message CreateModelRequest {
+message RegisterModelRequest {
   string base_model = 1;
   string suffix = 2;
+  string tenant_id = 3;
+}
 
-  // TODO(kenji): Fix this.
-  string model_path = 3;
+message RegisterModelResponse {
+  string id = 1;
+  // path is the path where the model is stored.
+  string path = 2;
+}
 
-  string tenant_id = 4;
+message PublishModelRequest {
+  string id = 1;
+  string tenant_id = 2;
+}
+
+message PublishModelResponse {
 }
 
 service ModelsInternalService {
-  rpc CreateModel(CreateModelRequest) returns (Model) {
+  rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse) {
+  }
+
+  rpc PublishModel(PublishModelRequest) returns (PublishModelResponse) {
   }
 }
