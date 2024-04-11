@@ -62,7 +62,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	defer tearDown()
 
 	srv := New(st)
-	isrv := NewInternal(st)
+	isrv := NewInternal(st, "models")
 	ctx := context.Background()
 	resp, err := isrv.RegisterModel(ctx, &v1.RegisterModelRequest{
 		BaseModel: "my-model",

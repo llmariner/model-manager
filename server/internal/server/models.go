@@ -105,7 +105,7 @@ func (s *IS) RegisterModel(
 		return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
 	}
 
-	var path string
+	path := fmt.Sprintf("%s/%s/%s", s.pathPrefix, req.TenantId, id)
 	_, err = s.store.CreateModel(store.ModelSpec{
 		Key: store.ModelKey{
 			ModelID:  id,

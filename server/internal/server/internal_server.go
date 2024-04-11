@@ -12,9 +12,10 @@ import (
 )
 
 // NewInternal creates an internal server.
-func NewInternal(store *store.S) *IS {
+func NewInternal(store *store.S, pathPrefix string) *IS {
 	return &IS{
-		store: store,
+		store:      store,
+		pathPrefix: pathPrefix,
 	}
 }
 
@@ -25,6 +26,8 @@ type IS struct {
 	srv *grpc.Server
 
 	store *store.S
+
+	pathPrefix string
 }
 
 // Run starts the gRPC server.
