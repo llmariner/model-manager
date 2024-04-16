@@ -133,11 +133,13 @@ func TestUpdateModel(t *testing.T) {
 	assert.False(t, got.IsPublished)
 
 	err = st.UpdateModel(k, true)
+	assert.NoError(t, err)
 	got, err = st.GetModel(k, false)
 	assert.NoError(t, err)
 	assert.True(t, got.IsPublished)
 
 	err = st.UpdateModel(k, false)
+	assert.NoError(t, err)
 	got, err = st.GetModel(k, false)
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
