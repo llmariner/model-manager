@@ -71,7 +71,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	modelID := resp.Id
-	assert.True(t, strings.HasPrefix(modelID, "ft:my-model:fine-tuning:"))
+	assert.True(t, strings.HasPrefix(modelID, "ft:my-model:fine-tuning-"))
 
 	m, err := st.GetModel(store.ModelKey{
 		ModelID:  modelID,
