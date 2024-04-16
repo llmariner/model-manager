@@ -183,8 +183,10 @@ func (s *IS) GetModelPath(
 }
 
 func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
-	const randomLength = 5
-	base := fmt.Sprintf("ft:%s:%s:", baseModel, suffix)
+	const randomLength = 10
+	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
+	// TODO(kenji): Revisit this.
+	base := fmt.Sprintf("ft:%s:%s-", baseModel, suffix)
 
 	// Randomly create an ID and retry if it already exists.
 	for {
