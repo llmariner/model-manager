@@ -77,6 +77,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 		ModelID:  modelID,
 		TenantID: fakeTenantID,
 	}, false)
+	assert.NoError(t, err)
 	assert.False(t, m.IsPublished)
 
 	_, err = srv.GetModel(ctx, &v1.GetModelRequest{

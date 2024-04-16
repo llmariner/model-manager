@@ -21,6 +21,7 @@ type ModelKey struct {
 	TenantID string
 }
 
+// ModelSpec represents a model spec that is passed to CreateModel.
 type ModelSpec struct {
 	Key         ModelKey
 	Path        string
