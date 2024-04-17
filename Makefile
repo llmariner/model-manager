@@ -16,6 +16,14 @@ generate: buf-generate-all
 build-server:
 	go build -o ./bin/server ./server/cmd/
 
+.PHONY: build-loader
+build-loader:
+	go build -o ./bin/loader ./loader/cmd/
+
 .PHONY: build-docker-server
 build-docker-server:
 	docker build --build-arg TARGETARCH=amd64 -t llm-operator/model-manager-server:latest -f build/server/Dockerfile .
+
+.PHONY: build-docker-loader
+build-docker-loader:
+	docker build --build-arg TARGETARCH=amd64 -t llm-operator/model-manager-loader:latest -f build/loader/Dockerfile .

@@ -16,8 +16,6 @@ import (
 
 const (
 	fakeTenantID = "fake-tenant-id"
-
-	baseModelDir = "base-models"
 )
 
 // ListModels lists models.
@@ -193,8 +191,15 @@ func (s *IS) GetBaseModelPath(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
+	m, err := s.store.GetBaseModel(req.Id)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+	}
 	return &v1.GetBaseModelPathResponse{
-		Path: fmt.Sprintf("%s/%s/%s", s.pathPrefix, baseModelDir, req.Id),
+		Path: m.Path,
 	}, nil
 }
 
