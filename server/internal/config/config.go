@@ -66,6 +66,10 @@ func (c *Config) Validate() error {
 			return fmt.Errorf("sqlite path must be set")
 		}
 	} else {
+		if err := c.ObjectStore.Validate(); err != nil {
+			return fmt.Errorf("objectStore: %s", err)
+		}
+
 		if err := c.Database.Validate(); err != nil {
 			return fmt.Errorf("database: %s", err)
 		}
