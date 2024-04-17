@@ -38,6 +38,22 @@ func (c *ObjectStoreConfig) Validate() error {
 	return nil
 }
 
+type HuggingFaceDownloaderConfig struct {
+	CacheDir string `yaml:"cacheDir"`
+}
+
+type DownloaderConfig struct {
+	HuggingFace HuggingFaceDownloaderConfig `yaml:"huggingFace"`
+}
+
+func (c *DownloaderConfig) Validate() error {
+	if c.HuggingFace.CacheDir == "" {
+		return fmt.Errorf("cacheDir must be set")
+	}
+
+	return nil
+}
+
 // DebugConfig is the debug configuration.
 type DebugConfig struct {
 	Standalone bool   `yaml:"standalone"`
@@ -55,6 +71,8 @@ type Config struct {
 
 	ModelLoadInterval time.Duration `yaml:"modelLoadInterval"`
 
+	Downloader DownloaderConfig `yaml:"downloader"`
+
 	Debug DebugConfig `yaml:"debug"`
 }
 
@@ -70,6 +88,11 @@ func (c *Config) Validate() error {
 
 	if err := c.ObjectStore.Validate(); err != nil {
 		return fmt.Errorf("objectStore: %s", err)
+	}
+
+	if err := c.Downloader.Validate(); err != nil {
+		return fmt.Errorf("downloader: %s", err)
+
 	}
 
 	if c.Debug.Standalone {

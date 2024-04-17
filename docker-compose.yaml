@@ -31,6 +31,11 @@ services:
     - 8082:8082
     volumes:
     - ./configs/server:/etc/config
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 1s
+      timeout: 10s
+      retries: 10
     depends_on:
     - postgres
     networks:
@@ -50,6 +55,7 @@ services:
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
     volumes:
     - ./configs/loader:/etc/config
+    - ./hugging-face-cache:/hugging-face-cache
     depends_on:
     - postgres
     - server

@@ -3,6 +3,10 @@ objectStore:
     pathPrefix: models
     baseModelPathPrefix: base-models
 
+downloader:
+  huggingFace:
+    cacheDir: /hugging-face-cache
+
 baseModels:
 - google/gemma-2b
 

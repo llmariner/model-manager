@@ -4,19 +4,39 @@ import (
 	"context"
 	"errors"
 	"log"
-	"path"
+	"os"
+	"path/filepath"
 	"time"
 
 	"github.com/llm-operator/model-manager/common/pkg/store"
 	"gorm.io/gorm"
 )
 
+// ModelDownloader is an interface for downloading a model.
+type ModelDownloader interface {
+	download(modelName, destDir string) error
+}
+
+// NoopModelDownloader is a no-op model downloader.
+type NoopModelDownloader struct {
+}
+
+func (d *NoopModelDownloader) download(modelName, destDir string) error {
+	return nil
+}
+
 // New creates a new loader.
-func New(store *store.S, baseModels []string, objectStorPathPrefix string) *L {
+func New(
+	store *store.S,
+	baseModels []string,
+	objectStorPathPrefix string,
+	modelDownloader ModelDownloader,
+) *L {
 	return &L{
 		store:                store,
 		baseModels:           baseModels,
 		objectStorPathPrefix: objectStorPathPrefix,
+		modelDownloader:      modelDownloader,
 	}
 }
 
@@ -28,6 +48,8 @@ type L struct {
 
 	// objectStorPathPrefix is the prefix of the path to the base models in the object stoer.
 	objectStorPathPrefix string
+
+	modelDownloader ModelDownloader
 }
 
 // Run runs the loader.
@@ -55,12 +77,11 @@ func (l *L) loadBaseModels(ctx context.Context) error {
 			return err
 		}
 	}
-
 	return nil
 }
 
 func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
-	// Check if the model exists in the database.
+	// First check if the model exists in the database.
 	_, err := l.store.GetBaseModel(modelID)
 	if err == nil {
 		// Model exists. Do nothing.
@@ -70,9 +91,24 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	log.Printf("Loading base model %q\n", modelID)
+	log.Printf("Started loading base model %q\n", modelID)
 
-	mpath := path.Join(l.objectStorPathPrefix, modelID)
+	dir, err := os.MkdirTemp("/tmp", "base-model")
+	if err != nil {
+		return err
+	}
+	defer os.RemoveAll(dir)
+
+	log.Printf("Downloading base model %q\n", modelID)
+	if err := l.modelDownloader.download(modelID, dir); err != nil {
+		return err
+	}
+
+	log.Printf("Uploading base model %q to the object store\n", modelID)
+
+	// TODO(kenji): Upload all the files under the dir.
+
+	mpath := filepath.Join(l.objectStorPathPrefix, modelID)
 
 	if _, err := l.store.CreateBaseModel(modelID, mpath); err != nil {
 		return err

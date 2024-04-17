@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"path"
+	"path/filepath"
 
 	"github.com/llm-operator/model-manager/common/pkg/db"
 	"github.com/llm-operator/model-manager/common/pkg/store"
@@ -47,8 +47,20 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	s3c := c.ObjectStore.S3
-	s := loader.New(st, c.BaseModels, path.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix))
+	s := loader.New(
+		st,
+		c.BaseModels,
+		filepath.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix),
+		newModelDownloader(c),
+	)
 	return s.Run(ctx, c.ModelLoadInterval)
+}
+
+func newModelDownloader(c *config.Config) loader.ModelDownloader {
+	if c.Debug.Standalone {
+		return &loader.NoopModelDownloader{}
+	}
+	return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir)
 }
 
 func newStore(c *config.Config) (*store.S, error) {
