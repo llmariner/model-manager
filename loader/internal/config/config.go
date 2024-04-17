@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/llm-operator/model-manager/common/pkg/db"
 	"gopkg.in/yaml.v3"
@@ -10,7 +11,14 @@ import (
 
 // S3Config is the S3 configuration.
 type S3Config struct {
+	EndpointURL string `yaml:"endpointUrl"`
+	Bucket      string `yaml:"bucket"`
+
 	PathPrefix string `yaml:"pathPrefix"`
+
+	// BaseModelPathPrefix is the path prefix for the base models in the object store. A model is stored under
+	// <ObjectStore.S3.PathPrefix>/<BaseModelPathPrefix>.
+	BaseModelPathPrefix string `yaml:"baseModelPathPrefix"`
 }
 
 // ObjectStoreConfig is the object store configuration.
@@ -21,8 +29,12 @@ type ObjectStoreConfig struct {
 // Validate validates the object store configuration.
 func (c *ObjectStoreConfig) Validate() error {
 	if c.S3.PathPrefix == "" {
-		return fmt.Errorf("s3 path prefix must be set")
+		return fmt.Errorf("s3PathPrefix must be set")
 	}
+	if c.S3.BaseModelPathPrefix == "" {
+		return fmt.Errorf("baseModelPathPrefix must be set")
+	}
+
 	return nil
 }
 
@@ -34,36 +46,35 @@ type DebugConfig struct {
 
 // Config is the configuration.
 type Config struct {
-	HTTPPort         int `yaml:"httpPort"`
-	GRPCPort         int `yaml:"grpcPort"`
-	InternalGRPCPort int `yaml:"internalGrpcPort"`
-
 	Database db.Config `yaml:"database"`
 
 	ObjectStore ObjectStoreConfig `yaml:"objectStore"`
+
+	// BaseModels is the list of base models to load. Currently each model follows Hugging Face's model format.
+	BaseModels []string `yaml:"baseModels"`
+
+	ModelLoadInterval time.Duration `yaml:"modelLoadInterval"`
 
 	Debug DebugConfig `yaml:"debug"`
 }
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if c.HTTPPort <= 0 {
-		return fmt.Errorf("httpPort must be greater than 0")
+	if len(c.BaseModels) == 0 {
+		return fmt.Errorf("baseModels must be set")
 	}
-	if c.GRPCPort <= 0 {
-		return fmt.Errorf("grpcPort must be greater than 0")
-	}
-	if c.InternalGRPCPort <= 0 {
-		return fmt.Errorf("internalGrpcPort must be greater than 0")
+
+	if c.ModelLoadInterval == 0 {
+		return fmt.Errorf("modelloadInterval must be set")
 	}
 
 	if err := c.ObjectStore.Validate(); err != nil {
-		return fmt.Errorf("object store: %s", err)
+		return fmt.Errorf("objectStore: %s", err)
 	}
 
 	if c.Debug.Standalone {
 		if c.Debug.SqlitePath == "" {
-			return fmt.Errorf("sqlite path must be set")
+			return fmt.Errorf("sqlitePath must be set")
 		}
 	} else {
 		if err := c.Database.Validate(); err != nil {
