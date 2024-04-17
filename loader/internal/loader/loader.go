@@ -3,9 +3,11 @@ package loader
 import (
 	"context"
 	"errors"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/llm-operator/model-manager/common/pkg/store"
@@ -25,18 +27,34 @@ func (d *NoopModelDownloader) download(modelName, destDir string) error {
 	return nil
 }
 
+// S3Client is an interface for uploading a file to S3.
+type S3Client interface {
+	Upload(r io.Reader, key string) error
+}
+
+// NoopS3Client is a no-op S3 client.
+type NoopS3Client struct {
+}
+
+// Upload uploads a file to S3.
+func (c *NoopS3Client) Upload(r io.Reader, key string) error {
+	return nil
+}
+
 // New creates a new loader.
 func New(
 	store *store.S,
 	baseModels []string,
 	objectStorPathPrefix string,
 	modelDownloader ModelDownloader,
+	s3Client S3Client,
 ) *L {
 	return &L{
 		store:                store,
 		baseModels:           baseModels,
 		objectStorPathPrefix: objectStorPathPrefix,
 		modelDownloader:      modelDownloader,
+		s3Client:             s3Client,
 	}
 }
 
@@ -50,6 +68,8 @@ type L struct {
 	objectStorPathPrefix string
 
 	modelDownloader ModelDownloader
+
+	s3Client S3Client
 }
 
 // Run runs the loader.
@@ -93,18 +113,49 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	log.Printf("Started loading base model %q\n", modelID)
 
-	dir, err := os.MkdirTemp("/tmp", "base-model")
+	tmpDir, err := os.MkdirTemp("/tmp", "base-model")
 	if err != nil {
 		return err
 	}
-	defer os.RemoveAll(dir)
+	defer func() {
+		_ = os.RemoveAll(tmpDir)
+	}()
 
 	log.Printf("Downloading base model %q\n", modelID)
-	if err := l.modelDownloader.download(modelID, dir); err != nil {
+	if err := l.modelDownloader.download(modelID, tmpDir); err != nil {
 		return err
 	}
 
+	var paths []string
+	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+
+		paths = append(paths, path)
+		return nil
+	}); err != nil {
+		return err
+	}
+	log.Printf("Downloaded %d files\n", len(paths))
+
 	log.Printf("Uploading base model %q to the object store\n", modelID)
+	for _, path := range paths {
+		log.Printf("  %s\n", path)
+		r, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		if err := l.s3Client.Upload(r, filepath.Join(l.objectStorPathPrefix, modelID, strings.TrimPrefix(path, tmpDir))); err != nil {
+			return err
+		}
+		if err := r.Close(); err != nil {
+			return err
+		}
+	}
 
 	// TODO(kenji): Upload all the files under the dir.
 

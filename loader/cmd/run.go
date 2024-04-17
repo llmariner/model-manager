@@ -8,6 +8,7 @@ import (
 	"github.com/llm-operator/model-manager/common/pkg/store"
 	"github.com/llm-operator/model-manager/loader/internal/config"
 	"github.com/llm-operator/model-manager/loader/internal/loader"
+	"github.com/llm-operator/model-manager/loader/internal/s3"
 	"github.com/spf13/cobra"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -52,6 +53,7 @@ func run(ctx context.Context, c *config.Config) error {
 		c.BaseModels,
 		filepath.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix),
 		newModelDownloader(c),
+		newS3Client(c),
 	)
 	return s.Run(ctx, c.ModelLoadInterval)
 }
@@ -81,6 +83,13 @@ func newStore(c *config.Config) (*store.S, error) {
 		return nil, err
 	}
 	return store.New(dbInst), nil
+}
+
+func newS3Client(c *config.Config) loader.S3Client {
+	if c.Debug.Standalone {
+		return &loader.NoopS3Client{}
+	}
+	return s3.NewClient(c.ObjectStore.S3)
 }
 
 func init() {
