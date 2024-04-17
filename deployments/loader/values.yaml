@@ -1,0 +1,24 @@
+objectStore:
+  s3:
+    pathPrefix: models
+    baseModelPathPrefix: base-models
+
+baseModels:
+
+modelLoadInterval: 1m
+
+database:
+  host:
+  port: 5432
+  database: model_manager
+  username:
+  passwordEnvName: DB_PASSWORD
+
+replicaCount: 1
+image:
+  repository: llm-operator/model-manager-loader
+  # TODO(kenji): Change this to IfNotPresent. Currently we set the pullPolicy
+  # to Never as it is required to use a loaded image in a Kind cluster.
+  pullPolicy: Never
+
+version: latest
