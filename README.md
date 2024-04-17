@@ -7,6 +7,22 @@ Model Manager consists of the following components;
 
 `loader` currently loads open models from Hugging Face, but we can extend that to support other locations.
 
+## Running with Docker Compose
+
+Run the following command:
+
+```bash
+docker-compose up
+```
+
+You can access to the database or hit the HTTP endpoint:
+
+```bash
+docker exec -it <postgres container ID> psql -h localhost -U user --no-password -p 5432 -d model_manager
+
+curl http://localhost:8080/v1/models
+```
+
 ## Running `server` Locally
 
 ```bash
