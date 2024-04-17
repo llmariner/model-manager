@@ -179,6 +179,7 @@ type ModelsInternalServiceClient interface {
 	RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error)
 	PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error)
 	GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error)
+	GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error)
 }
 
 type modelsInternalServiceClient struct {
@@ -216,6 +217,15 @@ func (c *modelsInternalServiceClient) GetModelPath(ctx context.Context, in *GetM
 	return out, nil
 }
 
+func (c *modelsInternalServiceClient) GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error) {
+	out := new(GetBaseModelPathResponse)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/GetBaseModelPath", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ModelsInternalServiceServer is the server API for ModelsInternalService service.
 // All implementations must embed UnimplementedModelsInternalServiceServer
 // for forward compatibility
@@ -223,6 +233,7 @@ type ModelsInternalServiceServer interface {
 	RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error)
 	PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error)
 	GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error)
+	GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error)
 	mustEmbedUnimplementedModelsInternalServiceServer()
 }
 
@@ -238,6 +249,9 @@ func (UnimplementedModelsInternalServiceServer) PublishModel(context.Context, *P
 }
 func (UnimplementedModelsInternalServiceServer) GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModelPath not implemented")
+}
+func (UnimplementedModelsInternalServiceServer) GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetBaseModelPath not implemented")
 }
 func (UnimplementedModelsInternalServiceServer) mustEmbedUnimplementedModelsInternalServiceServer() {}
 
@@ -306,6 +320,24 @@ func _ModelsInternalService_GetModelPath_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsInternalService_GetBaseModelPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetBaseModelPathRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsInternalServiceServer).GetBaseModelPath(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/GetBaseModelPath",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsInternalServiceServer).GetBaseModelPath(ctx, req.(*GetBaseModelPathRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ModelsInternalService_ServiceDesc is the grpc.ServiceDesc for ModelsInternalService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -324,6 +356,10 @@ var ModelsInternalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetModelPath",
 			Handler:    _ModelsInternalService_GetModelPath_Handler,
+		},
+		{
+			MethodName: "GetBaseModelPath",
+			Handler:    _ModelsInternalService_GetBaseModelPath_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

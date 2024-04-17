@@ -16,6 +16,8 @@ import (
 
 const (
 	fakeTenantID = "fake-tenant-id"
+
+	baseModelDir = "base-models"
 )
 
 // ListModels lists models.
@@ -179,6 +181,20 @@ func (s *IS) GetModelPath(
 	}
 	return &v1.GetModelPathResponse{
 		Path: m.Path,
+	}, nil
+}
+
+// GetBaseModelPath gets a model path.
+func (s *IS) GetBaseModelPath(
+	ctx context.Context,
+	req *v1.GetBaseModelPathRequest,
+) (*v1.GetBaseModelPathResponse, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	return &v1.GetBaseModelPathResponse{
+		Path: fmt.Sprintf("%s/%s/%s", s.pathPrefix, baseModelDir, req.Id),
 	}, nil
 }
 
