@@ -1,0 +1,16 @@
+objectStore:
+  s3:
+    pathPrefix: models
+    baseModelPathPrefix: base-models
+
+baseModels:
+- google/gemma-2b
+
+modelLoadInterval: 1m
+
+database:
+  host: postgres
+  port: 5432
+  database: model_manager
+  username: user
+  passwordEnvName: DB_PASSWORD
