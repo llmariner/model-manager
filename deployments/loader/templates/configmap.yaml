@@ -10,6 +10,9 @@ data:
       s3:
         pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
+    downloader:
+      huggingFace:
+        cacheDir: {{ .Values.downloader.huggingFace.cacheDir }}
     baseModels:
     {{- range .Values.baseModels }}
     - {{ . }}
