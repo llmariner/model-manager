@@ -28,13 +28,18 @@ type ObjectStoreConfig struct {
 
 // Validate validates the object store configuration.
 func (c *ObjectStoreConfig) Validate() error {
+	if c.S3.EndpointURL == "" {
+		return fmt.Errorf("s3 endpoint url must be set")
+	}
+	if c.S3.Bucket == "" {
+		return fmt.Errorf("s3 bucket must be set")
+	}
 	if c.S3.PathPrefix == "" {
 		return fmt.Errorf("s3PathPrefix must be set")
 	}
 	if c.S3.BaseModelPathPrefix == "" {
 		return fmt.Errorf("baseModelPathPrefix must be set")
 	}
-
 	return nil
 }
 

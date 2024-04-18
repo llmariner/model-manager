@@ -1,7 +1,14 @@
 objectStore:
   s3:
+    endpointUrl:
+    bucket:
     pathPrefix: models
     baseModelPathPrefix: base-models
+
+awsSecret:
+  name:
+  accessKeyIdKey:
+  secretAccessKeyKey:
 
 downloader:
   huggingFace:

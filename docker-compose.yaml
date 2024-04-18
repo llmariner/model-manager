@@ -11,6 +11,64 @@ services:
     - POSTGRES_PASSWORD=password
     ports:
     - 5432
+    healthcheck:
+      test:
+      - CMD
+      - psql
+      - -U
+      - user
+      - -d
+      - model_manager
+      - pg_isready
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    networks:
+    - model-manager
+
+  minio:
+    hostname: minio
+    image: quay.io/minio/minio:latest
+    command:
+    - server
+    - /data
+    - --console-address
+    - :9090
+    ports:
+    - 9000
+    - 9090
+    networks:
+    - model-manager
+
+  # Set up credential
+  minio-setup:
+    hostname: minio-setup
+    image: amazon/aws-cli
+    entrypoint: /bin/bash
+    command:
+    - -c
+    - "curl http://minio:9090/api/v1/login --cookie-jar cookies.txt --request POST --header 'Content-Type: application/json' --data '{\"accessKey\": \"minioadmin\", \"secretKey\": \"minioadmin\"}' &&
+       export AWS_ACCESS_KEY_ID=llm-operator-key &&
+       export AWS_SECRET_ACCESS_KEY=llm-operator-secret &&
+       curl http://minio:9090/api/v1/service-account-credentials --cookie cookies.txt --request POST --header 'Content-Type: application/json' --data '{\"policy\": \"\", \"accessKey\": \"llm-operator-key\", \"secretKey\": \"llm-operator-secret\", \"description\": \"\", \"comment\": \"\", \"name\": \"LLM Operator\", \"expiry\": null}' ;
+       aws --endpoint-url http://minio:9000 s3 mb s3://llm-operator &&
+       sleep infinity
+    "
+    healthcheck:
+      test:
+      - CMD
+      - /bin/bash
+      - -c
+      - "export AWS_ACCESS_KEY_ID=llm-operator-key &&
+         export AWS_SECRET_ACCESS_KEY=llm-operator-secret &&
+         aws --endpoint-url http://minio:9000 s3 ls s3://llm-operator
+      "
+      interval: 1s
+      timeout: 10s
+      retries: 10
+    depends_on:
+    - minio
+    restart: on-failure
     networks:
     - model-manager
 
@@ -37,7 +95,11 @@ services:
       timeout: 10s
       retries: 10
     depends_on:
-    - postgres
+      postgres:
+        condition: service_healthy
+      minio-setup:
+        condition: service_healthy
+    restart: on-failure
     networks:
     - model-manager
 
@@ -53,12 +115,17 @@ services:
     environment:
       DB_PASSWORD: password
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
+      AWS_ACCESS_KEY_ID: llm-operator-key
+      AWS_SECRET_ACCESS_KEY: llm-operator-secret
     volumes:
     - ./configs/loader:/etc/config
-    - ./hugging-face-cache:/hugging-face-cache
+    - /tmp/hugging-face-cache:/hugging-face-cache
     depends_on:
-    - postgres
-    - server
+      postgres:
+        condition: service_healthy
+      minio-setup:
+        condition: service_healthy
+    restart: on-failure
     networks:
     - model-manager
 

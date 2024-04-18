@@ -32,6 +32,20 @@ spec:
             secretKeyRef:
               name: {{ .Values.databaseSecret.name }}
               key: {{ .Values.databaseSecret.key }}
+        {{- with .Values.awsSecret }}
+        {{- if .name }}
+        - name: AWS_ACCESS_KEY_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .name }}
+              key: {{ .accessKeyIdKey }}
+        - name: AWS_SECRET_ACCESS_KEY
+          valueFrom:
+            secretKeyRef:
+              name: {{ .name }}
+              key: {{ .secretAccessKeyKey }}
+        {{- end }}
+        {{- end }}
       volumes:
       - name: config
         configMap:

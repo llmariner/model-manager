@@ -12,6 +12,7 @@ Model Manager consists of the following components;
 Run the following command:
 
 ```bash
+docker-compose build
 docker-compose up
 ```
 
@@ -21,6 +22,11 @@ You can access to the database or hit the HTTP endpoint:
 docker exec -it <postgres container ID> psql -h localhost -U user --no-password -p 5432 -d model_manager
 
 curl http://localhost:8080/v1/models
+
+docker exec -it <aws-cli container ID> bash
+export AWS_ACCESS_KEY_ID=llm-operator-key
+export AWS_SECRET_ACCESS_KEY=llm-operator-secret
+aws --endpoint-url http://minio:9000 s3 ls s3://llm-operator
 ```
 
 ## Running `server` Locally
