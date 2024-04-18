@@ -46,6 +46,15 @@ spec:
               key: {{ .secretAccessKeyKey }}
         {{- end }}
         {{- end }}
+        {{- with .Values.huggingFaceSecret }}
+        {{- if .name }}
+        - name: HUGGING_FACE_HUB_TOKEN
+          valueFrom:
+            secretKeyRef:
+              name: {{ .name }}
+              key: {{ .apiKeyKey }}
+        {{- end }}
+        {{- end }}
       volumes:
       - name: config
         configMap:
