@@ -10,6 +10,10 @@ awsSecret:
   accessKeyIdKey:
   secretAccessKeyKey:
 
+huggingFaceSecret:
+  name:
+  apiKeyKey:
+
 downloader:
   huggingFace:
     cacheDir: /hugging-face-cache
