@@ -43,14 +43,17 @@ func (c *ObjectStoreConfig) Validate() error {
 	return nil
 }
 
+// HuggingFaceDownloaderConfig is the Hugging Face downloader configuration.
 type HuggingFaceDownloaderConfig struct {
 	CacheDir string `yaml:"cacheDir"`
 }
 
+// DownloaderConfig is the downloader configuration.
 type DownloaderConfig struct {
 	HuggingFace HuggingFaceDownloaderConfig `yaml:"huggingFace"`
 }
 
+// Validate validates the downloader configuration.
 func (c *DownloaderConfig) Validate() error {
 	if c.HuggingFace.CacheDir == "" {
 		return fmt.Errorf("cacheDir must be set")
