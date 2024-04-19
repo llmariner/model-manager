@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/common/pkg/store"
@@ -226,7 +227,8 @@ func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
 	const randomLength = 10
 	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
 	// TODO(kenji): Revisit this.
-	base := fmt.Sprintf("ft:%s:%s-", baseModel, suffix)
+	// Replace "/" with "-'. HuggingFace model contains "/", but that doesn't work for Ollama.
+	base := fmt.Sprintf("ft:%s:%s-", strings.ReplaceAll(baseModel, "/", "-"), suffix)
 
 	// Randomly create an ID and retry if it already exists.
 	for {
