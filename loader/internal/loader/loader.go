@@ -122,7 +122,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	// - one of the symlinks reated by Hugging Face is .gitattributes, which is linked to ../../Users/kenji/.cache/.
 	//
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
-	tmpDir, err := os.MkdirTemp("", "base-model")
+	tmpDir, err := os.MkdirTemp(".", "base-model")
 	if err != nil {
 		return err
 	}
@@ -153,12 +153,15 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	log.Printf("Uploading base model %q to the object store\n", modelID)
 	for _, path := range paths {
-		log.Printf("  %s\n", path)
+		log.Printf("Uploading %q\n", path)
 		r, err := os.Open(path)
 		if err != nil {
 			return err
 		}
-		key := filepath.Join(l.objectStorPathPrefix, modelID, strings.TrimPrefix(path, tmpDir))
+
+		// Remove the tmpdir path from the path. We need tmpDir[2:] since the path starts with "./" while 'path' omits it.
+		relativePath := strings.TrimPrefix(path, tmpDir[2:])
+		key := filepath.Join(l.objectStorPathPrefix, modelID, relativePath)
 		if err := l.s3Client.Upload(r, key); err != nil {
 			return err
 		}
