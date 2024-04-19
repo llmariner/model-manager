@@ -32,3 +32,12 @@ func (s *S) GetBaseModel(modelID string) (*BaseModel, error) {
 	}
 	return &m, nil
 }
+
+// ListBaseModels returns all base models.
+func (s *S) ListBaseModels() ([]*BaseModel, error) {
+	var ms []*BaseModel
+	if err := s.db.Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}

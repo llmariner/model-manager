@@ -19,6 +19,29 @@
     "application/json"
   ],
   "paths": {
+    "/v1/basemodels": {
+      "get": {
+        "summary": "The following API endpoints are not part of the OpenAPI API specification.",
+        "operationId": "ModelsService_ListBaseModels",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ListBaseModelsResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ModelsService"
+        ]
+      }
+    },
     "/v1/models": {
       "get": {
         "operationId": "ModelsService_ListModels",
@@ -128,6 +151,21 @@
         }
       }
     },
+    "v1BaseModel": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "created": {
+          "type": "string",
+          "format": "int64"
+        },
+        "object": {
+          "type": "string"
+        }
+      }
+    },
     "v1DeleteModelResponse": {
       "type": "object",
       "properties": {
@@ -155,6 +193,20 @@
       "properties": {
         "path": {
           "type": "string"
+        }
+      }
+    },
+    "v1ListBaseModelsResponse": {
+      "type": "object",
+      "properties": {
+        "object": {
+          "type": "string"
+        },
+        "data": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1BaseModel"
+          }
         }
       }
     },
