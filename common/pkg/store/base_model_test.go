@@ -27,4 +27,9 @@ func TestBaseModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, "path", gotM.Path)
+
+	gotMs, err := st.ListBaseModels()
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, 1)
+	assert.Equal(t, modelID, gotMs[0].ModelID)
 }

@@ -153,6 +153,24 @@ func local_request_ModelsService_DeleteModel_0(ctx context.Context, marshaler ru
 
 }
 
+func request_ModelsService_ListBaseModels_0(ctx context.Context, marshaler runtime.Marshaler, client ModelsServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq ListBaseModelsRequest
+	var metadata runtime.ServerMetadata
+
+	msg, err := client.ListBaseModels(ctx, &protoReq, grpc.Header(&metadata.HeaderMD), grpc.Trailer(&metadata.TrailerMD))
+	return msg, metadata, err
+
+}
+
+func local_request_ModelsService_ListBaseModels_0(ctx context.Context, marshaler runtime.Marshaler, server ModelsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
+	var protoReq ListBaseModelsRequest
+	var metadata runtime.ServerMetadata
+
+	msg, err := server.ListBaseModels(ctx, &protoReq)
+	return msg, metadata, err
+
+}
+
 // RegisterModelsServiceHandlerServer registers the http handlers for service ModelsService to "mux".
 // UnaryRPC     :call ModelsServiceServer directly.
 // StreamingRPC :currently unsupported pending https://github.com/grpc/grpc-go/issues/906.
@@ -225,6 +243,29 @@ func RegisterModelsServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		}
 
 		forward_ModelsService_DeleteModel_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
+	mux.Handle("GET", pattern_ModelsService_ListBaseModels_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		var stream runtime.ServerTransportStream
+		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmoperator.models.server.v1.ModelsService/ListBaseModels", runtime.WithHTTPPathPattern("/v1/basemodels"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := local_request_ModelsService_ListBaseModels_0(rctx, inboundMarshaler, server, req, pathParams)
+		md.HeaderMD, md.TrailerMD = metadata.Join(md.HeaderMD, stream.Header()), metadata.Join(md.TrailerMD, stream.Trailer())
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_ModelsService_ListBaseModels_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
 
 	})
 
@@ -329,6 +370,26 @@ func RegisterModelsServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 
 	})
 
+	mux.Handle("GET", pattern_ModelsService_ListBaseModels_0, func(w http.ResponseWriter, req *http.Request, pathParams map[string]string) {
+		ctx, cancel := context.WithCancel(req.Context())
+		defer cancel()
+		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmoperator.models.server.v1.ModelsService/ListBaseModels", runtime.WithHTTPPathPattern("/v1/basemodels"))
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+		resp, md, err := request_ModelsService_ListBaseModels_0(rctx, inboundMarshaler, client, req, pathParams)
+		ctx = runtime.NewServerMetadataContext(ctx, md)
+		if err != nil {
+			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
+			return
+		}
+
+		forward_ModelsService_ListBaseModels_0(ctx, mux, outboundMarshaler, w, req, resp, mux.GetForwardResponseOptions()...)
+
+	})
+
 	return nil
 }
 
@@ -338,6 +399,8 @@ var (
 	pattern_ModelsService_GetModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, ""))
 
 	pattern_ModelsService_DeleteModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, ""))
+
+	pattern_ModelsService_ListBaseModels_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "basemodels"}, ""))
 )
 
 var (
@@ -346,4 +409,6 @@ var (
 	forward_ModelsService_GetModel_0 = runtime.ForwardResponseMessage
 
 	forward_ModelsService_DeleteModel_0 = runtime.ForwardResponseMessage
+
+	forward_ModelsService_ListBaseModels_0 = runtime.ForwardResponseMessage
 )

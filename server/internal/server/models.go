@@ -85,6 +85,25 @@ func (s *S) DeleteModel(
 	}, nil
 }
 
+// ListBaseModels lists base models.
+func (s *S) ListBaseModels(
+	ctx context.Context,
+	req *v1.ListBaseModelsRequest,
+) (*v1.ListBaseModelsResponse, error) {
+	ms, err := s.store.ListBaseModels()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
+	}
+	var modelProtos []*v1.BaseModel
+	for _, m := range ms {
+		modelProtos = append(modelProtos, toBaseModelProto(m))
+	}
+	return &v1.ListBaseModelsResponse{
+		Object: "list",
+		Data:   modelProtos,
+	}, nil
+}
+
 // RegisterModel registers a model.
 func (s *IS) RegisterModel(
 	ctx context.Context,
@@ -228,5 +247,13 @@ func toModelProto(m *store.Model) *v1.Model {
 		Object:  "model",
 		Created: m.CreatedAt.UTC().Unix(),
 		// TODO(kenji): Set OwnedBy
+	}
+}
+
+func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {
+	return &v1.BaseModel{
+		Id:      m.ModelID,
+		Object:  "basemodel",
+		Created: m.CreatedAt.UTC().Unix(),
 	}
 }

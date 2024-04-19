@@ -37,6 +37,20 @@ message DeleteModelResponse {
   bool deleted = 3;
 }
 
+message ListBaseModelsRequest {
+}
+
+message BaseModel {
+  string id = 1;
+  int64 created = 2;
+  string object = 3;
+}
+
+message ListBaseModelsResponse {
+  string object = 1;
+  repeated BaseModel data = 2;
+}
+
 service ModelsService {
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
     option (google.api.http) = {
@@ -55,6 +69,14 @@ service ModelsService {
       delete: "/v1/models/{id}"
     };
   }
+
+  // The following API endpoints are not part of the OpenAPI API specification.
+  rpc ListBaseModels(ListBaseModelsRequest) returns (ListBaseModelsResponse) {
+    option (google.api.http) = {
+      get: "/v1/basemodels"
+    };
+  }
+
 }
 
 message RegisterModelRequest {

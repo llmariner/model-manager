@@ -143,5 +143,41 @@ func TestGetModelPath(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "model-path", resp.Path)
+}
 
+func TestBaseModels(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st)
+	ctx := context.Background()
+
+	isrv := NewInternal(st, "models")
+
+	const modelID = "m0"
+
+	_, err := isrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
+		Id: modelID,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	listResp, err := srv.ListBaseModels(ctx, &v1.ListBaseModelsRequest{})
+	assert.NoError(t, err)
+	assert.Len(t, listResp.Data, 0)
+
+	// Create a base model.
+	_, err = st.CreateBaseModel(modelID, "path")
+	assert.NoError(t, err)
+
+	getResp, err := isrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "path", getResp.Path)
+
+	listResp, err = srv.ListBaseModels(ctx, &v1.ListBaseModelsRequest{})
+	assert.NoError(t, err)
+	assert.Len(t, listResp.Data, 1)
+	assert.Equal(t, modelID, listResp.Data[0].Id)
 }
