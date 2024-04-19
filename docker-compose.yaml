@@ -119,7 +119,7 @@ services:
       AWS_SECRET_ACCESS_KEY: llm-operator-secret
     volumes:
     - ./configs/loader:/etc/config
-    - /tmp/hugging-face-cache:/hugging-face-cache
+    - ${HOME}/.cache/huggingface/hub:/hugging-face-cache
     depends_on:
       postgres:
         condition: service_healthy
