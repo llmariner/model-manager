@@ -12,7 +12,9 @@ import (
 // S3Config is the S3 configuration.
 type S3Config struct {
 	EndpointURL string `yaml:"endpointUrl"`
-	Bucket      string `yaml:"bucket"`
+	Region      string `yaml:"region"`
+
+	Bucket string `yaml:"bucket"`
 
 	PathPrefix string `yaml:"pathPrefix"`
 
@@ -30,6 +32,9 @@ type ObjectStoreConfig struct {
 func (c *ObjectStoreConfig) Validate() error {
 	if c.S3.EndpointURL == "" {
 		return fmt.Errorf("s3 endpoint url must be set")
+	}
+	if c.S3.Region == "" {
+		return fmt.Errorf("s3 region must be set")
 	}
 	if c.S3.Bucket == "" {
 		return fmt.Errorf("s3 bucket must be set")
@@ -79,6 +84,12 @@ type Config struct {
 
 	ModelLoadInterval time.Duration `yaml:"modelLoadInterval"`
 
+	// RunOnce is set to true when models are loaded only once.
+	RunOnce bool `yaml:"runOnce"`
+
+	// SkipDBUpdate is set to true when the loader skips updateing the "base-models" table.
+	SkipDBUpdate bool `yaml:"dbUpdate"`
+
 	Downloader DownloaderConfig `yaml:"downloader"`
 
 	Debug DebugConfig `yaml:"debug"`
@@ -90,7 +101,7 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("baseModels must be set")
 	}
 
-	if c.ModelLoadInterval == 0 {
+	if !c.RunOnce && c.ModelLoadInterval == 0 {
 		return fmt.Errorf("modelloadInterval must be set")
 	}
 
@@ -107,7 +118,7 @@ func (c *Config) Validate() error {
 		if c.Debug.SqlitePath == "" {
 			return fmt.Errorf("sqlitePath must be set")
 		}
-	} else {
+	} else if !c.SkipDBUpdate {
 		if err := c.Database.Validate(); err != nil {
 			return fmt.Errorf("database: %s", err)
 		}

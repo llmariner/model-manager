@@ -31,6 +31,7 @@ func (h *HuggingFaceDownloader) download(modelName, destDir string) error {
 		"--local-dir-use-symlinks=True",
 		"--quiet",
 	}
+	log.Printf("Downloading the image with command: %v\n", cmdline)
 	cmd := exec.Command(cmdline[0], cmdline[1:]...)
 	var errb bytes.Buffer
 	cmd.Stderr = &errb

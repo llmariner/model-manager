@@ -55,6 +55,11 @@ func run(ctx context.Context, c *config.Config) error {
 		newModelDownloader(c),
 		newS3Client(c),
 	)
+
+	if c.RunOnce {
+		return s.LoadBaseModels(ctx)
+	}
+
 	return s.Run(ctx, c.ModelLoadInterval)
 }
 
@@ -66,8 +71,15 @@ func newModelDownloader(c *config.Config) loader.ModelDownloader {
 }
 
 func newStore(c *config.Config) (*store.S, error) {
-	if c.Debug.Standalone {
-		dbInst, err := gorm.Open(sqlite.Open(c.Debug.SqlitePath), &gorm.Config{})
+	if c.Debug.Standalone || c.SkipDBUpdate {
+		var path string
+		if c.SkipDBUpdate {
+			// Create an in-memory database so that writes to the database are not persisted.
+			path = "file::memory:?cache=shared"
+		} else {
+			path = c.Debug.SqlitePath
+		}
+		dbInst, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
 		if err != nil {
 			return nil, err
 		}

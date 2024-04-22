@@ -95,3 +95,34 @@ debug:
   standalone: true
   sqlitePath: /tmp/model_manager.db
 ```
+
+# Uploading models to S3 bucket `llm-operator-models`
+
+Run `loader` with the following `config.yaml`:
+
+```console
+$ cat config.yaml
+
+objectStore:
+  s3:
+    endpointUrl: https://s3.us-west-2.amazonaws.com
+    region: us-west-2
+    bucket: llm-operator-models
+    pathPrefix: v1
+    baseModelPathPrefix: base-models
+
+baseModels:
+- google/gemma-2b
+
+runOnce: true
+
+dbUpdate: false
+
+downloader:
+  huggingFace:
+    # Change this to your cache directory.
+    cacheDir: /Users/kenji/.cache/huggingface/hub
+
+$ export AWS_PROFILE=<profile that has access to the bucket>
+$ ./bin/loader --config config.yaml
+```

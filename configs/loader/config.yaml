@@ -1,6 +1,7 @@
 objectStore:
   s3:
     endpointUrl: http://minio:9000
+    region: dummy
     bucket: llm-operator
     pathPrefix: models
     baseModelPathPrefix: base-models

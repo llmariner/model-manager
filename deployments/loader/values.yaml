@@ -1,6 +1,7 @@
 objectStore:
   s3:
     endpointUrl:
+    region:
     bucket:
     pathPrefix: models
     baseModelPathPrefix: base-models
@@ -21,6 +22,8 @@ downloader:
 baseModels:
 
 modelLoadInterval: 1m
+runOnce: false
+skipDbUpdate: false
 
 database:
   host:

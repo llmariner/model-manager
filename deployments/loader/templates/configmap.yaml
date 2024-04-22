@@ -9,6 +9,7 @@ data:
     objectStore:
       s3:
         endpointUrl: {{ .Values.objectStore.s3.endpointUrl }}
+        region: {{ .Values.objectStore.s3.region }}
         bucket: {{ .Values.objectStore.s3.bucket }}
         pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
@@ -20,6 +21,8 @@ data:
     - {{ . }}
     {{- end }}
     modelLoadInterval: {{ .Values.modelLoadInterval }}
+    runOnce: {{ .Values.runOnce }}
+    skipDbUpdate: {{ .Values.skipDbUpdate }}
     database:
       host: {{ .Values.database.host }}
       port: {{ .Values.database.port }}
