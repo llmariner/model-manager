@@ -3,6 +3,7 @@ package loader
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -74,7 +75,7 @@ type L struct {
 
 // Run runs the loader.
 func (l *L) Run(ctx context.Context, interval time.Duration) error {
-	if err := l.loadBaseModels(ctx); err != nil {
+	if err := l.LoadBaseModels(ctx); err != nil {
 		return err
 	}
 
@@ -84,14 +85,15 @@ func (l *L) Run(ctx context.Context, interval time.Duration) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			if err := l.loadBaseModels(ctx); err != nil {
+			if err := l.LoadBaseModels(ctx); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-func (l *L) loadBaseModels(ctx context.Context) error {
+// LoadBaseModels loads the base models.
+func (l *L) LoadBaseModels(ctx context.Context) error {
 	for _, baseModel := range l.baseModels {
 		if err := l.loadBaseModel(ctx, baseModel); err != nil {
 			return err
@@ -104,7 +106,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	// First check if the model exists in the database.
 	_, err := l.store.GetBaseModel(modelID)
 	if err == nil {
-		// Model exists. Do nothing.
+		log.Printf("Model %q exists. Do nothing.\n", modelID)
 		return nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -126,6 +128,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	if err != nil {
 		return err
 	}
+	log.Printf("Created a temp dir %q\n", tmpDir)
 	defer func() {
 		_ = os.RemoveAll(tmpDir)
 	}()
@@ -150,6 +153,10 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 	log.Printf("Downloaded %d files\n", len(paths))
+	if len(paths) == 0 {
+		time.Sleep(10 * time.Minute)
+		return fmt.Errorf("no files downloaded")
+	}
 
 	log.Printf("Uploading base model %q to the object store\n", modelID)
 	for _, path := range paths {
