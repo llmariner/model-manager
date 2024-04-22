@@ -88,7 +88,7 @@ type Config struct {
 	RunOnce bool `yaml:"runOnce"`
 
 	// SkipDBUpdate is set to true when the loader skips updateing the "base-models" table.
-	SkipDBUpdate bool `yaml:"dbUpdate"`
+	SkipDBUpdate bool `yaml:"skipDbUpdate"`
 
 	Downloader DownloaderConfig `yaml:"downloader"`
 
