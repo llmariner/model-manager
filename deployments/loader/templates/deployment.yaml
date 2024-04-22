@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: model-manager-loader
-        image: "{{ .Values.image.repository }}:{{ .Values.version | default (printf "loader-%s" .Chart.Version)}}"
+        image: "{{ .Values.image.repository }}:{{ default .Chart.Version .Values.version }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
         - run
