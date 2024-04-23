@@ -58,8 +58,6 @@ func (d *S3Downloader) download(modelName, destDir string) error {
 }
 
 func (d *S3Downloader) downloadOneObject(key, prefix, destDir string) error {
-	log.Printf("key    = %q\n", key)
-	log.Printf("prefix = %q\n", prefix)
 	filePath := filepath.Join(destDir, strings.TrimPrefix(key, prefix))
 	f, err := os.Create(filePath)
 	if err != nil {
