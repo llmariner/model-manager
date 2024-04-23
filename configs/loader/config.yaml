@@ -7,8 +7,12 @@ objectStore:
     baseModelPathPrefix: base-models
 
 downloader:
-  huggingFace:
-    cacheDir: /hugging-face-cache
+  kind: s3
+  s3:
+    endpointUrl: https://s3.us-west-2.amazonaws.com
+    region: us-west-2
+    bucket: llm-operator-models
+    pathPrefix: v1/base-models
 
 baseModels:
 - google/gemma-2b

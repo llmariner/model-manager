@@ -14,6 +14,12 @@ data:
         pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
     downloader:
+      kind: {{ .Values.downloader.kind }}
+      s3:
+        endpointUrl: {{ .Values.downloader.s3.endpointUrl }}
+        region: {{ .Values.downloader.s3.region }}
+        bucket: {{ .Values.downloader.s3.bucket }}
+        pathPrefix: {{ .Values.downloader.s3.pathPrefix }}
       huggingFace:
         cacheDir: {{ .Values.downloader.huggingFace.cacheDir }}
     baseModels:

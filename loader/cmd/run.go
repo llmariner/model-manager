@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"path/filepath"
 
 	"github.com/llm-operator/model-manager/common/pkg/db"
@@ -48,11 +49,16 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	s3c := c.ObjectStore.S3
+	d, err := newModelDownloader(c)
+	if err != nil {
+		return err
+	}
+
 	s := loader.New(
 		st,
 		c.BaseModels,
 		filepath.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix),
-		newModelDownloader(c),
+		d,
 		newS3Client(c),
 	)
 
@@ -63,11 +69,27 @@ func run(ctx context.Context, c *config.Config) error {
 	return s.Run(ctx, c.ModelLoadInterval)
 }
 
-func newModelDownloader(c *config.Config) loader.ModelDownloader {
+func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
 	if c.Debug.Standalone {
-		return &loader.NoopModelDownloader{}
+		return &loader.NoopModelDownloader{}, nil
 	}
-	return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir)
+
+	switch c.Downloader.Kind {
+	case config.DownloaderKindS3:
+		s3Client := s3.NewClient(s3.NewOptions{
+			EndpointURL: c.Downloader.S3.EndpointURL,
+			Region:      c.Downloader.S3.Region,
+			Bucket:      c.Downloader.S3.Bucket,
+			// Use anonymous credentials as the S3 bucket is public and we don't want to use the credential that is
+			// used to upload the model.
+			UseAnonymousCredentials: true,
+		})
+		return loader.NewS3Downloader(s3Client, c.Downloader.S3.PathPrefix), nil
+	case config.DownloaderKindHuggingFace:
+		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir), nil
+	default:
+		return nil, fmt.Errorf("unknown downloader kind: %s", c.Downloader.Kind)
+	}
 }
 
 func newStore(c *config.Config) (*store.S, error) {
@@ -101,7 +123,12 @@ func newS3Client(c *config.Config) loader.S3Client {
 	if c.Debug.Standalone {
 		return &loader.NoopS3Client{}
 	}
-	return s3.NewClient(c.ObjectStore.S3)
+	return s3.NewClient(s3.NewOptions{
+		EndpointURL: c.ObjectStore.S3.EndpointURL,
+		Region:      c.ObjectStore.S3.Region,
+		Bucket:      c.ObjectStore.S3.Bucket,
+	})
+
 }
 
 func init() {

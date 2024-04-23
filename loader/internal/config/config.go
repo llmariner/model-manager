@@ -53,15 +53,54 @@ type HuggingFaceDownloaderConfig struct {
 	CacheDir string `yaml:"cacheDir"`
 }
 
+// S3DownloaderConfig is the S3 downloader configuration.
+type S3DownloaderConfig struct {
+	EndpointURL string `yaml:"endpointUrl"`
+	Region      string `yaml:"region"`
+	Bucket      string `yaml:"bucket"`
+	PathPrefix  string `yaml:"pathPrefix"`
+}
+
+// DownloaderKind is the downloader kind.
+type DownloaderKind string
+
+const (
+	// DownloaderKindS3 is the S3 downloader kind.
+	DownloaderKindS3 DownloaderKind = "s3"
+	// DownloaderKindHuggingFace is the Hugging Face downloader kind.
+	DownloaderKindHuggingFace DownloaderKind = "huggingFace"
+)
+
 // DownloaderConfig is the downloader configuration.
 type DownloaderConfig struct {
+	Kind DownloaderKind `yaml:"kind"`
+
 	HuggingFace HuggingFaceDownloaderConfig `yaml:"huggingFace"`
+	S3          S3DownloaderConfig          `yaml:"s3"`
 }
 
 // Validate validates the downloader configuration.
 func (c *DownloaderConfig) Validate() error {
-	if c.HuggingFace.CacheDir == "" {
-		return fmt.Errorf("cacheDir must be set")
+	switch c.Kind {
+	case DownloaderKindS3:
+		if c.S3.EndpointURL == "" {
+			return fmt.Errorf("endpointUrl must be set")
+		}
+		if c.S3.Region == "" {
+			return fmt.Errorf("region must be set")
+		}
+		if c.S3.Bucket == "" {
+			return fmt.Errorf("bucket must be set")
+		}
+		if c.S3.PathPrefix == "" {
+			return fmt.Errorf("pathPrefix must be set")
+		}
+	case DownloaderKindHuggingFace:
+		if c.HuggingFace.CacheDir == "" {
+			return fmt.Errorf("cacheDir must be set")
+		}
+	default:
+		return fmt.Errorf("unknown kind: %s", c.Kind)
 	}
 
 	return nil

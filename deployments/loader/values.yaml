@@ -16,8 +16,14 @@ huggingFaceSecret:
   apiKeyKey:
 
 downloader:
+  kind: s3
+  s3:
+    endpointUrl: https://s3.us-west-2.amazonaws.com
+    region: us-west-2
+    bucket: llm-operator-models
+    pathPrefix: v1/base-models
   huggingFace:
-    cacheDir: /hugging-face-cache
+    cacheDir:
 
 baseModels:
 
