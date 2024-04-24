@@ -8,9 +8,9 @@ data:
   config.yaml: |
     objectStore:
       s3:
-        endpointUrl: {{ .Values.objectStore.s3.endpointUrl }}
-        region: {{ .Values.objectStore.s3.region }}
-        bucket: {{ .Values.objectStore.s3.bucket }}
+        endpointUrl: {{ .Values.global.objectStore.s3.endpointUrl }}
+        region: {{ .Values.global.objectStore.s3.region }}
+        bucket: {{ .Values.global.objectStore.s3.bucket }}
         pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
     downloader:
@@ -30,8 +30,8 @@ data:
     runOnce: {{ .Values.runOnce }}
     skipDbUpdate: {{ .Values.skipDbUpdate }}
     database:
-      host: {{ .Values.database.host }}
-      port: {{ .Values.database.port }}
+      host: {{ .Values.global.database.host }}
+      port: {{ .Values.global.database.port }}
       database: {{ .Values.database.database }}
-      username: {{ .Values.database.username }}
-      passwordEnvName: {{ .Values.database.passwordEnvName }}
+      username: {{ .Values.global.database.username }}
+      passwordEnvName: {{ .Values.global.database.passwordEnvName }}

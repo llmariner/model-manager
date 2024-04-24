@@ -37,11 +37,11 @@ spec:
           mountPath: /etc/config
           readOnly: true
         env:
-        - name: {{ .Values.database.passwordEnvName }}
+        - name: {{ .Values.global.database.passwordEnvName }}
           valueFrom:
             secretKeyRef:
-              name: {{ .Values.databaseSecret.name }}
-              key: {{ .Values.databaseSecret.key }}
+              name: {{ .Values.global.databaseSecret.name }}
+              key: {{ .Values.global.databaseSecret.key }}
       volumes:
       - name: config
         configMap:

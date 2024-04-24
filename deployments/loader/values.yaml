@@ -1,15 +1,26 @@
-objectStore:
-  s3:
-    endpointUrl:
-    region:
-    bucket:
-    pathPrefix: models
-    baseModelPathPrefix: base-models
+global:
+  database:
+    host:
+    port:
+    username:
+    passwordEnvName:
 
-awsSecret:
-  name:
-  accessKeyIdKey:
-  secretAccessKeyKey:
+  objectStore:
+    s3:
+      endpointUrl:
+      region:
+      bucket:
+
+  awsSecret:
+    name:
+    accessKeyIdKey:
+    secretAccessKeyKey:
+
+baseModels:
+
+modelLoadInterval: 1m
+runOnce: false
+skipDbUpdate: false
 
 huggingFaceSecret:
   name:
@@ -25,18 +36,13 @@ downloader:
   huggingFace:
     cacheDir:
 
-baseModels:
-
-modelLoadInterval: 1m
-runOnce: false
-skipDbUpdate: false
-
 database:
-  host:
-  port: 5432
   database: model_manager
-  username:
-  passwordEnvName: DB_PASSWORD
+
+objectStore:
+  s3:
+    pathPrefix: models
+    baseModelPathPrefix: base-models
 
 replicaCount: 1
 image:
