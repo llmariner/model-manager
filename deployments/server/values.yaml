@@ -1,24 +1,31 @@
+global:
+  database:
+    host:
+    port:
+    username:
+    passwordEnvName:
+
+  databaseSecret:
+    name:
+    key:
+
+  ingress:
+    ingressClassName:
+
 httpPort: 8080
 grpcPort: 8081
 internalGrpcPort: 8082
+
+database:
+  database: model_manager
 
 objectStore:
   s3:
     pathPrefix: models
 
-database:
-  host:
-  port: 5432
-  database: model_manager
-  username:
-  passwordEnvName: DB_PASSWORD
-
 replicaCount: 1
 image:
   repository: public.ecr.aws/v8n3t7y5/llm-operator/model-manager-server
   pullPolicy: IfNotPresent
-
-ingress:
-  ingressClassName:
 
 version:
