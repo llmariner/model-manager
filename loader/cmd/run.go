@@ -5,14 +5,13 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/llm-operator/model-manager/common/pkg/db"
-	"github.com/llm-operator/model-manager/common/pkg/store"
+	mv1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/loader/internal/config"
 	"github.com/llm-operator/model-manager/loader/internal/loader"
 	"github.com/llm-operator/model-manager/loader/internal/s3"
 	"github.com/spf13/cobra"
-	"gorm.io/driver/sqlite"
-	"gorm.io/gorm"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 const flagConfig = "config"
@@ -43,23 +42,29 @@ var runCmd = &cobra.Command{
 }
 
 func run(ctx context.Context, c *config.Config) error {
-	st, err := newStore(c)
-	if err != nil {
-		return err
-	}
-
 	s3c := c.ObjectStore.S3
 	d, err := newModelDownloader(c)
 	if err != nil {
 		return err
 	}
 
+	var mclient loader.ModelClient
+	if c.Debug.Standalone {
+		mclient = loader.NewFakeModelClient()
+	} else {
+		conn, err := grpc.Dial(c.ModelManagerInternalServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		if err != nil {
+			return err
+		}
+		mclient = mv1.NewModelsInternalServiceClient(conn)
+	}
+
 	s := loader.New(
-		st,
 		c.BaseModels,
 		filepath.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix),
 		d,
 		newS3Client(c),
+		mclient,
 	)
 
 	if c.RunOnce {
@@ -70,10 +75,6 @@ func run(ctx context.Context, c *config.Config) error {
 }
 
 func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
-	if c.Debug.Standalone {
-		return &loader.NoopModelDownloader{}, nil
-	}
-
 	switch c.Downloader.Kind {
 	case config.DownloaderKindS3:
 		s3Client := s3.NewClient(s3.NewOptions{
@@ -90,33 +91,6 @@ func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
 	default:
 		return nil, fmt.Errorf("unknown downloader kind: %s", c.Downloader.Kind)
 	}
-}
-
-func newStore(c *config.Config) (*store.S, error) {
-	if c.Debug.Standalone || c.SkipDBUpdate {
-		var path string
-		if c.SkipDBUpdate {
-			// Create an in-memory database so that writes to the database are not persisted.
-			path = "file::memory:?cache=shared"
-		} else {
-			path = c.Debug.SqlitePath
-		}
-		dbInst, err := gorm.Open(sqlite.Open(path), &gorm.Config{})
-		if err != nil {
-			return nil, err
-		}
-		st := store.New(dbInst)
-		if err := st.AutoMigrate(); err != nil {
-			return nil, err
-		}
-		return st, nil
-	}
-
-	dbInst, err := db.OpenDB(c.Database)
-	if err != nil {
-		return nil, err
-	}
-	return store.New(dbInst), nil
 }
 
 func newS3Client(c *config.Config) loader.S3Client {

@@ -1,10 +1,4 @@
 global:
-  database:
-    host:
-    port:
-    username:
-    passwordEnvName:
-
   objectStore:
     s3:
       endpointUrl:
@@ -20,7 +14,6 @@ baseModels:
 
 modelLoadInterval: 1m
 runOnce: false
-skipDbUpdate: false
 
 huggingFaceSecret:
   name:
@@ -36,8 +29,7 @@ downloader:
   huggingFace:
     cacheDir:
 
-database:
-  database: model_manager
+modelManagerInternalServerAddr:
 
 objectStore:
   s3:

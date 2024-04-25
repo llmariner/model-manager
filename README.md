@@ -93,7 +93,6 @@ modelLoadInterval: 1m
 
 debug:
   standalone: true
-  sqlitePath: /tmp/model_manager.db
 ```
 
 # Uploading models to S3 bucket `llm-operator-models`
@@ -116,13 +115,15 @@ baseModels:
 
 runOnce: true
 
-dbUpdate: false
-
 downloader:
+  kind: huggingFace
   huggingFace:
     # Change this to your cache directory.
     cacheDir: /Users/kenji/.cache/huggingface/hub
 
+debug:
+  standalone: true
+
 $ export AWS_PROFILE=<profile that has access to the bucket>
-$ ./bin/loader --config config.yaml
+$ ./bin/loader run --config config.yaml
 ```

@@ -5,7 +5,6 @@ import (
 	"os"
 	"time"
 
-	"github.com/llm-operator/model-manager/common/pkg/db"
 	"gopkg.in/yaml.v3"
 )
 
@@ -108,14 +107,11 @@ func (c *DownloaderConfig) Validate() error {
 
 // DebugConfig is the debug configuration.
 type DebugConfig struct {
-	Standalone bool   `yaml:"standalone"`
-	SqlitePath string `yaml:"sqlitePath"`
+	Standalone bool `yaml:"standalone"`
 }
 
 // Config is the configuration.
 type Config struct {
-	Database db.Config `yaml:"database"`
-
 	ObjectStore ObjectStoreConfig `yaml:"objectStore"`
 
 	// BaseModels is the list of base models to load. Currently each model follows Hugging Face's model format.
@@ -126,10 +122,9 @@ type Config struct {
 	// RunOnce is set to true when models are loaded only once.
 	RunOnce bool `yaml:"runOnce"`
 
-	// SkipDBUpdate is set to true when the loader skips updateing the "base-models" table.
-	SkipDBUpdate bool `yaml:"skipDbUpdate"`
-
 	Downloader DownloaderConfig `yaml:"downloader"`
+
+	ModelManagerInternalServerAddr string `yaml:"modelManagerInternalServerAddr"`
 
 	Debug DebugConfig `yaml:"debug"`
 }
@@ -150,16 +145,11 @@ func (c *Config) Validate() error {
 
 	if err := c.Downloader.Validate(); err != nil {
 		return fmt.Errorf("downloader: %s", err)
-
 	}
 
-	if c.Debug.Standalone {
-		if c.Debug.SqlitePath == "" {
-			return fmt.Errorf("sqlitePath must be set")
-		}
-	} else if !c.SkipDBUpdate {
-		if err := c.Database.Validate(); err != nil {
-			return fmt.Errorf("database: %s", err)
+	if !c.Debug.Standalone {
+		if c.ModelManagerInternalServerAddr == "" {
+			return fmt.Errorf("model manager internal server address must be set")
 		}
 	}
 	return nil
