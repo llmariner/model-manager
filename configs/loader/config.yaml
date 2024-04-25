@@ -19,9 +19,4 @@ baseModels:
 
 modelLoadInterval: 1m
 
-database:
-  host: postgres
-  port: 5432
-  database: model_manager
-  username: user
-  passwordEnvName: DB_PASSWORD
+modelManagerInternalServerAddr: server:8082

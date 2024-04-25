@@ -28,10 +28,4 @@ data:
     {{- end }}
     modelLoadInterval: {{ .Values.modelLoadInterval }}
     runOnce: {{ .Values.runOnce }}
-    skipDbUpdate: {{ .Values.skipDbUpdate }}
-    database:
-      host: {{ .Values.global.database.host }}
-      port: {{ .Values.global.database.port }}
-      database: {{ .Values.database.database }}
-      username: {{ .Values.global.database.username }}
-      passwordEnvName: {{ .Values.global.database.passwordEnvName }}
+    modelManagerInternalServerAddr: {{ .Values.modelManagerInternalServerAddr }}

@@ -7,14 +7,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/llm-operator/model-manager/common/pkg/store"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestLoadBaseModel(t *testing.T) {
-	st, tearDown := store.NewTest(t)
-	defer tearDown()
-
 	downloader := &fakeDownloader{
 		dirs: []string{
 			"dir0",
@@ -32,11 +28,11 @@ func TestLoadBaseModel(t *testing.T) {
 	s3Client := &mockS3Client{}
 
 	ld := New(
-		st,
 		[]string{"google/gemma-2b"},
 		"models/base-models",
 		downloader,
 		s3Client,
+		NewFakeModelClient(),
 	)
 	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
 	assert.NoError(t, err)

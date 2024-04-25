@@ -2,7 +2,6 @@ package loader
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -11,8 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/llm-operator/model-manager/common/pkg/store"
-	"gorm.io/gorm"
+	mv1 "github.com/llm-operator/model-manager/api/v1"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 // ModelDownloader is an interface for downloading a model.
@@ -42,27 +43,63 @@ func (c *NoopS3Client) Upload(r io.Reader, key string) error {
 	return nil
 }
 
+// ModelClient is an interface for the model client.
+type ModelClient interface {
+	CreateBaseModel(ctx context.Context, in *mv1.CreateBaseModelRequest, opts ...grpc.CallOption) (*mv1.BaseModel, error)
+	GetBaseModelPath(ctx context.Context, in *mv1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*mv1.GetBaseModelPathResponse, error)
+}
+
+// NewFakeModelClient creates a fake model client.
+func NewFakeModelClient() *FakeModelClient {
+	return &FakeModelClient{
+		pathsByID: map[string]string{},
+	}
+}
+
+// FakeModelClient is a fake model client.
+type FakeModelClient struct {
+	pathsByID map[string]string
+}
+
+// CreateBaseModel creates a base model.
+func (c *FakeModelClient) CreateBaseModel(ctx context.Context, in *mv1.CreateBaseModelRequest, opts ...grpc.CallOption) (*mv1.BaseModel, error) {
+	if _, ok := c.pathsByID[in.Id]; ok {
+		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", in.Id)
+	}
+	c.pathsByID[in.Id] = in.Path
+	return &mv1.BaseModel{
+		Id: in.Id,
+	}, nil
+}
+
+// GetBaseModelPath gets the path of a base model.
+func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*mv1.GetBaseModelPathResponse, error) {
+	path, ok := c.pathsByID[in.Id]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "model %q not found", in.Id)
+	}
+	return &mv1.GetBaseModelPathResponse{Path: path}, nil
+}
+
 // New creates a new loader.
 func New(
-	store *store.S,
 	baseModels []string,
 	objectStorPathPrefix string,
 	modelDownloader ModelDownloader,
 	s3Client S3Client,
+	modelClient ModelClient,
 ) *L {
 	return &L{
-		store:                store,
 		baseModels:           baseModels,
 		objectStorPathPrefix: objectStorPathPrefix,
 		modelDownloader:      modelDownloader,
 		s3Client:             s3Client,
+		modelClient:          modelClient,
 	}
 }
 
 // L is a loader.
 type L struct {
-	store *store.S
-
 	baseModels []string
 
 	// objectStorPathPrefix is the prefix of the path to the base models in the object stoer.
@@ -71,6 +108,8 @@ type L struct {
 	modelDownloader ModelDownloader
 
 	s3Client S3Client
+
+	modelClient ModelClient
 }
 
 // Run runs the loader.
@@ -104,12 +143,12 @@ func (l *L) LoadBaseModels(ctx context.Context) error {
 
 func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	// First check if the model exists in the database.
-	_, err := l.store.GetBaseModel(modelID)
+	_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: modelID})
 	if err == nil {
 		log.Printf("Model %q exists. Do nothing.\n", modelID)
 		return nil
 	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
+	if status.Code(err) != codes.NotFound {
 		return err
 	}
 
@@ -154,7 +193,6 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	}
 	log.Printf("Downloaded %d files\n", len(paths))
 	if len(paths) == 0 {
-		time.Sleep(10 * time.Minute)
 		return fmt.Errorf("no files downloaded")
 	}
 
@@ -181,7 +219,10 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	mpath := filepath.Join(l.objectStorPathPrefix, modelID)
 
-	if _, err := l.store.CreateBaseModel(modelID, mpath); err != nil {
+	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
+		Id:   modelID,
+		Path: mpath,
+	}); err != nil {
 		return err
 	}
 
