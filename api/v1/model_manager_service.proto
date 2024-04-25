@@ -108,6 +108,11 @@ message GetModelPathResponse {
   string path = 1;
 }
 
+message CreateBaseModelRequest {
+  string id = 1;
+  string path = 2;
+}
+
 message GetBaseModelPathRequest {
   string id = 1;
 }
@@ -124,6 +129,9 @@ service ModelsInternalService {
   }
 
   rpc GetModelPath(GetModelPathRequest) returns (GetModelPathResponse) {
+  }
+
+  rpc CreateBaseModel(CreateBaseModelRequest) returns (BaseModel) {
   }
 
   rpc GetBaseModelPath(GetBaseModelPathRequest) returns (GetBaseModelPathResponse) {

@@ -202,6 +202,26 @@ func (s *IS) GetModelPath(
 	}, nil
 }
 
+// CreateBaseModel creates a base model.
+func (s *IS) CreateBaseModel(
+	ctx context.Context,
+	req *v1.CreateBaseModelRequest,
+) (*v1.BaseModel, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if req.Path == "" {
+		return nil, status.Error(codes.InvalidArgument, "path is required")
+	}
+
+	m, err := s.store.CreateBaseModel(req.Id, req.Path)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
+	}
+
+	return toBaseModelProto(m), nil
+}
+
 // GetBaseModelPath gets a model path.
 func (s *IS) GetBaseModelPath(
 	ctx context.Context,

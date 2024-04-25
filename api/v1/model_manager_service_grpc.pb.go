@@ -217,6 +217,7 @@ type ModelsInternalServiceClient interface {
 	RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error)
 	PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error)
 	GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error)
+	CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error)
 	GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error)
 }
 
@@ -255,6 +256,15 @@ func (c *modelsInternalServiceClient) GetModelPath(ctx context.Context, in *GetM
 	return out, nil
 }
 
+func (c *modelsInternalServiceClient) CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error) {
+	out := new(BaseModel)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/CreateBaseModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *modelsInternalServiceClient) GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error) {
 	out := new(GetBaseModelPathResponse)
 	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/GetBaseModelPath", in, out, opts...)
@@ -271,6 +281,7 @@ type ModelsInternalServiceServer interface {
 	RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error)
 	PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error)
 	GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error)
+	CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error)
 	GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error)
 	mustEmbedUnimplementedModelsInternalServiceServer()
 }
@@ -287,6 +298,9 @@ func (UnimplementedModelsInternalServiceServer) PublishModel(context.Context, *P
 }
 func (UnimplementedModelsInternalServiceServer) GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModelPath not implemented")
+}
+func (UnimplementedModelsInternalServiceServer) CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateBaseModel not implemented")
 }
 func (UnimplementedModelsInternalServiceServer) GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBaseModelPath not implemented")
@@ -358,6 +372,24 @@ func _ModelsInternalService_GetModelPath_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsInternalService_CreateBaseModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateBaseModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsInternalServiceServer).CreateBaseModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/CreateBaseModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsInternalServiceServer).CreateBaseModel(ctx, req.(*CreateBaseModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ModelsInternalService_GetBaseModelPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetBaseModelPathRequest)
 	if err := dec(in); err != nil {
@@ -394,6 +426,10 @@ var ModelsInternalService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetModelPath",
 			Handler:    _ModelsInternalService_GetModelPath_Handler,
+		},
+		{
+			MethodName: "CreateBaseModel",
+			Handler:    _ModelsInternalService_CreateBaseModel_Handler,
 		},
 		{
 			MethodName: "GetBaseModelPath",
