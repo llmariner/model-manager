@@ -167,7 +167,10 @@ func TestBaseModels(t *testing.T) {
 	assert.Len(t, listResp.Data, 0)
 
 	// Create a base model.
-	_, err = st.CreateBaseModel(modelID, "path")
+	_, err = isrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:   modelID,
+		Path: "path",
+	})
 	assert.NoError(t, err)
 
 	getResp, err := isrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
