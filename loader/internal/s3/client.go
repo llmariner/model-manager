@@ -41,7 +41,6 @@ func NewClient(o NewOptions) *Client {
 	sess := session.Must(session.NewSessionWithOptions(sopts))
 
 	conf := &aws.Config{
-		//		Credentials: sess.Config.Credentials,
 		Endpoint: aws.String(o.EndpointURL),
 		Region:   aws.String(o.Region),
 		// This is needed as the minio server does not support the virtual host style.
