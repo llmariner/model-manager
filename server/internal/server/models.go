@@ -7,7 +7,7 @@ import (
 	"strings"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
-	"github.com/llm-operator/model-manager/common/pkg/store"
+	"github.com/llm-operator/model-manager/server/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
