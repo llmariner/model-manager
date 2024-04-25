@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
-	"github.com/llm-operator/model-manager/common/pkg/store"
+	"github.com/llm-operator/model-manager/server/internal/store"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
