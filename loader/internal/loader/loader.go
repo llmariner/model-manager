@@ -215,10 +215,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		}
 	}
 
-	// TODO(kenji): Upload all the files under the dir.
-
 	mpath := filepath.Join(l.objectStorPathPrefix, modelID)
-
 	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
 		Id:   modelID,
 		Path: mpath,
