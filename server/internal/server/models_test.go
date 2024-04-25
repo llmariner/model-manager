@@ -57,6 +57,51 @@ func TestModels(t *testing.T) {
 	assert.Len(t, listResp.Data, 0)
 }
 
+func TestGetAndListModels(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID     = "m0"
+		baseModelID = "bm0"
+	)
+
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: fakeTenantID,
+	}
+	_, err := st.CreateModel(store.ModelSpec{
+		Key:         k,
+		IsPublished: true,
+	})
+	assert.NoError(t, err)
+
+	_, err = st.CreateBaseModel(baseModelID, "path")
+	assert.NoError(t, err)
+
+	srv := New(st)
+	ctx := context.Background()
+	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, getResp.Id)
+
+	getResp, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: baseModelID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, baseModelID, getResp.Id)
+
+	listResp, err := srv.ListModels(ctx, &v1.ListModelsRequest{})
+	assert.NoError(t, err)
+	var ids []string
+	for _, m := range listResp.Data {
+		ids = append(ids, m.Id)
+	}
+	assert.ElementsMatch(t, []string{modelID, baseModelID}, ids)
+}
+
 func TestRegisterAndPublishModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()

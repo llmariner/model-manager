@@ -24,15 +24,26 @@ func (s *S) ListModels(
 	ctx context.Context,
 	req *v1.ListModelsRequest,
 ) (*v1.ListModelsResponse, error) {
+	var modelProtos []*v1.Model
+	// First include base models.
+	bms, err := s.store.ListBaseModels()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+	}
+	for _, m := range bms {
+		modelProtos = append(modelProtos, baseToModelProto(m))
+	}
+
+	// Then add generated models owned by the tenant.
 	ms, err := s.store.ListModelsByTenantID(fakeTenantID, true)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
 
-	var modelProtos []*v1.Model
 	for _, m := range ms {
 		modelProtos = append(modelProtos, toModelProto(m))
 	}
+
 	return &v1.ListModelsResponse{
 		Object: "list",
 		Data:   modelProtos,
@@ -48,6 +59,16 @@ func (s *S) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
+	// First check if it's a base model.
+	bm, err := s.store.GetBaseModel(req.Id)
+	if err == nil {
+		return baseToModelProto(bm), nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, status.Errorf(codes.Internal, "get model: %s", err)
+	}
+
+	// Then check if it's a generated model.
 	m, err := s.store.GetModel(store.ModelKey{
 		ModelID:  req.Id,
 		TenantID: fakeTenantID,
@@ -268,7 +289,16 @@ func toModelProto(m *store.Model) *v1.Model {
 		Id:      m.ModelID,
 		Object:  "model",
 		Created: m.CreatedAt.UTC().Unix(),
-		// TODO(kenji): Set OwnedBy
+		OwnedBy: fakeTenantID,
+	}
+}
+
+func baseToModelProto(m *store.BaseModel) *v1.Model {
+	return &v1.Model{
+		Id:      m.ModelID,
+		Object:  "model",
+		Created: m.CreatedAt.UTC().Unix(),
+		OwnedBy: "system",
 	}
 }
 
