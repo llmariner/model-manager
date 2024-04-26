@@ -13,6 +13,8 @@ spec:
     metadata:
       labels:
         {{- include "model-manager-server.selectorLabels" . | nindent 8 }}
+      annotations:
+        checksum/config: {{ sha256sum (toJson .Values) }}
     spec:
       containers:
       - name: model-manager-server
