@@ -20,7 +20,7 @@ func TestBaseModel(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	_, err = st.CreateBaseModel(modelID, "path")
+	_, err = st.CreateBaseModel(modelID, "path", "gguf_model_path")
 	assert.NoError(t, err)
 
 	gotM, err := st.GetBaseModel(modelID)
@@ -32,4 +32,6 @@ func TestBaseModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.Equal(t, modelID, gotMs[0].ModelID)
+	assert.Equal(t, "path", gotMs[0].Path)
+	assert.Equal(t, "gguf_model_path", gotMs[0].GGUFModelPath)
 }

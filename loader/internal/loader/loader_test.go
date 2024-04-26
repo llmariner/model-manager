@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	mv1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,31 +20,38 @@ func TestLoadBaseModel(t *testing.T) {
 		},
 		files: []string{
 			"file0",
-			"dir0/file1",
+			"dir0/file1.gguf",
 			"dir1/file2",
 			"dir0/dir2/file3",
 		},
 	}
 
 	s3Client := &mockS3Client{}
-
+	mc := NewFakeModelClient()
 	ld := New(
 		[]string{"google/gemma-2b"},
 		"models/base-models",
 		downloader,
 		s3Client,
-		NewFakeModelClient(),
+		mc,
 	)
 	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
 	assert.NoError(t, err)
 
 	want := []string{
 		"models/base-models/google/gemma-2b/dir0/dir2/file3",
-		"models/base-models/google/gemma-2b/dir0/file1",
+		"models/base-models/google/gemma-2b/dir0/file1.gguf",
 		"models/base-models/google/gemma-2b/dir1/file2",
 		"models/base-models/google/gemma-2b/file0",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "google/gemma-2b",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+	assert.Equal(t, "models/base-models/google/gemma-2b/dir0/file1.gguf", got.GgufModelPath)
 }
 
 type mockS3Client struct {

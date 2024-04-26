@@ -185,6 +185,9 @@
       "properties": {
         "path": {
           "type": "string"
+        },
+        "ggufModelPath": {
+          "type": "string"
         }
       }
     },

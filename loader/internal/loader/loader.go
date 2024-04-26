@@ -53,12 +53,14 @@ type ModelClient interface {
 func NewFakeModelClient() *FakeModelClient {
 	return &FakeModelClient{
 		pathsByID: map[string]string{},
+		ggufsByID: map[string]string{},
 	}
 }
 
 // FakeModelClient is a fake model client.
 type FakeModelClient struct {
 	pathsByID map[string]string
+	ggufsByID map[string]string
 }
 
 // CreateBaseModel creates a base model.
@@ -67,6 +69,7 @@ func (c *FakeModelClient) CreateBaseModel(ctx context.Context, in *mv1.CreateBas
 		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", in.Id)
 	}
 	c.pathsByID[in.Id] = in.Path
+	c.ggufsByID[in.Id] = in.GgufModelPath
 	return &mv1.BaseModel{
 		Id: in.Id,
 	}, nil
@@ -78,7 +81,14 @@ func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseM
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "model %q not found", in.Id)
 	}
-	return &mv1.GetBaseModelPathResponse{Path: path}, nil
+	ggufPath, ok := c.ggufsByID[in.Id]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "GGUF model %q not found", in.Id)
+	}
+	return &mv1.GetBaseModelPathResponse{
+		Path:          path,
+		GgufModelPath: ggufPath,
+	}, nil
 }
 
 // New creates a new loader.
@@ -177,7 +187,14 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
+	toKey := func(path string) string {
+		// Remove the tmpdir path from the path. We need tmpDir[2:] since the path starts with "./" while 'path' omits it.
+		relativePath := strings.TrimPrefix(path, tmpDir[2:])
+		return filepath.Join(l.objectStorPathPrefix, modelID, relativePath)
+	}
+
 	var paths []string
+	var ggufModelPath string
 	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -187,6 +204,14 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		}
 
 		paths = append(paths, path)
+
+		if strings.HasSuffix(path, ".gguf") {
+			if ggufModelPath != "" {
+				return fmt.Errorf("multiple GGUF files found: %q and %q", ggufModelPath, path)
+			}
+			ggufModelPath = toKey(path)
+		}
+
 		return nil
 	}); err != nil {
 		return err
@@ -194,6 +219,9 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	log.Printf("Downloaded %d files\n", len(paths))
 	if len(paths) == 0 {
 		return fmt.Errorf("no files downloaded")
+	}
+	if ggufModelPath == "" {
+		return fmt.Errorf("no GGUF file found")
 	}
 
 	log.Printf("Uploading base model %q to the object store\n", modelID)
@@ -204,10 +232,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 			return err
 		}
 
-		// Remove the tmpdir path from the path. We need tmpDir[2:] since the path starts with "./" while 'path' omits it.
-		relativePath := strings.TrimPrefix(path, tmpDir[2:])
-		key := filepath.Join(l.objectStorPathPrefix, modelID, relativePath)
-		if err := l.s3Client.Upload(r, key); err != nil {
+		if err := l.s3Client.Upload(r, toKey(path)); err != nil {
 			return err
 		}
 		if err := r.Close(); err != nil {
@@ -217,8 +242,9 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	mpath := filepath.Join(l.objectStorPathPrefix, modelID)
 	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
-		Id:   modelID,
-		Path: mpath,
+		Id:            modelID,
+		Path:          mpath,
+		GgufModelPath: ggufModelPath,
 	}); err != nil {
 		return err
 	}

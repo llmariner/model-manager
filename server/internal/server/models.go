@@ -234,8 +234,11 @@ func (s *IS) CreateBaseModel(
 	if req.Path == "" {
 		return nil, status.Error(codes.InvalidArgument, "path is required")
 	}
+	if req.GgufModelPath == "" {
+		return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required")
+	}
 
-	m, err := s.store.CreateBaseModel(req.Id, req.Path)
+	m, err := s.store.CreateBaseModel(req.Id, req.Path, req.GgufModelPath)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
 	}
@@ -260,7 +263,8 @@ func (s *IS) GetBaseModelPath(
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
 	}
 	return &v1.GetBaseModelPathResponse{
-		Path: m.Path,
+		Path:          m.Path,
+		GgufModelPath: m.GGUFModelPath,
 	}, nil
 }
 

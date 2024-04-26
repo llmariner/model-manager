@@ -10,13 +10,17 @@ type BaseModel struct {
 
 	ModelID string `gorm:"uniqueIndex"`
 	Path    string
+
+	// GGUFModelPath is the path to the GGUF model.
+	GGUFModelPath string
 }
 
 // CreateBaseModel creates a model.
-func (s *S) CreateBaseModel(modelID, path string) (*BaseModel, error) {
+func (s *S) CreateBaseModel(modelID, path, ggufModelPath string) (*BaseModel, error) {
 	m := &BaseModel{
-		ModelID: modelID,
-		Path:    path,
+		ModelID:       modelID,
+		Path:          path,
+		GGUFModelPath: ggufModelPath,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err

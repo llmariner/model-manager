@@ -111,6 +111,7 @@ message GetModelPathResponse {
 message CreateBaseModelRequest {
   string id = 1;
   string path = 2;
+  string gguf_model_path = 3;
 }
 
 message GetBaseModelPathRequest {
@@ -119,6 +120,7 @@ message GetBaseModelPathRequest {
 
 message GetBaseModelPathResponse {
   string path = 1;
+  string gguf_model_path = 2;
 }
 
 service ModelsInternalService {
