@@ -76,7 +76,7 @@ func TestGetAndListModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel(baseModelID, "path")
+	_, err = st.CreateBaseModel(baseModelID, "path", "gguf-path")
 	assert.NoError(t, err)
 
 	srv := New(st)
@@ -213,8 +213,9 @@ func TestBaseModels(t *testing.T) {
 
 	// Create a base model.
 	_, err = isrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
-		Id:   modelID,
-		Path: "path",
+		Id:            modelID,
+		Path:          "path",
+		GgufModelPath: "gguf-path",
 	})
 	assert.NoError(t, err)
 
