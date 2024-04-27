@@ -145,3 +145,14 @@ docker run \
 
 python convert.py /base-models --outfile google-gemma-2b-q8_0 --outtype q8_0
 ```
+
+Here is another example:
+
+```bash
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cp
+make quantize
+
+python convert-hf-to-gguf.py <model-path> --outtype f16 --outfile converted.bin
+./quantize converted.bin quantized.bin q4_0
+```
