@@ -127,3 +127,21 @@ debug:
 $ export AWS_PROFILE=<profile that has access to the bucket>
 $ ./bin/loader run --config config.yaml
 ```
+
+### Quantizing
+
+See https://github.com/ggerganov/llama.cpp/discussions/2948 and
+https://github.com/ollama/ollama/blob/main/docs/import.md.
+
+```bash
+make build-docker-convert-gguf
+
+# Mount the volume where a original model is stored (without symlink).
+docker run \
+  -it \
+  --entrypoint /bin/bash \
+  -v /Users/kenji/base-models:/base-models \
+  llm-operator/experiments-convert_gguf:latest
+
+python convert.py /base-models --outfile google-gemma-2b-q8_0 --outtype q8_0
+```
