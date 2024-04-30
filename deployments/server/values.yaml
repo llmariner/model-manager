@@ -3,7 +3,6 @@ global:
     host:
     port:
     username:
-    passwordEnvName:
 
   databaseSecret:
     name:
