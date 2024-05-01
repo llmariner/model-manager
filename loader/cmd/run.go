@@ -94,9 +94,6 @@ func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
 }
 
 func newS3Client(c *config.Config) loader.S3Client {
-	if c.Debug.Standalone {
-		return &loader.NoopS3Client{}
-	}
 	return s3.NewClient(s3.NewOptions{
 		EndpointURL: c.ObjectStore.S3.EndpointURL,
 		Region:      c.ObjectStore.S3.Region,
