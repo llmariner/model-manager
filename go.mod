@@ -1,8 +1,6 @@
 module github.com/llm-operator/model-manager
 
-go 1.21
-
-toolchain go1.21.2
+go 1.22.2
 
 require (
 	github.com/aws/aws-sdk-go v1.51.23
