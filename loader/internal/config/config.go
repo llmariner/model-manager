@@ -27,8 +27,8 @@ type ObjectStoreConfig struct {
 	S3 S3Config `yaml:"s3"`
 }
 
-// Validate validates the object store configuration.
-func (c *ObjectStoreConfig) Validate() error {
+// validate validates the object store configuration.
+func (c *ObjectStoreConfig) validate() error {
 	if c.S3.EndpointURL == "" {
 		return fmt.Errorf("s3 endpoint url must be set")
 	}
@@ -78,8 +78,8 @@ type DownloaderConfig struct {
 	S3          S3DownloaderConfig          `yaml:"s3"`
 }
 
-// Validate validates the downloader configuration.
-func (c *DownloaderConfig) Validate() error {
+// validate validates the downloader configuration.
+func (c *DownloaderConfig) validate() error {
 	switch c.Kind {
 	case DownloaderKindS3:
 		if c.S3.EndpointURL == "" {
@@ -139,11 +139,11 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("modelloadInterval must be set")
 	}
 
-	if err := c.ObjectStore.Validate(); err != nil {
+	if err := c.ObjectStore.validate(); err != nil {
 		return fmt.Errorf("objectStore: %s", err)
 	}
 
-	if err := c.Downloader.Validate(); err != nil {
+	if err := c.Downloader.validate(); err != nil {
 		return fmt.Errorf("downloader: %s", err)
 	}
 

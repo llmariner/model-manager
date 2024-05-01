@@ -71,30 +71,6 @@ curl http://localhost:8080/v1/models
 grpcurl -d '{"base_model": "base", "suffix": "suffix", "tenant_id": "fake-tenant-id"}' -plaintext localhost:8082 list llmoperator.models.server.v1.ModelsInternalService/CreateModel
 ```
 
-## Running `loader` Locally
-
-```bash
-make build-loader
-./bin/loader run --config config.yaml
-```
-
-`config.yaml` has the following content:
-
-```yaml
-objectStore:
-  s3:
-    pathPrefix: models
-    baseModelPathPrefix: base-models
-
-baseModels:
-- google/gemma-2b
-
-modelLoadInterval: 1m
-
-debug:
-  standalone: true
-```
-
 # Uploading models to S3 bucket `llm-operator-models`
 
 Run `loader` with the following `config.yaml`:
