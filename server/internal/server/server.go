@@ -43,7 +43,7 @@ func (s *S) Run(ctx context.Context, port int, authConfig config.AuthConfig) err
 		opts = append(opts, grpc.ChainUnaryInterceptor(ai.Unary()))
 	}
 
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(opts...)
 	v1.RegisterModelsServiceServer(grpcServer, s)
 	reflection.Register(grpcServer)
 
