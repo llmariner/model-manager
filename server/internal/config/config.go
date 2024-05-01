@@ -32,6 +32,23 @@ type DebugConfig struct {
 	SqlitePath string `yaml:"sqlitePath"`
 }
 
+// AuthConfig is the authentication configuration.
+type AuthConfig struct {
+	Enable                 bool   `yaml:"enable"`
+	RBACInternalServerAddr string `yaml:"rbacInternalServerAddr"`
+}
+
+// Validate validates the configuration.
+func (c *AuthConfig) Validate() error {
+	if !c.Enable {
+		return nil
+	}
+	if c.RBACInternalServerAddr == "" {
+		return fmt.Errorf("rbacInternalServerAddr must be set")
+	}
+	return nil
+}
+
 // Config is the configuration.
 type Config struct {
 	HTTPPort         int `yaml:"httpPort"`
@@ -43,6 +60,8 @@ type Config struct {
 	ObjectStore ObjectStoreConfig `yaml:"objectStore"`
 
 	Debug DebugConfig `yaml:"debug"`
+
+	AuthConfig AuthConfig `yaml:"auth"`
 }
 
 // Validate validates the configuration.
@@ -69,6 +88,10 @@ func (c *Config) Validate() error {
 		if err := c.Database.Validate(); err != nil {
 			return fmt.Errorf("database: %s", err)
 		}
+	}
+
+	if err := c.AuthConfig.Validate(); err != nil {
+		return fmt.Errorf("auth: %s", err)
 	}
 	return nil
 }

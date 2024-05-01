@@ -18,3 +18,6 @@ data:
       database: {{ .Values.database.database }}
       username: {{ .Values.global.database.username }}
       passwordEnvName: DB_PASSWORD
+    auth:
+      enable: {{ .Values.global.auth.enable }}
+      rbacServerAddr: {{ .Values.global.auth.rbacInternalServerAddr }}
