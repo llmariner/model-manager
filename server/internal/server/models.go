@@ -69,10 +69,10 @@ func (s *S) GetModel(
 	}
 
 	// Then check if it's a generated model.
-	m, err := s.store.GetModel(store.ModelKey{
+	m, err := s.store.GetPublishedModel(store.ModelKey{
 		ModelID:  req.Id,
 		TenantID: fakeTenantID,
-	}, true)
+	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -121,6 +121,36 @@ func (s *S) ListBaseModels(
 		modelProtos = append(modelProtos, toBaseModelProto(m))
 	}
 	return &v1.ListBaseModelsResponse{
+		Object: "list",
+		Data:   modelProtos,
+	}, nil
+}
+
+// ListModels lists all models for all tenants.
+func (s *IS) ListModels(
+	ctx context.Context,
+	req *v1.ListModelsRequest,
+) (*v1.ListModelsResponse, error) {
+	var modelProtos []*v1.Model
+	// First include base models.
+	bms, err := s.store.ListBaseModels()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+	}
+	for _, m := range bms {
+		modelProtos = append(modelProtos, baseToModelProto(m))
+	}
+
+	ms, err := s.store.ListAllPublishedModels()
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+	}
+
+	for _, m := range ms {
+		modelProtos = append(modelProtos, toModelProto(m))
+	}
+
+	return &v1.ListModelsResponse{
 		Object: "list",
 		Data:   modelProtos,
 	}, nil
@@ -205,12 +235,11 @@ func (s *IS) GetModelPath(
 		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
 	}
 
-	m, err := s.store.GetModel(
+	m, err := s.store.GetPublishedModel(
 		store.ModelKey{
 			ModelID:  req.Id,
 			TenantID: req.TenantId,
 		},
-		true,
 	)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -279,10 +308,7 @@ func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
 	for {
 
 		id := fmt.Sprintf("%s%s", base, rand.SafeEncodeString(rand.String(randomLength)))
-		if _, err := s.store.GetModel(store.ModelKey{
-			ModelID:  id,
-			TenantID: fakeTenantID,
-		}, false); errors.Is(err, gorm.ErrRecordNotFound) {
+		if _, err := s.store.GetModelByModelID(id); errors.Is(err, gorm.ErrRecordNotFound) {
 			return id, nil
 		}
 	}

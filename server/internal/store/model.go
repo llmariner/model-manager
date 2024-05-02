@@ -8,8 +8,10 @@ import (
 type Model struct {
 	gorm.Model
 
-	ModelID  string `gorm:"uniqueIndex:idx_model_model_id_tenant_id"`
-	TenantID string `gorm:"uniqueIndex:idx_model_model_id_tenant_id"`
+	// ModelID is the model ID. It is globally unique.
+	ModelID string `gorm:"uniqueIndex"`
+
+	TenantID string `gorm:"index"`
 
 	Path        string
 	IsPublished bool
@@ -42,15 +44,19 @@ func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 	return m, nil
 }
 
-// GetModel returns a model by model ID and tenant ID.
-func (s *S) GetModel(k ModelKey, onlyPublished bool) (*Model, error) {
-	q := s.db.Where("model_id = ? AND tenant_id = ?", k.ModelID, k.TenantID)
-	if onlyPublished {
-		q = q.Where("is_published = true")
-	}
-
+// GetPublishedModel returns a published model by model ID and tenant ID.
+func (s *S) GetPublishedModel(k ModelKey) (*Model, error) {
 	var m Model
-	if err := q.Take(&m).Error; err != nil {
+	if err := s.db.Where("model_id = ? AND tenant_id = ? AND is_published = ? ", k.ModelID, k.TenantID, true).Take(&m).Error; err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+// GetModelByModelID returns a model by model ID.
+func (s *S) GetModelByModelID(modelID string) (*Model, error) {
+	var m Model
+	if err := s.db.Where("model_id = ?", modelID).Take(&m).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -65,6 +71,15 @@ func (s *S) ListModelsByTenantID(tenantID string, onlyPublished bool) ([]*Model,
 
 	var ms []*Model
 	if err := q.Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
+// ListAllPublishedModels finds all published models.
+func (s *S) ListAllPublishedModels() ([]*Model, error) {
+	var ms []*Model
+	if err := s.db.Where("is_published = true").Find(&ms).Error; err != nil {
 		return nil, err
 	}
 	return ms, nil

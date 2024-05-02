@@ -102,6 +102,37 @@ func TestGetAndListModels(t *testing.T) {
 	assert.ElementsMatch(t, []string{modelID, baseModelID}, ids)
 }
 
+func TestInternalListModels(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	const modelID = "m0"
+
+	_, err := st.CreateModel(store.ModelSpec{
+		Key: store.ModelKey{
+			ModelID:  "model0",
+			TenantID: "tenant0",
+		},
+		IsPublished: true,
+	})
+	assert.NoError(t, err)
+
+	_, err = st.CreateModel(store.ModelSpec{
+		Key: store.ModelKey{
+			ModelID:  "model1",
+			TenantID: "tenant1",
+		},
+		IsPublished: true,
+	})
+	assert.NoError(t, err)
+
+	isrv := NewInternal(st, "models")
+	ctx := context.Background()
+	listResp, err := isrv.ListModels(ctx, &v1.ListModelsRequest{})
+	assert.NoError(t, err)
+	assert.Len(t, listResp.Data, 2)
+}
+
 func TestRegisterAndPublishModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
@@ -118,10 +149,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	modelID := resp.Id
 	assert.True(t, strings.HasPrefix(modelID, "ft:my-model:fine-tuning-"))
 
-	m, err := st.GetModel(store.ModelKey{
-		ModelID:  modelID,
-		TenantID: fakeTenantID,
-	}, false)
+	m, err := st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.False(t, m.IsPublished)
 
