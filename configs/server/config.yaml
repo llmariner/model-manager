@@ -11,3 +11,4 @@ database:
   port: 5432
   database: model_manager
   username: user
+  passwordEnvName: DB_PASSWORD

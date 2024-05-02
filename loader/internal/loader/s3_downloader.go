@@ -41,7 +41,9 @@ func (d *S3Downloader) download(modelName, destDir string) error {
 		return lastPage
 	}
 	prefix := filepath.Join(d.pathPrefix, modelName)
-	if err := d.s3Client.ListObjectsPages(prefix, f); err != nil {
+	// We need to append "/". Otherwise, we will download all objects with the same prefix
+	// (e.g., "google/gemma-2b" will download "google/gemma-2b" and "google/gemma-2b-it").
+	if err := d.s3Client.ListObjectsPages(prefix+"/", f); err != nil {
 		return err
 	}
 	if len(keys) == 0 {
