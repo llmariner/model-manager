@@ -124,6 +124,9 @@ message GetBaseModelPathResponse {
 }
 
 service ModelsInternalService {
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
+  }
+
   rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse) {
   }
 

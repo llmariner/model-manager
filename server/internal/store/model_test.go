@@ -21,7 +21,7 @@ func TestModel(t *testing.T) {
 		ModelID:  modelID,
 		TenantID: tenantID,
 	}
-	_, err := st.GetModel(k, true)
+	_, err := st.GetPublishedModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
@@ -32,7 +32,7 @@ func TestModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotM, err := st.GetModel(k, true)
+	gotM, err := st.GetPublishedModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, tenantID, gotM.TenantID)
@@ -55,6 +55,10 @@ func TestModel(t *testing.T) {
 	gotMs, err = st.ListModelsByTenantID(tenantID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
+
+	gotMs, err = st.ListAllPublishedModels()
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, 2)
 
 	err = st.DeleteModel(k)
 	assert.NoError(t, err)
@@ -87,12 +91,7 @@ func TestModel_Unpublished(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotM, err := st.GetModel(k, false)
-	assert.NoError(t, err)
-	assert.Equal(t, modelID, gotM.ModelID)
-	assert.Equal(t, tenantID, gotM.TenantID)
-
-	_, err = st.GetModel(k, true)
+	_, err = st.GetPublishedModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
@@ -128,19 +127,19 @@ func TestUpdateModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	got, err := st.GetModel(k, false)
+	got, err := st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 
 	err = st.UpdateModel(k, true)
 	assert.NoError(t, err)
-	got, err = st.GetModel(k, false)
+	got, err = st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.True(t, got.IsPublished)
 
 	err = st.UpdateModel(k, false)
 	assert.NoError(t, err)
-	got, err = st.GetModel(k, false)
+	got, err = st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 }
