@@ -152,16 +152,38 @@ func (l *L) LoadBaseModels(ctx context.Context) error {
 }
 
 func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
+	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
+	// TODO(kenji): Revisit this.
+	convertedModelID := strings.ReplaceAll(modelID, "/", "-")
+
 	// First check if the model exists in the database.
-	_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: modelID})
+	_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: convertedModelID})
 	if err == nil {
-		log.Printf("Model %q exists. Do nothing.\n", modelID)
+		log.Printf("Model %q exists. Do nothing.\n", convertedModelID)
 		return nil
 	}
 	if status.Code(err) != codes.NotFound {
 		return err
 	}
 
+	mpath, ggufModelPath, err := l.downloadAndUploadModel(ctx, modelID)
+	if err != nil {
+		return err
+	}
+
+	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
+		Id:            convertedModelID,
+		Path:          mpath,
+		GgufModelPath: ggufModelPath,
+	}); err != nil {
+		return err
+	}
+
+	log.Printf("Successfully loaded base model %q\n", modelID)
+	return nil
+}
+
+func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string, string, error) {
 	log.Printf("Started loading base model %q\n", modelID)
 
 	// Please note that the temp directory shouldn't contain a symlink. Otherwise
@@ -175,7 +197,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
 	tmpDir, err := os.MkdirTemp(".", "base-model")
 	if err != nil {
-		return err
+		return "", "", err
 	}
 	log.Printf("Created a temp dir %q\n", tmpDir)
 	defer func() {
@@ -184,7 +206,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	log.Printf("Downloading base model %q\n", modelID)
 	if err := l.modelDownloader.download(modelID, tmpDir); err != nil {
-		return err
+		return "", "", err
 	}
 
 	toKey := func(path string) string {
@@ -214,14 +236,14 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 		return nil
 	}); err != nil {
-		return err
+		return "", "", err
 	}
 	log.Printf("Downloaded %d files\n", len(paths))
 	if len(paths) == 0 {
-		return fmt.Errorf("no files downloaded")
+		return "", "", fmt.Errorf("no files downloaded")
 	}
 	if ggufModelPath == "" {
-		return fmt.Errorf("no GGUF file found")
+		return "", "", fmt.Errorf("no GGUF file found")
 	}
 
 	log.Printf("Uploading base model %q to the object store\n", modelID)
@@ -229,26 +251,17 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		log.Printf("Uploading %q\n", path)
 		r, err := os.Open(path)
 		if err != nil {
-			return err
+			return "", "", err
 		}
 
 		if err := l.s3Client.Upload(r, toKey(path)); err != nil {
-			return err
+			return "", "", err
 		}
 		if err := r.Close(); err != nil {
-			return err
+			return "", "", err
 		}
 	}
 
 	mpath := filepath.Join(l.objectStorPathPrefix, modelID)
-	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
-		Id:            modelID,
-		Path:          mpath,
-		GgufModelPath: ggufModelPath,
-	}); err != nil {
-		return err
-	}
-
-	log.Printf("Successfully loaded base model %q\n", modelID)
-	return nil
+	return mpath, ggufModelPath, nil
 }

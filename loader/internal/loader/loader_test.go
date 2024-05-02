@@ -47,7 +47,7 @@ func TestLoadBaseModel(t *testing.T) {
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
 	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
-		Id: "google/gemma-2b",
+		Id: "google-gemma-2b",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
