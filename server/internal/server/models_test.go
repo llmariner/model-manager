@@ -106,8 +106,6 @@ func TestInternalListModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	const modelID = "m0"
-
 	_, err := st.CreateModel(store.ModelSpec{
 		Key: store.ModelKey{
 			ModelID:  "model0",
