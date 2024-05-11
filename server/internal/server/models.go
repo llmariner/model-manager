@@ -319,7 +319,7 @@ func toModelProto(m *store.Model) *v1.Model {
 		Id:      m.ModelID,
 		Object:  "model",
 		Created: m.CreatedAt.UTC().Unix(),
-		OwnedBy: fakeTenantID,
+		OwnedBy: "user",
 	}
 }
 
