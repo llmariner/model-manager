@@ -104,6 +104,21 @@ $ export AWS_PROFILE=<profile that has access to the bucket>
 $ ./bin/loader run --config config.yaml
 ```
 
+### Generating a GGUF file
+
+There might not be a GGUF file in Hugging Face repositories. If so, run the following
+command to convert:
+
+```baash
+MODEL_NAME=meta-llama/Meta-Llama-3-8B-Instruct
+git clone https://github.com/ggerganov/llama.cpp
+cd llama.cp
+
+mkdir hf-model-dir
+huggingface-cli download "${MODEL_NAME}" --local-dir=hf-model-dir
+python3 convert-hf-to-gguf.py --outtype=f32 ./hf-model-dir --outfile model.gguf
+```
+
 ### Quantizing
 
 See https://github.com/ggerganov/llama.cpp/discussions/2948 and
