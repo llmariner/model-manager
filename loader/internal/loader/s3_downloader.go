@@ -61,6 +61,9 @@ func (d *S3Downloader) download(modelName, destDir string) error {
 
 func (d *S3Downloader) downloadOneObject(key, prefix, destDir string) error {
 	filePath := filepath.Join(destDir, strings.TrimPrefix(key, prefix))
+	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
+		return err
+	}
 	f, err := os.Create(filePath)
 	if err != nil {
 		return err

@@ -22,21 +22,25 @@ func TestS3Download(t *testing.T) {
 
 	client := &fakeS3Client{
 		objs: map[string][]byte{
-			"v1/base-models/google/gemma-2b/key0": []byte("object0"),
-			"v1/base-models/google/gemma-2b/key1": []byte("object1"),
+			"v1/base-models/google/gemma-2b/key0":      []byte("object0"),
+			"v1/base-models/google/gemma-2b/key1":      []byte("object1"),
+			"v1/base-models/google/gemma-2b/key2/key3": []byte("object2"),
 		},
 	}
 	d := NewS3Downloader(client, "v1/base-models")
 	err = d.download("google/gemma-2b", destDir)
 	assert.NoError(t, err)
 
-	b, err := os.ReadFile(filepath.Join(destDir, "key0"))
-	assert.NoError(t, err)
-	assert.Equal(t, "object0", string(b))
-
-	b, err = os.ReadFile(filepath.Join(destDir, "key1"))
-	assert.NoError(t, err)
-	assert.Equal(t, "object1", string(b))
+	want := map[string]string{
+		"key0":      "object0",
+		"key1":      "object1",
+		"key2/key3": "object2",
+	}
+	for key, object := range want {
+		b, err := os.ReadFile(filepath.Join(destDir, key))
+		assert.NoError(t, err)
+		assert.Equal(t, object, string(b))
+	}
 }
 
 type fakeS3Client struct {
