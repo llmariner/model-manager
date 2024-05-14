@@ -22,8 +22,6 @@ metadata:
   name: {{ include "model-manager-server.fullname" . }}-grpc
   labels:
     {{- include "model-manager-server.labels" . | nindent 4 }}
-  annotations:
-    konghq.com/protocol: grpc
 spec:
   type: ClusterIP
   ports:
@@ -42,8 +40,6 @@ metadata:
   name: {{ include "model-manager-server.fullname" . }}-internal-grpc
   labels:
     {{- include "model-manager-server.labels" . | nindent 4 }}
-  annotations:
-    konghq.com/protocol: grpc
 spec:
   type: ClusterIP
   ports:
