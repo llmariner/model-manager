@@ -57,6 +57,27 @@ func TestModels(t *testing.T) {
 	assert.Len(t, listResp.Data, 0)
 }
 
+func TestDeleteModel_BaseModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st)
+	isrv := NewInternal(st, "models")
+	ctx := context.Background()
+	_, err := isrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            "m0",
+		Path:          "path",
+		GgufModelPath: "gguf-path",
+	})
+	assert.NoError(t, err)
+
+	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
+		Id: "m0",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+}
+
 func TestGetAndListModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
