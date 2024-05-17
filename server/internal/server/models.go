@@ -91,6 +91,15 @@ func (s *S) DeleteModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
+	if _, err := s.store.GetBaseModel(req.Id); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get model: %s", err)
+		}
+		// Do nothing
+	} else {
+		return nil, status.Errorf(codes.InvalidArgument, "base model %q cannot be deleted", req.Id)
+	}
+
 	if err := s.store.DeleteModel(store.ModelKey{
 		ModelID:  req.Id,
 		TenantID: fakeTenantID,
