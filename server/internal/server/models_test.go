@@ -16,15 +16,17 @@ func TestModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	const modelID = "m0"
+	const (
+		modelID = "m0"
+		orgID   = "o0"
+	)
 
-	k := store.ModelKey{
-		ModelID:  modelID,
-		TenantID: fakeTenantID,
-	}
 	_, err := st.CreateModel(store.ModelSpec{
-		Key:         k,
-		IsPublished: true,
+		ModelID:        modelID,
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		TenantID:       fakeTenantID,
+		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
@@ -85,15 +87,15 @@ func TestGetAndListModels(t *testing.T) {
 	const (
 		modelID     = "m0"
 		baseModelID = "bm0"
+		orgID       = "o0"
 	)
 
-	k := store.ModelKey{
-		ModelID:  modelID,
-		TenantID: fakeTenantID,
-	}
 	_, err := st.CreateModel(store.ModelSpec{
-		Key:         k,
-		IsPublished: true,
+		ModelID:        modelID,
+		TenantID:       fakeTenantID,
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
@@ -127,21 +129,27 @@ func TestInternalListModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
+	const (
+		modelID     = "m0"
+		baseModelID = "bm0"
+		orgID       = "o0"
+	)
+
 	_, err := st.CreateModel(store.ModelSpec{
-		Key: store.ModelKey{
-			ModelID:  "model0",
-			TenantID: "tenant0",
-		},
-		IsPublished: true,
+		ModelID:        "model0",
+		TenantID:       "tenant0",
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{
-		Key: store.ModelKey{
-			ModelID:  "model1",
-			TenantID: "tenant1",
-		},
-		IsPublished: true,
+		ModelID:        "model1",
+		TenantID:       "tenant1",
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
@@ -160,9 +168,11 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	isrv := NewInternal(st, "models")
 	ctx := context.Background()
 	resp, err := isrv.RegisterModel(ctx, &v1.RegisterModelRequest{
-		BaseModel: "my-model",
-		Suffix:    "fine-tuning",
-		TenantId:  fakeTenantID,
+		BaseModel:      "my-model",
+		Suffix:         "fine-tuning",
+		TenantId:       fakeTenantID,
+		OrganizationId: "o0",
+		ProjectId:      defaultProjectID,
 	})
 	assert.NoError(t, err)
 	modelID := resp.Id
@@ -179,8 +189,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	assert.Equal(t, codes.NotFound, status.Code(err))
 
 	_, err = isrv.PublishModel(ctx, &v1.PublishModelRequest{
-		Id:       modelID,
-		TenantId: fakeTenantID,
+		Id: modelID,
 	})
 	assert.NoError(t, err)
 
@@ -194,44 +203,42 @@ func TestGetModelPath(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	const modelID = "m0"
+	const (
+		modelID = "m0"
+		orgID   = "o0"
+	)
 
 	isrv := NewInternal(st, "models")
 	ctx := context.Background()
 	_, err := isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
-		Id:       modelID,
-		TenantId: fakeTenantID,
+		Id: modelID,
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
 
-	k := store.ModelKey{
-		ModelID:  modelID,
-		TenantID: fakeTenantID,
-	}
 	_, err = st.CreateModel(store.ModelSpec{
-		Key:         k,
-		Path:        "model-path",
-		IsPublished: false,
+		ModelID:        modelID,
+		TenantID:       fakeTenantID,
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		Path:           "model-path",
+		IsPublished:    false,
 	})
 	assert.NoError(t, err)
 
 	_, err = isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
-		Id:       modelID,
-		TenantId: fakeTenantID,
+		Id: modelID,
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
 
 	_, err = isrv.PublishModel(ctx, &v1.PublishModelRequest{
-		Id:       modelID,
-		TenantId: fakeTenantID,
+		Id: modelID,
 	})
 	assert.NoError(t, err)
 
 	resp, err := isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
-		Id:       modelID,
-		TenantId: fakeTenantID,
+		Id: modelID,
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "model-path", resp.Path)

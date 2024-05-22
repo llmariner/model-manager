@@ -24,6 +24,11 @@ func (s *S) ListModels(
 	ctx context.Context,
 	req *v1.ListModelsRequest,
 ) (*v1.ListModelsResponse, error) {
+	userInfo, err := s.extractUserInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var modelProtos []*v1.Model
 	// First include base models.
 	bms, err := s.store.ListBaseModels()
@@ -34,8 +39,8 @@ func (s *S) ListModels(
 		modelProtos = append(modelProtos, baseToModelProto(m))
 	}
 
-	// Then add generated models owned by the tenant.
-	ms, err := s.store.ListModelsByTenantID(fakeTenantID, true)
+	// Then add generated models owned by the project
+	ms, err := s.store.ListModelsByProjectID(userInfo.ProjectID, true)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
@@ -55,6 +60,11 @@ func (s *S) GetModel(
 	ctx context.Context,
 	req *v1.GetModelRequest,
 ) (*v1.Model, error) {
+	userInfo, err := s.extractUserInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
@@ -69,10 +79,7 @@ func (s *S) GetModel(
 	}
 
 	// Then check if it's a generated model.
-	m, err := s.store.GetPublishedModel(store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: fakeTenantID,
-	})
+	m, err := s.store.GetPublishedModelByModelIDAndProjectID(req.Id, userInfo.ProjectID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -87,6 +94,11 @@ func (s *S) DeleteModel(
 	ctx context.Context,
 	req *v1.DeleteModelRequest,
 ) (*v1.DeleteModelResponse, error) {
+	userInfo, err := s.extractUserInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
@@ -100,10 +112,7 @@ func (s *S) DeleteModel(
 		return nil, status.Errorf(codes.InvalidArgument, "base model %q cannot be deleted", req.Id)
 	}
 
-	if err := s.store.DeleteModel(store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: fakeTenantID,
-	}); err != nil {
+	if err := s.store.DeleteModel(req.Id, userInfo.ProjectID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
@@ -179,6 +188,12 @@ func (s *IS) RegisterModel(
 	if req.TenantId == "" {
 		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
 	}
+	if req.OrganizationId == "" {
+		return nil, status.Error(codes.InvalidArgument, "organization_id is required")
+	}
+	if req.ProjectId == "" {
+		return nil, status.Error(codes.InvalidArgument, "project_id is required")
+	}
 
 	id, err := s.genenerateModelID(req.BaseModel, req.Suffix)
 	if err != nil {
@@ -187,12 +202,12 @@ func (s *IS) RegisterModel(
 
 	path := fmt.Sprintf("%s/%s/%s", s.pathPrefix, req.TenantId, id)
 	_, err = s.store.CreateModel(store.ModelSpec{
-		Key: store.ModelKey{
-			ModelID:  id,
-			TenantID: req.TenantId,
-		},
-		IsPublished: false,
-		Path:        path,
+		ModelID:        id,
+		TenantID:       req.TenantId,
+		OrganizationID: req.OrganizationId,
+		ProjectID:      req.ProjectId,
+		IsPublished:    false,
+		Path:           path,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
@@ -212,18 +227,8 @@ func (s *IS) PublishModel(
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	if req.TenantId == "" {
-		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
-	}
 
-	err := s.store.UpdateModel(
-		store.ModelKey{
-			ModelID:  req.Id,
-			TenantID: req.TenantId,
-		},
-		true,
-	)
-	if err != nil {
+	if err := s.store.UpdateModel(req.Id, true); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
@@ -240,16 +245,8 @@ func (s *IS) GetModelPath(
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	if req.TenantId == "" {
-		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
-	}
 
-	m, err := s.store.GetPublishedModel(
-		store.ModelKey{
-			ModelID:  req.Id,
-			TenantID: req.TenantId,
-		},
-	)
+	m, err := s.store.GetPublishedModelByModelID(req.Id)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)

@@ -11,32 +11,33 @@ type Model struct {
 	// ModelID is the model ID. It is globally unique.
 	ModelID string `gorm:"uniqueIndex"`
 
-	TenantID string `gorm:"index"`
+	TenantID       string `gorm:"index"`
+	OrganizationID string
+	ProjectID      string `gorm:"index"`
 
 	Path        string
 	IsPublished bool
-}
-
-// ModelKey represents a model key.
-type ModelKey struct {
-	ModelID  string
-	TenantID string
 }
 
 // ModelSpec represents a model spec that is passed to CreateModel.
 type ModelSpec struct {
-	Key         ModelKey
-	Path        string
-	IsPublished bool
+	ModelID        string
+	TenantID       string
+	OrganizationID string
+	ProjectID      string
+	Path           string
+	IsPublished    bool
 }
 
 // CreateModel creates a model.
 func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 	m := &Model{
-		ModelID:     spec.Key.ModelID,
-		TenantID:    spec.Key.TenantID,
-		Path:        spec.Path,
-		IsPublished: spec.IsPublished,
+		ModelID:        spec.ModelID,
+		TenantID:       spec.TenantID,
+		OrganizationID: spec.OrganizationID,
+		ProjectID:      spec.ProjectID,
+		Path:           spec.Path,
+		IsPublished:    spec.IsPublished,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err
@@ -44,10 +45,10 @@ func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 	return m, nil
 }
 
-// GetPublishedModel returns a published model by model ID and tenant ID.
-func (s *S) GetPublishedModel(k ModelKey) (*Model, error) {
+// GetPublishedModelByModelIDAndProjectID returns a published model by model ID and tenant ID.
+func (s *S) GetPublishedModelByModelIDAndProjectID(modelID, projectID string) (*Model, error) {
 	var m Model
-	if err := s.db.Where("model_id = ? AND tenant_id = ? AND is_published = ? ", k.ModelID, k.TenantID, true).Take(&m).Error; err != nil {
+	if err := s.db.Where("model_id = ? AND project_id = ? AND is_published = ? ", modelID, projectID, true).Take(&m).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -62,9 +63,18 @@ func (s *S) GetModelByModelID(modelID string) (*Model, error) {
 	return &m, nil
 }
 
-// ListModelsByTenantID finds models.
-func (s *S) ListModelsByTenantID(tenantID string, onlyPublished bool) ([]*Model, error) {
-	q := s.db.Where("tenant_id = ?", tenantID)
+// GetPublishedModelByModelID returns a model by model ID.
+func (s *S) GetPublishedModelByModelID(modelID string) (*Model, error) {
+	var m Model
+	if err := s.db.Where("model_id = ? AND is_published = ?", modelID, true).Take(&m).Error; err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+// ListModelsByProjectID finds models.
+func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Model, error) {
+	q := s.db.Where("project_id = ?", projectID)
 	if onlyPublished {
 		q = q.Where("is_published = true")
 	}
@@ -86,8 +96,8 @@ func (s *S) ListAllPublishedModels() ([]*Model, error) {
 }
 
 // DeleteModel deletes a model by model ID and tenant ID.
-func (s *S) DeleteModel(k ModelKey) error {
-	res := s.db.Unscoped().Where("model_id = ? AND tenant_id = ?", k.ModelID, k.TenantID).Delete(&Model{})
+func (s *S) DeleteModel(modelID, projectID string) error {
+	res := s.db.Unscoped().Where("model_id = ? AND project_id = ?", modelID, projectID).Delete(&Model{})
 	if err := res.Error; err != nil {
 		return err
 	}
@@ -98,8 +108,8 @@ func (s *S) DeleteModel(k ModelKey) error {
 }
 
 // UpdateModel updates the model.
-func (s *S) UpdateModel(k ModelKey, isPublished bool) error {
-	res := s.db.Model(&Model{}).Where("model_id = ? AND tenant_id = ?", k.ModelID, k.TenantID).Update("is_published", isPublished)
+func (s *S) UpdateModel(modelID string, isPublished bool) error {
+	res := s.db.Model(&Model{}).Where("model_id", modelID).Update("is_published", isPublished)
 	if err := res.Error; err != nil {
 		return err
 	}
