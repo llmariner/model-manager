@@ -13,46 +13,46 @@ func TestModel(t *testing.T) {
 	defer tearDown()
 
 	const (
-		modelID  = "m0"
-		tenantID = "tid0"
+		modelID   = "m0"
+		tenantID  = "tid0"
+		orgID     = "org0"
+		projectID = "project0"
 	)
 
-	k := ModelKey{
-		ModelID:  modelID,
-		TenantID: tenantID,
-	}
-	_, err := st.GetPublishedModel(k)
+	_, err := st.GetPublishedModelByModelID(modelID)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	_, err = st.CreateModel(ModelSpec{
-		Key:         k,
-		Path:        "path",
-		IsPublished: true,
+		ModelID:        modelID,
+		TenantID:       tenantID,
+		OrganizationID: orgID,
+		ProjectID:      projectID,
+		Path:           "path",
+		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
-	gotM, err := st.GetPublishedModel(k)
+	gotM, err := st.GetPublishedModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, tenantID, gotM.TenantID)
 
-	gotMs, err := st.ListModelsByTenantID(tenantID, true)
+	gotMs, err := st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 
-	k1 := ModelKey{
-		ModelID:  "m1",
-		TenantID: "tid1",
-	}
 	_, err = st.CreateModel(ModelSpec{
-		Key:         k1,
-		Path:        "path",
-		IsPublished: true,
+		ModelID:        "m1",
+		TenantID:       "tid1",
+		OrganizationID: "oid1",
+		ProjectID:      "pid1",
+		Path:           "path",
+		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
-	gotMs, err = st.ListModelsByTenantID(tenantID, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 
@@ -60,14 +60,14 @@ func TestModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 2)
 
-	err = st.DeleteModel(k)
+	err = st.DeleteModel(modelID, projectID)
 	assert.NoError(t, err)
 
-	gotMs, err = st.ListModelsByTenantID(tenantID, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 0)
 
-	err = st.DeleteModel(k)
+	err = st.DeleteModel(modelID, projectID)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }
 
@@ -76,30 +76,31 @@ func TestModel_Unpublished(t *testing.T) {
 	defer tearDown()
 
 	const (
-		modelID  = "m0"
-		tenantID = "tid0"
+		modelID   = "m0"
+		tenantID  = "tid0"
+		orgID     = "org0"
+		projectID = "project0"
 	)
 
-	k := ModelKey{
-		ModelID:  modelID,
-		TenantID: tenantID,
-	}
 	_, err := st.CreateModel(ModelSpec{
-		Key:         k,
-		Path:        "path",
-		IsPublished: false,
+		ModelID:        modelID,
+		TenantID:       tenantID,
+		OrganizationID: orgID,
+		ProjectID:      projectID,
+		Path:           "path",
+		IsPublished:    false,
 	})
 	assert.NoError(t, err)
 
-	_, err = st.GetPublishedModel(k)
+	_, err = st.GetPublishedModelByModelID(modelID)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	gotMs, err := st.ListModelsByTenantID(tenantID, false)
+	gotMs, err := st.ListModelsByProjectID(projectID, false)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 
-	gotMs, err = st.ListModelsByTenantID(tenantID, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 0)
 }
@@ -109,21 +110,19 @@ func TestUpdateModel(t *testing.T) {
 	defer tearDown()
 
 	const (
-		modelID  = "m0"
-		tenantID = "tid0"
+		modelID   = "m0"
+		tenantID  = "tid0"
+		orgID     = "org0"
+		projectID = "project0"
 	)
 
-	k := ModelKey{
-		ModelID:  modelID,
-		TenantID: tenantID,
-	}
-	err := st.UpdateModel(k, false)
-	assert.Error(t, err)
-
-	_, err = st.CreateModel(ModelSpec{
-		Key:         k,
-		Path:        "path",
-		IsPublished: false,
+	_, err := st.CreateModel(ModelSpec{
+		ModelID:        modelID,
+		TenantID:       tenantID,
+		OrganizationID: orgID,
+		ProjectID:      projectID,
+		Path:           "path",
+		IsPublished:    false,
 	})
 	assert.NoError(t, err)
 
@@ -131,13 +130,13 @@ func TestUpdateModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 
-	err = st.UpdateModel(k, true)
+	err = st.UpdateModel(modelID, true)
 	assert.NoError(t, err)
 	got, err = st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.True(t, got.IsPublished)
 
-	err = st.UpdateModel(k, false)
+	err = st.UpdateModel(modelID, false)
 	assert.NoError(t, err)
 	got, err = st.GetModelByModelID(modelID)
 	assert.NoError(t, err)

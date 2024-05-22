@@ -83,6 +83,8 @@ message RegisterModelRequest {
   string base_model = 1;
   string suffix = 2;
   string tenant_id = 3;
+  string organization_id = 4;
+  string project_id = 5;
 }
 
 message RegisterModelResponse {
@@ -93,7 +95,6 @@ message RegisterModelResponse {
 
 message PublishModelRequest {
   string id = 1;
-  string tenant_id = 2;
 }
 
 message PublishModelResponse {
@@ -101,7 +102,6 @@ message PublishModelResponse {
 
 message GetModelPathRequest {
   string id = 1;
-  string tenant_id = 2;
 }
 
 message GetModelPathResponse {
