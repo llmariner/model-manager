@@ -6,13 +6,12 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/llm-operator/common/pkg/id"
 	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/server/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
-
-	"k8s.io/apimachinery/pkg/util/rand"
 )
 
 const (
@@ -312,8 +311,11 @@ func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
 
 	// Randomly create an ID and retry if it already exists.
 	for {
-
-		id := fmt.Sprintf("%s%s", base, rand.SafeEncodeString(rand.String(randomLength)))
+		randomStr, err := id.GenerateID("", randomLength)
+		if err != nil {
+			return "", fmt.Errorf("generate ID: %s", err)
+		}
+		id := fmt.Sprintf("%s%s", base, randomStr)
 		if _, err := s.store.GetModelByModelID(id); errors.Is(err, gorm.ErrRecordNotFound) {
 			return id, nil
 		}
