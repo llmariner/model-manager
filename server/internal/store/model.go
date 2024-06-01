@@ -78,6 +78,7 @@ func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Mode
 	if onlyPublished {
 		q = q.Where("is_published = true")
 	}
+	q = q.Order("id DESC")
 
 	var ms []*Model
 	if err := q.Find(&ms).Error; err != nil {
@@ -89,7 +90,7 @@ func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Mode
 // ListAllPublishedModels finds all published models.
 func (s *S) ListAllPublishedModels() ([]*Model, error) {
 	var ms []*Model
-	if err := s.db.Where("is_published = true").Find(&ms).Error; err != nil {
+	if err := s.db.Where("is_published = true").Order("id DESC").Find(&ms).Error; err != nil {
 		return nil, err
 	}
 	return ms, nil
