@@ -25,7 +25,7 @@ func TestModels(t *testing.T) {
 		ModelID:        modelID,
 		OrganizationID: orgID,
 		ProjectID:      defaultProjectID,
-		TenantID:       fakeTenantID,
+		TenantID:       defaultTenantID,
 		IsPublished:    true,
 	})
 	assert.NoError(t, err)
@@ -92,7 +92,7 @@ func TestGetAndListModels(t *testing.T) {
 
 	_, err := st.CreateModel(store.ModelSpec{
 		ModelID:        modelID,
-		TenantID:       fakeTenantID,
+		TenantID:       defaultTenantID,
 		OrganizationID: orgID,
 		ProjectID:      defaultProjectID,
 		IsPublished:    true,
@@ -170,7 +170,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	resp, err := isrv.RegisterModel(ctx, &v1.RegisterModelRequest{
 		BaseModel:      "my-model",
 		Suffix:         "fine-tuning",
-		TenantId:       fakeTenantID,
+		TenantId:       defaultTenantID,
 		OrganizationId: "o0",
 		ProjectId:      defaultProjectID,
 	})
@@ -218,7 +218,7 @@ func TestGetModelPath(t *testing.T) {
 
 	_, err = st.CreateModel(store.ModelSpec{
 		ModelID:        modelID,
-		TenantID:       fakeTenantID,
+		TenantID:       defaultTenantID,
 		OrganizationID: orgID,
 		ProjectID:      defaultProjectID,
 		Path:           "model-path",
