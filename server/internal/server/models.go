@@ -139,34 +139,33 @@ func (s *S) ListBaseModels(
 	}, nil
 }
 
-// ListModels lists all models for all tenants.
-func (s *IS) ListModels(
+// GetModel gets a model.
+func (s *IS) GetModel(
 	ctx context.Context,
-	req *v1.ListModelsRequest,
-) (*v1.ListModelsResponse, error) {
-	var modelProtos []*v1.Model
-	// First include base models.
-	bms, err := s.store.ListBaseModels()
+	req *v1.GetModelRequest,
+) (*v1.Model, error) {
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	// First check if it's a base model.
+	bm, err := s.store.GetBaseModel(req.Id)
+	if err == nil {
+		return baseToModelProto(bm), nil
+	}
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, status.Errorf(codes.Internal, "get model: %s", err)
+	}
+
+	// Then check if it's a generated model.
+	m, err := s.store.GetPublishedModelByModelID(req.Id)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "get model: %s", err)
 	}
-	for _, m := range bms {
-		modelProtos = append(modelProtos, baseToModelProto(m))
-	}
-
-	ms, err := s.store.ListAllPublishedModels()
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
-	}
-
-	for _, m := range ms {
-		modelProtos = append(modelProtos, toModelProto(m))
-	}
-
-	return &v1.ListModelsResponse{
-		Object: "list",
-		Data:   modelProtos,
-	}, nil
+	return toModelProto(m), nil
 }
 
 // RegisterModel registers a model.

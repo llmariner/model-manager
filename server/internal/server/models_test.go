@@ -125,39 +125,42 @@ func TestGetAndListModels(t *testing.T) {
 	assert.ElementsMatch(t, []string{modelID, baseModelID}, ids)
 }
 
-func TestInternalListModels(t *testing.T) {
+func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	const (
-		modelID     = "m0"
-		baseModelID = "bm0"
-		orgID       = "o0"
-	)
-
-	_, err := st.CreateModel(store.ModelSpec{
-		ModelID:        "model0",
-		TenantID:       "tenant0",
-		OrganizationID: orgID,
-		ProjectID:      defaultProjectID,
-		IsPublished:    true,
-	})
+	_, err := st.CreateBaseModel("model0", "path", "gguf-path")
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{
 		ModelID:        "model1",
 		TenantID:       "tenant1",
-		OrganizationID: orgID,
+		OrganizationID: "o0",
 		ProjectID:      defaultProjectID,
 		IsPublished:    true,
 	})
 	assert.NoError(t, err)
 
 	isrv := NewInternal(st, "models")
+
 	ctx := context.Background()
-	listResp, err := isrv.ListModels(ctx, &v1.ListModelsRequest{})
+	got, err := isrv.GetModel(ctx, &v1.GetModelRequest{
+		Id: "model0",
+	})
 	assert.NoError(t, err)
-	assert.Len(t, listResp.Data, 2)
+	assert.Equal(t, "system", got.OwnedBy)
+
+	got, err = isrv.GetModel(ctx, &v1.GetModelRequest{
+		Id: "model1",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "user", got.OwnedBy)
+
+	_, err = isrv.GetModel(ctx, &v1.GetModelRequest{
+		Id: "model2",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
 }
 
 func TestRegisterAndPublishModel(t *testing.T) {
