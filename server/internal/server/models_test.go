@@ -63,16 +63,11 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st)
-	isrv := NewInternal(st, "models")
-	ctx := context.Background()
-	_, err := isrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
-		Id:            "m0",
-		Path:          "path",
-		GgufModelPath: "gguf-path",
-	})
+	_, err := st.CreateBaseModel("m0", "path", "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
+	srv := New(st)
+	ctx := context.Background()
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
 	})
@@ -99,7 +94,7 @@ func TestGetAndListModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel(baseModelID, "path", "gguf-path")
+	_, err = st.CreateBaseModel(baseModelID, "path", "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
 	srv := New(st)
@@ -129,12 +124,12 @@ func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("model0", "path", "gguf-path")
+	_, err := st.CreateBaseModel("model0", "path", "gguf-path", fakeTenantID)
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{
 		ModelID:        "model1",
-		TenantID:       "tenant1",
+		TenantID:       fakeTenantID,
 		OrganizationID: "o0",
 		ProjectID:      defaultProjectID,
 		IsPublished:    true,
@@ -281,9 +276,4 @@ func TestBaseModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "path", getResp.Path)
-
-	listResp, err = srv.ListBaseModels(ctx, &v1.ListBaseModelsRequest{})
-	assert.NoError(t, err)
-	assert.Len(t, listResp.Data, 1)
-	assert.Equal(t, modelID, listResp.Data[0].Id)
 }

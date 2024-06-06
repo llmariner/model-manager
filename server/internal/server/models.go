@@ -14,6 +14,8 @@ import (
 	"gorm.io/gorm"
 )
 
+const fakeTenantID = "fake-tenant-id"
+
 // ListModels lists models.
 func (s *S) ListModels(
 	ctx context.Context,
@@ -26,7 +28,7 @@ func (s *S) ListModels(
 
 	var modelProtos []*v1.Model
 	// First include base models.
-	bms, err := s.store.ListBaseModels()
+	bms, err := s.store.ListBaseModels(userInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
@@ -65,7 +67,7 @@ func (s *S) GetModel(
 	}
 
 	// First check if it's a base model.
-	bm, err := s.store.GetBaseModel(req.Id)
+	bm, err := s.store.GetBaseModel(req.Id, userInfo.TenantID)
 	if err == nil {
 		return baseToModelProto(bm), nil
 	}
@@ -98,7 +100,7 @@ func (s *S) DeleteModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if _, err := s.store.GetBaseModel(req.Id); err != nil {
+	if _, err := s.store.GetBaseModel(req.Id, userInfo.TenantID); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get model: %s", err)
 		}
@@ -125,7 +127,12 @@ func (s *S) ListBaseModels(
 	ctx context.Context,
 	req *v1.ListBaseModelsRequest,
 ) (*v1.ListBaseModelsResponse, error) {
-	ms, err := s.store.ListBaseModels()
+	userInfo, err := s.extractUserInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ms, err := s.store.ListBaseModels(userInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 	}
@@ -149,7 +156,7 @@ func (s *IS) GetModel(
 	}
 
 	// First check if it's a base model.
-	bm, err := s.store.GetBaseModel(req.Id)
+	bm, err := s.store.GetBaseModel(req.Id, fakeTenantID)
 	if err == nil {
 		return baseToModelProto(bm), nil
 	}
@@ -267,7 +274,7 @@ func (s *IS) CreateBaseModel(
 		return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required")
 	}
 
-	m, err := s.store.CreateBaseModel(req.Id, req.Path, req.GgufModelPath)
+	m, err := s.store.CreateBaseModel(req.Id, req.Path, req.GgufModelPath, fakeTenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
 	}
@@ -284,7 +291,7 @@ func (s *IS) GetBaseModelPath(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := s.store.GetBaseModel(req.Id)
+	m, err := s.store.GetBaseModel(req.Id, fakeTenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
