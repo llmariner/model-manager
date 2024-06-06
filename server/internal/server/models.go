@@ -14,10 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const (
-	fakeTenantID = "fake-tenant-id"
-)
-
 // ListModels lists models.
 func (s *S) ListModels(
 	ctx context.Context,
