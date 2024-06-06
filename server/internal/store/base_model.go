@@ -8,7 +8,9 @@ import (
 type BaseModel struct {
 	gorm.Model
 
-	ModelID string `gorm:"uniqueIndex"`
+	TenantID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id"`
+
+	ModelID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id"`
 	Path    string
 
 	// GGUFModelPath is the path to the GGUF model.
@@ -16,11 +18,12 @@ type BaseModel struct {
 }
 
 // CreateBaseModel creates a model.
-func (s *S) CreateBaseModel(modelID, path, ggufModelPath string) (*BaseModel, error) {
+func (s *S) CreateBaseModel(modelID, path, ggufModelPath, tenantID string) (*BaseModel, error) {
 	m := &BaseModel{
 		ModelID:       modelID,
 		Path:          path,
 		GGUFModelPath: ggufModelPath,
+		TenantID:      tenantID,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err
@@ -28,19 +31,19 @@ func (s *S) CreateBaseModel(modelID, path, ggufModelPath string) (*BaseModel, er
 	return m, nil
 }
 
-// GetBaseModel returns a base model by model ID.
-func (s *S) GetBaseModel(modelID string) (*BaseModel, error) {
+// GetBaseModel returns a base model by model ID and tenant ID.
+func (s *S) GetBaseModel(modelID, tenantID string) (*BaseModel, error) {
 	var m BaseModel
-	if err := s.db.Where("model_id = ?", modelID).Take(&m).Error; err != nil {
+	if err := s.db.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Take(&m).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
 }
 
-// ListBaseModels returns all base models.
-func (s *S) ListBaseModels() ([]*BaseModel, error) {
+// ListBaseModels returns all base models for a tenant.
+func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 	var ms []*BaseModel
-	if err := s.db.Order("id DESC").Find(&ms).Error; err != nil {
+	if err := s.db.Where("tenant_id = ? ", tenantID).Order("id DESC").Find(&ms).Error; err != nil {
 		return nil, err
 	}
 	return ms, nil
