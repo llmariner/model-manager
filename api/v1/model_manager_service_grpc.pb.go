@@ -214,11 +214,19 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ModelsInternalServiceClient interface {
-	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
+	// GetModel gets a model. Used by inference-manager-engine.
+	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
+	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+	// The model is not published until PublishModel is called.
 	RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error)
+	// PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
 	PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error)
+	// GetModelPath returns the path of the model. Used by inference-manager-engine.
 	GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error)
+	// CreateBaseModel creates a new base model. Used by model-manager-loader.
 	CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error)
+	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
+	// inference-manager-engine, and model-manager-loader.
 	GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error)
 }
 
@@ -230,9 +238,9 @@ func NewModelsInternalServiceClient(cc grpc.ClientConnInterface) ModelsInternalS
 	return &modelsInternalServiceClient{cc}
 }
 
-func (c *modelsInternalServiceClient) ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error) {
-	out := new(ListModelsResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/ListModels", in, out, opts...)
+func (c *modelsInternalServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
+	out := new(Model)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/GetModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -288,11 +296,19 @@ func (c *modelsInternalServiceClient) GetBaseModelPath(ctx context.Context, in *
 // All implementations must embed UnimplementedModelsInternalServiceServer
 // for forward compatibility
 type ModelsInternalServiceServer interface {
-	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
+	// GetModel gets a model. Used by inference-manager-engine.
+	GetModel(context.Context, *GetModelRequest) (*Model, error)
+	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+	// The model is not published until PublishModel is called.
 	RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error)
+	// PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
 	PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error)
+	// GetModelPath returns the path of the model. Used by inference-manager-engine.
 	GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error)
+	// CreateBaseModel creates a new base model. Used by model-manager-loader.
 	CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error)
+	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
+	// inference-manager-engine, and model-manager-loader.
 	GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error)
 	mustEmbedUnimplementedModelsInternalServiceServer()
 }
@@ -301,8 +317,8 @@ type ModelsInternalServiceServer interface {
 type UnimplementedModelsInternalServiceServer struct {
 }
 
-func (UnimplementedModelsInternalServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListModels not implemented")
+func (UnimplementedModelsInternalServiceServer) GetModel(context.Context, *GetModelRequest) (*Model, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetModel not implemented")
 }
 func (UnimplementedModelsInternalServiceServer) RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterModel not implemented")
@@ -332,20 +348,20 @@ func RegisterModelsInternalServiceServer(s grpc.ServiceRegistrar, srv ModelsInte
 	s.RegisterService(&ModelsInternalService_ServiceDesc, srv)
 }
 
-func _ModelsInternalService_ListModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListModelsRequest)
+func _ModelsInternalService_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).ListModels(ctx, in)
+		return srv.(ModelsInternalServiceServer).GetModel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/ListModels",
+		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/GetModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).ListModels(ctx, req.(*ListModelsRequest))
+		return srv.(ModelsInternalServiceServer).GetModel(ctx, req.(*GetModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -448,8 +464,8 @@ var ModelsInternalService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ModelsInternalServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListModels",
-			Handler:    _ModelsInternalService_ListModels_Handler,
+			MethodName: "GetModel",
+			Handler:    _ModelsInternalService_GetModel_Handler,
 		},
 		{
 			MethodName: "RegisterModel",

@@ -127,9 +127,8 @@ message GetBaseModelPathResponse {
 // called from components that can run in worker k8s clusters (not in the
 // control plane k8s cluster).
 service ModelsInternalService {
-  // ListModels lists models. Used by inference-manager-engine.
-  // TODO(kenji): Replace this with GetModel.
-  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
+  // GetModel gets a model. Used by inference-manager-engine.
+  rpc GetModel(GetModelRequest) returns (Model) {
   }
 
   // RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
