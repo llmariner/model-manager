@@ -123,22 +123,34 @@ message GetBaseModelPathResponse {
   string gguf_model_path = 2;
 }
 
+// TODO(kenji): Consider renaming this service as all RPC endpoints are
+// called from components that can run in worker k8s clusters (not in the
+// control plane k8s cluster).
 service ModelsInternalService {
+  // ListModels lists models. Used by inference-manager-engine.
+  // TODO(kenji): Replace this with GetModel.
   rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
   }
 
+  // RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+  // The model is not published until PublishModel is called.
   rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse) {
   }
 
+  // PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
   rpc PublishModel(PublishModelRequest) returns (PublishModelResponse) {
   }
 
+  // GetModelPath returns the path of the model. Used by inference-manager-engine.
   rpc GetModelPath(GetModelPathRequest) returns (GetModelPathResponse) {
   }
 
+  // CreateBaseModel creates a new base model. Used by model-manager-loader.
   rpc CreateBaseModel(CreateBaseModelRequest) returns (BaseModel) {
   }
 
+  // GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
+  // inference-manager-engine, and model-manager-loader.
   rpc GetBaseModelPath(GetBaseModelPathRequest) returns (GetBaseModelPathResponse) {
   }
 }
