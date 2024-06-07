@@ -43,9 +43,9 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - name: grpc
+  - name: ws-grpc
     port: {{ .Values.internalGrpcPort }}
     protocol: TCP
-    targetPort: worker-service-grpc
+    targetPort: ws-grpc
   selector:
     {{- include "model-manager-server.selectorLabels" . | nindent 4 }}
