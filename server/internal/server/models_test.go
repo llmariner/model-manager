@@ -136,22 +136,22 @@ func TestInternalGetModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	isrv := NewInternal(st, "models")
+	wsrv := NewWorkerServiceServer(st, "models")
 
 	ctx := context.Background()
-	got, err := isrv.GetModel(ctx, &v1.GetModelRequest{
+	got, err := wsrv.GetModel(ctx, &v1.GetModelRequest{
 		Id: "model0",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "system", got.OwnedBy)
 
-	got, err = isrv.GetModel(ctx, &v1.GetModelRequest{
+	got, err = wsrv.GetModel(ctx, &v1.GetModelRequest{
 		Id: "model1",
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "user", got.OwnedBy)
 
-	_, err = isrv.GetModel(ctx, &v1.GetModelRequest{
+	_, err = wsrv.GetModel(ctx, &v1.GetModelRequest{
 		Id: "model2",
 	})
 	assert.Error(t, err)
@@ -163,9 +163,9 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	defer tearDown()
 
 	srv := New(st)
-	isrv := NewInternal(st, "models")
+	wsrv := NewWorkerServiceServer(st, "models")
 	ctx := context.Background()
-	resp, err := isrv.RegisterModel(ctx, &v1.RegisterModelRequest{
+	resp, err := wsrv.RegisterModel(ctx, &v1.RegisterModelRequest{
 		BaseModel:      "my-model",
 		Suffix:         "fine-tuning",
 		TenantId:       defaultTenantID,
@@ -186,7 +186,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
 
-	_, err = isrv.PublishModel(ctx, &v1.PublishModelRequest{
+	_, err = wsrv.PublishModel(ctx, &v1.PublishModelRequest{
 		Id: modelID,
 	})
 	assert.NoError(t, err)
@@ -206,9 +206,9 @@ func TestGetModelPath(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	isrv := NewInternal(st, "models")
+	wsrv := NewWorkerServiceServer(st, "models")
 	ctx := context.Background()
-	_, err := isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
 	})
 	assert.Error(t, err)
@@ -224,18 +224,18 @@ func TestGetModelPath(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+	_, err = wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
 
-	_, err = isrv.PublishModel(ctx, &v1.PublishModelRequest{
+	_, err = wsrv.PublishModel(ctx, &v1.PublishModelRequest{
 		Id: modelID,
 	})
 	assert.NoError(t, err)
 
-	resp, err := isrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+	resp, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
 	})
 	assert.NoError(t, err)
@@ -249,11 +249,11 @@ func TestBaseModels(t *testing.T) {
 	srv := New(st)
 	ctx := context.Background()
 
-	isrv := NewInternal(st, "models")
+	wsrv := NewWorkerServiceServer(st, "models")
 
 	const modelID = "m0"
 
-	_, err := isrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
+	_, err := wsrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
 		Id: modelID,
 	})
 	assert.Error(t, err)
@@ -264,14 +264,14 @@ func TestBaseModels(t *testing.T) {
 	assert.Len(t, listResp.Data, 0)
 
 	// Create a base model.
-	_, err = isrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
 		Id:            modelID,
 		Path:          "path",
 		GgufModelPath: "gguf-path",
 	})
 	assert.NoError(t, err)
 
-	getResp, err := isrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
+	getResp, err := wsrv.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
 		Id: modelID,
 	})
 	assert.NoError(t, err)

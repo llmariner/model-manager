@@ -75,6 +75,7 @@ func (s *S) Run(ctx context.Context, port int, authConfig config.AuthConfig) err
 func (s *S) Stop() {
 	s.srv.Stop()
 }
+
 func (s *S) extractUserInfoFromContext(ctx context.Context) (*auth.UserInfo, error) {
 	if !s.enableAuth {
 		return &auth.UserInfo{
@@ -84,7 +85,7 @@ func (s *S) extractUserInfoFromContext(ctx context.Context) (*auth.UserInfo, err
 			TenantID:            defaultTenantID,
 		}, nil
 	}
-	var ok bool
+
 	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
 	if !ok {
 		return nil, status.Error(codes.Unauthenticated, "user info not found")

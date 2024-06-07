@@ -147,7 +147,7 @@ func (s *S) ListBaseModels(
 }
 
 // GetModel gets a model.
-func (s *IS) GetModel(
+func (s *WS) GetModel(
 	ctx context.Context,
 	req *v1.GetModelRequest,
 ) (*v1.Model, error) {
@@ -176,7 +176,7 @@ func (s *IS) GetModel(
 }
 
 // RegisterModel registers a model.
-func (s *IS) RegisterModel(
+func (s *WS) RegisterModel(
 	ctx context.Context,
 	req *v1.RegisterModelRequest,
 ) (*v1.RegisterModelResponse, error) {
@@ -221,7 +221,7 @@ func (s *IS) RegisterModel(
 }
 
 // PublishModel publishes a model.
-func (s *IS) PublishModel(
+func (s *WS) PublishModel(
 	ctx context.Context,
 	req *v1.PublishModelRequest,
 ) (*v1.PublishModelResponse, error) {
@@ -239,7 +239,7 @@ func (s *IS) PublishModel(
 }
 
 // GetModelPath gets a model path.
-func (s *IS) GetModelPath(
+func (s *WS) GetModelPath(
 	ctx context.Context,
 	req *v1.GetModelPathRequest,
 ) (*v1.GetModelPathResponse, error) {
@@ -260,7 +260,7 @@ func (s *IS) GetModelPath(
 }
 
 // CreateBaseModel creates a base model.
-func (s *IS) CreateBaseModel(
+func (s *WS) CreateBaseModel(
 	ctx context.Context,
 	req *v1.CreateBaseModelRequest,
 ) (*v1.BaseModel, error) {
@@ -283,7 +283,7 @@ func (s *IS) CreateBaseModel(
 }
 
 // GetBaseModelPath gets a model path.
-func (s *IS) GetBaseModelPath(
+func (s *WS) GetBaseModelPath(
 	ctx context.Context,
 	req *v1.GetBaseModelPathRequest,
 ) (*v1.GetBaseModelPathResponse, error) {
@@ -304,7 +304,7 @@ func (s *IS) GetBaseModelPath(
 	}, nil
 }
 
-func (s *IS) genenerateModelID(baseModel, suffix string) (string, error) {
+func (s *WS) genenerateModelID(baseModel, suffix string) (string, error) {
 	const randomLength = 10
 	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
 	// TODO(kenji): Revisit this.

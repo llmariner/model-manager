@@ -52,11 +52,11 @@ func run(ctx context.Context, c *config.Config) error {
 	if c.Debug.Standalone {
 		mclient = loader.NewFakeModelClient()
 	} else {
-		conn, err := grpc.Dial(c.ModelManagerInternalServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		conn, err := grpc.Dial(c.ModelManagerWorkerServiceServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
 		if err != nil {
 			return err
 		}
-		mclient = mv1.NewModelsInternalServiceClient(conn)
+		mclient = mv1.NewModelsWorkerServiceClient(conn)
 	}
 
 	s := loader.New(

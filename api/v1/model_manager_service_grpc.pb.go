@@ -210,10 +210,10 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 	Metadata: "api/v1/model_manager_service.proto",
 }
 
-// ModelsInternalServiceClient is the client API for ModelsInternalService service.
+// ModelsWorkerServiceClient is the client API for ModelsWorkerService service.
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
-type ModelsInternalServiceClient interface {
+type ModelsWorkerServiceClient interface {
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
 	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
@@ -230,72 +230,72 @@ type ModelsInternalServiceClient interface {
 	GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error)
 }
 
-type modelsInternalServiceClient struct {
+type modelsWorkerServiceClient struct {
 	cc grpc.ClientConnInterface
 }
 
-func NewModelsInternalServiceClient(cc grpc.ClientConnInterface) ModelsInternalServiceClient {
-	return &modelsInternalServiceClient{cc}
+func NewModelsWorkerServiceClient(cc grpc.ClientConnInterface) ModelsWorkerServiceClient {
+	return &modelsWorkerServiceClient{cc}
 }
 
-func (c *modelsInternalServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
+func (c *modelsWorkerServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
 	out := new(Model)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/GetModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *modelsInternalServiceClient) RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error) {
+func (c *modelsWorkerServiceClient) RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error) {
 	out := new(RegisterModelResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/RegisterModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/RegisterModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *modelsInternalServiceClient) PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error) {
+func (c *modelsWorkerServiceClient) PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error) {
 	out := new(PublishModelResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/PublishModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/PublishModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *modelsInternalServiceClient) GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error) {
+func (c *modelsWorkerServiceClient) GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error) {
 	out := new(GetModelPathResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/GetModelPath", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *modelsInternalServiceClient) CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error) {
+func (c *modelsWorkerServiceClient) CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error) {
 	out := new(BaseModel)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/CreateBaseModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *modelsInternalServiceClient) GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error) {
+func (c *modelsWorkerServiceClient) GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error) {
 	out := new(GetBaseModelPathResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsInternalService/GetBaseModelPath", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetBaseModelPath", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-// ModelsInternalServiceServer is the server API for ModelsInternalService service.
-// All implementations must embed UnimplementedModelsInternalServiceServer
+// ModelsWorkerServiceServer is the server API for ModelsWorkerService service.
+// All implementations must embed UnimplementedModelsWorkerServiceServer
 // for forward compatibility
-type ModelsInternalServiceServer interface {
+type ModelsWorkerServiceServer interface {
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
 	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
@@ -310,182 +310,182 @@ type ModelsInternalServiceServer interface {
 	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
 	// inference-manager-engine, and model-manager-loader.
 	GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error)
-	mustEmbedUnimplementedModelsInternalServiceServer()
+	mustEmbedUnimplementedModelsWorkerServiceServer()
 }
 
-// UnimplementedModelsInternalServiceServer must be embedded to have forward compatible implementations.
-type UnimplementedModelsInternalServiceServer struct {
+// UnimplementedModelsWorkerServiceServer must be embedded to have forward compatible implementations.
+type UnimplementedModelsWorkerServiceServer struct {
 }
 
-func (UnimplementedModelsInternalServiceServer) GetModel(context.Context, *GetModelRequest) (*Model, error) {
+func (UnimplementedModelsWorkerServiceServer) GetModel(context.Context, *GetModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModel not implemented")
 }
-func (UnimplementedModelsInternalServiceServer) RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error) {
+func (UnimplementedModelsWorkerServiceServer) RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterModel not implemented")
 }
-func (UnimplementedModelsInternalServiceServer) PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error) {
+func (UnimplementedModelsWorkerServiceServer) PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method PublishModel not implemented")
 }
-func (UnimplementedModelsInternalServiceServer) GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error) {
+func (UnimplementedModelsWorkerServiceServer) GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModelPath not implemented")
 }
-func (UnimplementedModelsInternalServiceServer) CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error) {
+func (UnimplementedModelsWorkerServiceServer) CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateBaseModel not implemented")
 }
-func (UnimplementedModelsInternalServiceServer) GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error) {
+func (UnimplementedModelsWorkerServiceServer) GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBaseModelPath not implemented")
 }
-func (UnimplementedModelsInternalServiceServer) mustEmbedUnimplementedModelsInternalServiceServer() {}
+func (UnimplementedModelsWorkerServiceServer) mustEmbedUnimplementedModelsWorkerServiceServer() {}
 
-// UnsafeModelsInternalServiceServer may be embedded to opt out of forward compatibility for this service.
-// Use of this interface is not recommended, as added methods to ModelsInternalServiceServer will
+// UnsafeModelsWorkerServiceServer may be embedded to opt out of forward compatibility for this service.
+// Use of this interface is not recommended, as added methods to ModelsWorkerServiceServer will
 // result in compilation errors.
-type UnsafeModelsInternalServiceServer interface {
-	mustEmbedUnimplementedModelsInternalServiceServer()
+type UnsafeModelsWorkerServiceServer interface {
+	mustEmbedUnimplementedModelsWorkerServiceServer()
 }
 
-func RegisterModelsInternalServiceServer(s grpc.ServiceRegistrar, srv ModelsInternalServiceServer) {
-	s.RegisterService(&ModelsInternalService_ServiceDesc, srv)
+func RegisterModelsWorkerServiceServer(s grpc.ServiceRegistrar, srv ModelsWorkerServiceServer) {
+	s.RegisterService(&ModelsWorkerService_ServiceDesc, srv)
 }
 
-func _ModelsInternalService_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ModelsWorkerService_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetModelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).GetModel(ctx, in)
+		return srv.(ModelsWorkerServiceServer).GetModel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/GetModel",
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).GetModel(ctx, req.(*GetModelRequest))
+		return srv.(ModelsWorkerServiceServer).GetModel(ctx, req.(*GetModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ModelsInternalService_RegisterModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ModelsWorkerService_RegisterModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(RegisterModelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).RegisterModel(ctx, in)
+		return srv.(ModelsWorkerServiceServer).RegisterModel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/RegisterModel",
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/RegisterModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).RegisterModel(ctx, req.(*RegisterModelRequest))
+		return srv.(ModelsWorkerServiceServer).RegisterModel(ctx, req.(*RegisterModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ModelsInternalService_PublishModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ModelsWorkerService_PublishModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(PublishModelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).PublishModel(ctx, in)
+		return srv.(ModelsWorkerServiceServer).PublishModel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/PublishModel",
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/PublishModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).PublishModel(ctx, req.(*PublishModelRequest))
+		return srv.(ModelsWorkerServiceServer).PublishModel(ctx, req.(*PublishModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ModelsInternalService_GetModelPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ModelsWorkerService_GetModelPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetModelPathRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).GetModelPath(ctx, in)
+		return srv.(ModelsWorkerServiceServer).GetModelPath(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/GetModelPath",
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).GetModelPath(ctx, req.(*GetModelPathRequest))
+		return srv.(ModelsWorkerServiceServer).GetModelPath(ctx, req.(*GetModelPathRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ModelsInternalService_CreateBaseModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ModelsWorkerService_CreateBaseModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateBaseModelRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).CreateBaseModel(ctx, in)
+		return srv.(ModelsWorkerServiceServer).CreateBaseModel(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/CreateBaseModel",
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).CreateBaseModel(ctx, req.(*CreateBaseModelRequest))
+		return srv.(ModelsWorkerServiceServer).CreateBaseModel(ctx, req.(*CreateBaseModelRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ModelsInternalService_GetBaseModelPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+func _ModelsWorkerService_GetBaseModelPath_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetBaseModelPathRequest)
 	if err := dec(in); err != nil {
 		return nil, err
 	}
 	if interceptor == nil {
-		return srv.(ModelsInternalServiceServer).GetBaseModelPath(ctx, in)
+		return srv.(ModelsWorkerServiceServer).GetBaseModelPath(ctx, in)
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsInternalService/GetBaseModelPath",
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetBaseModelPath",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsInternalServiceServer).GetBaseModelPath(ctx, req.(*GetBaseModelPathRequest))
+		return srv.(ModelsWorkerServiceServer).GetBaseModelPath(ctx, req.(*GetBaseModelPathRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
 
-// ModelsInternalService_ServiceDesc is the grpc.ServiceDesc for ModelsInternalService service.
+// ModelsWorkerService_ServiceDesc is the grpc.ServiceDesc for ModelsWorkerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
-var ModelsInternalService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "llmoperator.models.server.v1.ModelsInternalService",
-	HandlerType: (*ModelsInternalServiceServer)(nil),
+var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
+	ServiceName: "llmoperator.models.server.v1.ModelsWorkerService",
+	HandlerType: (*ModelsWorkerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
 			MethodName: "GetModel",
-			Handler:    _ModelsInternalService_GetModel_Handler,
+			Handler:    _ModelsWorkerService_GetModel_Handler,
 		},
 		{
 			MethodName: "RegisterModel",
-			Handler:    _ModelsInternalService_RegisterModel_Handler,
+			Handler:    _ModelsWorkerService_RegisterModel_Handler,
 		},
 		{
 			MethodName: "PublishModel",
-			Handler:    _ModelsInternalService_PublishModel_Handler,
+			Handler:    _ModelsWorkerService_PublishModel_Handler,
 		},
 		{
 			MethodName: "GetModelPath",
-			Handler:    _ModelsInternalService_GetModelPath_Handler,
+			Handler:    _ModelsWorkerService_GetModelPath_Handler,
 		},
 		{
 			MethodName: "CreateBaseModel",
-			Handler:    _ModelsInternalService_CreateBaseModel_Handler,
+			Handler:    _ModelsWorkerService_CreateBaseModel_Handler,
 		},
 		{
 			MethodName: "GetBaseModelPath",
-			Handler:    _ModelsInternalService_GetBaseModelPath_Handler,
+			Handler:    _ModelsWorkerService_GetBaseModelPath_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
