@@ -63,10 +63,10 @@ func (s *S) GetModelByModelID(modelID string) (*Model, error) {
 	return &m, nil
 }
 
-// GetPublishedModelByModelID returns a model by model ID.
-func (s *S) GetPublishedModelByModelID(modelID string) (*Model, error) {
+// GetPublishedModelByModelIDAndTenantID returns a model by model ID.
+func (s *S) GetPublishedModelByModelIDAndTenantID(modelID, tenantID string) (*Model, error) {
 	var m Model
-	if err := s.db.Where("model_id = ? AND is_published = ?", modelID, true).Take(&m).Error; err != nil {
+	if err := s.db.Where("model_id = ? AND tenant_id = ? AND is_published = ?", modelID, tenantID, true).Take(&m).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -87,15 +87,6 @@ func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Mode
 	return ms, nil
 }
 
-// ListAllPublishedModels finds all published models.
-func (s *S) ListAllPublishedModels() ([]*Model, error) {
-	var ms []*Model
-	if err := s.db.Where("is_published = true").Order("id DESC").Find(&ms).Error; err != nil {
-		return nil, err
-	}
-	return ms, nil
-}
-
 // DeleteModel deletes a model by model ID and tenant ID.
 func (s *S) DeleteModel(modelID, projectID string) error {
 	res := s.db.Unscoped().Where("model_id = ? AND project_id = ?", modelID, projectID).Delete(&Model{})
@@ -109,8 +100,8 @@ func (s *S) DeleteModel(modelID, projectID string) error {
 }
 
 // UpdateModel updates the model.
-func (s *S) UpdateModel(modelID string, isPublished bool) error {
-	res := s.db.Model(&Model{}).Where("model_id", modelID).Update("is_published", isPublished)
+func (s *S) UpdateModel(modelID string, tenantID string, isPublished bool) error {
+	res := s.db.Model(&Model{}).Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Update("is_published", isPublished)
 	if err := res.Error; err != nil {
 		return err
 	}

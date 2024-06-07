@@ -11,6 +11,7 @@ import (
 	"time"
 
 	mv1 "github.com/llm-operator/model-manager/api/v1"
+	"github.com/llm-operator/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -157,6 +158,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	convertedModelID := strings.ReplaceAll(modelID, "/", "-")
 
 	// First check if the model exists in the database.
+	ctx = auth.AppendWorkerAuthorization(ctx)
 	_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: convertedModelID})
 	if err == nil {
 		log.Printf("Model %q exists. Do nothing.\n", convertedModelID)

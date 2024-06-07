@@ -82,9 +82,8 @@ service ModelsService {
 message RegisterModelRequest {
   string base_model = 1;
   string suffix = 2;
-  string tenant_id = 3;
-  string organization_id = 4;
-  string project_id = 5;
+  string organization_id = 3;
+  string project_id = 4;
 }
 
 message RegisterModelResponse {

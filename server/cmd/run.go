@@ -96,7 +96,7 @@ func run(ctx context.Context, c *config.Config) error {
 
 	go func() {
 		s := server.NewWorkerServiceServer(st, c.ObjectStore.S3.PathPrefix)
-		errCh <- s.Run(c.WorkerServiceGRPCPort)
+		errCh <- s.Run(ctx, c.WorkerServiceGRPCPort, c.AuthConfig)
 	}()
 
 	return <-errCh

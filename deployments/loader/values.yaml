@@ -10,6 +10,11 @@ global:
     accessKeyIdKey:
     secretAccessKeyKey:
 
+  worker:
+    registrationKeySecret:
+      name:
+      key:
+
 baseModels:
 
 modelLoadInterval: 1m
