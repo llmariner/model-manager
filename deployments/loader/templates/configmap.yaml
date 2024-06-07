@@ -28,4 +28,4 @@ data:
     {{- end }}
     modelLoadInterval: {{ .Values.modelLoadInterval }}
     runOnce: {{ .Values.runOnce }}
-    modelManagerInternalServerAddr: {{ .Values.modelManagerInternalServerAddr }}
+    modelManagerWorkerServiceServerAddr: {{ .Values.modelManagerWorkerServiceServerAddr }}

@@ -123,10 +123,7 @@ message GetBaseModelPathResponse {
   string gguf_model_path = 2;
 }
 
-// TODO(kenji): Consider renaming this service as all RPC endpoints are
-// called from components that can run in worker k8s clusters (not in the
-// control plane k8s cluster).
-service ModelsInternalService {
+service ModelsWorkerService {
   // GetModel gets a model. Used by inference-manager-engine.
   rpc GetModel(GetModelRequest) returns (Model) {
   }

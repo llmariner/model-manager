@@ -51,9 +51,9 @@ func (c *AuthConfig) Validate() error {
 
 // Config is the configuration.
 type Config struct {
-	HTTPPort         int `yaml:"httpPort"`
-	GRPCPort         int `yaml:"grpcPort"`
-	InternalGRPCPort int `yaml:"internalGrpcPort"`
+	HTTPPort              int `yaml:"httpPort"`
+	GRPCPort              int `yaml:"grpcPort"`
+	WorkerServiceGRPCPort int `yaml:"workerServiceGrpcPort"`
 
 	Database db.Config `yaml:"database"`
 
@@ -72,8 +72,8 @@ func (c *Config) Validate() error {
 	if c.GRPCPort <= 0 {
 		return fmt.Errorf("grpcPort must be greater than 0")
 	}
-	if c.InternalGRPCPort <= 0 {
-		return fmt.Errorf("internalGrpcPort must be greater than 0")
+	if c.WorkerServiceGRPCPort <= 0 {
+		return fmt.Errorf("workerServiceGrpcPort must be greater than 0")
 	}
 
 	if err := c.ObjectStore.Validate(); err != nil {

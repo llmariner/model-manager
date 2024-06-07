@@ -15,8 +15,8 @@ downloader:
     pathPrefix: v1/base-models
 
 baseModels:
-- google/gemma-2b
+- google/gemma-2b-it-q4
 
 modelLoadInterval: 1m
 
-modelManagerInternalServerAddr: server:8082
+modelManagerWorkerServiceServerAddr: server:8082

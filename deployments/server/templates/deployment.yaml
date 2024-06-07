@@ -31,8 +31,8 @@ spec:
         - name: grpc
           containerPort: {{ .Values.grpcPort }}
           protocol: TCP
-        - name: internal-grpc
-          containerPort: {{ .Values.internalGrpcPort }}
+        - name: worker-service-grpc
+          containerPort: {{ .Values.workerServiceGrpcPort }}
           protocol: TCP
         volumeMounts:
         - name: config
