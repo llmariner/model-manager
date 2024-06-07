@@ -14,8 +14,6 @@ import (
 	"gorm.io/gorm"
 )
 
-const fakeTenantID = "fake-tenant-id"
-
 // ListModels lists models.
 func (s *S) ListModels(
 	ctx context.Context,
@@ -151,12 +149,17 @@ func (s *WS) GetModel(
 	ctx context.Context,
 	req *v1.GetModelRequest,
 ) (*v1.Model, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
 	// First check if it's a base model.
-	bm, err := s.store.GetBaseModel(req.Id, fakeTenantID)
+	bm, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
 	if err == nil {
 		return baseToModelProto(bm), nil
 	}
@@ -165,7 +168,7 @@ func (s *WS) GetModel(
 	}
 
 	// Then check if it's a generated model.
-	m, err := s.store.GetPublishedModelByModelID(req.Id)
+	m, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -180,14 +183,16 @@ func (s *WS) RegisterModel(
 	ctx context.Context,
 	req *v1.RegisterModelRequest,
 ) (*v1.RegisterModelResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.BaseModel == "" {
 		return nil, status.Error(codes.InvalidArgument, "base_model is required")
 	}
 	if req.Suffix == "" {
 		return nil, status.Error(codes.InvalidArgument, "suffix is required")
-	}
-	if req.TenantId == "" {
-		return nil, status.Error(codes.InvalidArgument, "tenant_id is required")
 	}
 	if req.OrganizationId == "" {
 		return nil, status.Error(codes.InvalidArgument, "organization_id is required")
@@ -204,7 +209,7 @@ func (s *WS) RegisterModel(
 	path := fmt.Sprintf("%s/%s/%s", s.pathPrefix, req.TenantId, id)
 	_, err = s.store.CreateModel(store.ModelSpec{
 		ModelID:        id,
-		TenantID:       req.TenantId,
+		TenantID:       clusterInfo.TenantID,
 		OrganizationID: req.OrganizationId,
 		ProjectID:      req.ProjectId,
 		IsPublished:    false,
@@ -225,11 +230,16 @@ func (s *WS) PublishModel(
 	ctx context.Context,
 	req *v1.PublishModelRequest,
 ) (*v1.PublishModelResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if err := s.store.UpdateModel(req.Id, true); err != nil {
+	if err := s.store.UpdateModel(req.Id, clusterInfo.TenantID, true); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
@@ -243,11 +253,16 @@ func (s *WS) GetModelPath(
 	ctx context.Context,
 	req *v1.GetModelPathRequest,
 ) (*v1.GetModelPathResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := s.store.GetPublishedModelByModelID(req.Id)
+	m, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -264,6 +279,11 @@ func (s *WS) CreateBaseModel(
 	ctx context.Context,
 	req *v1.CreateBaseModelRequest,
 ) (*v1.BaseModel, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
@@ -274,7 +294,7 @@ func (s *WS) CreateBaseModel(
 		return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required")
 	}
 
-	m, err := s.store.CreateBaseModel(req.Id, req.Path, req.GgufModelPath, fakeTenantID)
+	m, err := s.store.CreateBaseModel(req.Id, req.Path, req.GgufModelPath, clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
 	}
@@ -287,11 +307,16 @@ func (s *WS) GetBaseModelPath(
 	ctx context.Context,
 	req *v1.GetBaseModelPathRequest,
 ) (*v1.GetBaseModelPathResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := s.store.GetBaseModel(req.Id, fakeTenantID)
+	m, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)

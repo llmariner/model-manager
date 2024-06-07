@@ -124,12 +124,12 @@ func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("model0", "path", "gguf-path", fakeTenantID)
+	_, err := st.CreateBaseModel("model0", "path", "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{
 		ModelID:        "model1",
-		TenantID:       fakeTenantID,
+		TenantID:       defaultTenantID,
 		OrganizationID: "o0",
 		ProjectID:      defaultProjectID,
 		IsPublished:    true,
