@@ -44,7 +44,7 @@ spec:
   type: ClusterIP
   ports:
   - name: ws-grpc
-    port: {{ .Values.internalGrpcPort }}
+    port: {{ .Values.workerServiceGrpcPort }}
     protocol: TCP
     targetPort: ws-grpc
   selector:
