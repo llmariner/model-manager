@@ -168,7 +168,6 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	resp, err := wsrv.RegisterModel(ctx, &v1.RegisterModelRequest{
 		BaseModel:      "my-model",
 		Suffix:         "fine-tuning",
-		TenantId:       defaultTenantID,
 		OrganizationId: "o0",
 		ProjectId:      defaultProjectID,
 	})
