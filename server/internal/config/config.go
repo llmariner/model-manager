@@ -9,6 +9,10 @@ import (
 )
 
 // S3Config is the S3 configuration.
+//
+// TODO(kenji): Consider removing this and eliminate the dependency on S3.
+// The path prefix is maintainted by each tenant, and the loader can report it
+// to the server.
 type S3Config struct {
 	PathPrefix string `yaml:"pathPrefix"`
 }
