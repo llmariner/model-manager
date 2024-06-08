@@ -79,10 +79,15 @@ func (s *S) Stop() {
 func (s *S) extractUserInfoFromContext(ctx context.Context) (*auth.UserInfo, error) {
 	if !s.enableAuth {
 		return &auth.UserInfo{
-			OrganizationID:      "default",
-			ProjectID:           defaultProjectID,
-			KubernetesNamespace: "default",
-			TenantID:            defaultTenantID,
+			OrganizationID: "default",
+			ProjectID:      defaultProjectID,
+			AssignedKubernetesEnvs: []auth.AssignedKubernetesEnv{
+				{
+					ClusterID: defaultClusterID,
+					Namespace: "default",
+				},
+			},
+			TenantID: defaultTenantID,
 		}, nil
 	}
 
