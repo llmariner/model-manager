@@ -136,7 +136,7 @@ func TestInternalGetModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	wsrv := NewWorkerServiceServer(st, "models")
+	wsrv := NewWorkerServiceServer(st)
 
 	ctx := context.Background()
 	got, err := wsrv.GetModel(ctx, &v1.GetModelRequest{
@@ -163,8 +163,14 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	defer tearDown()
 
 	srv := New(st)
-	wsrv := NewWorkerServiceServer(st, "models")
+	wsrv := NewWorkerServiceServer(st)
 	ctx := context.Background()
+
+	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
+		PathPrefix: "models",
+	})
+	assert.NoError(t, err)
+
 	resp, err := wsrv.RegisterModel(ctx, &v1.RegisterModelRequest{
 		BaseModel:      "my-model",
 		Suffix:         "fine-tuning",
@@ -205,7 +211,7 @@ func TestGetModelPath(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	wsrv := NewWorkerServiceServer(st, "models")
+	wsrv := NewWorkerServiceServer(st)
 	ctx := context.Background()
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
@@ -248,7 +254,7 @@ func TestBaseModels(t *testing.T) {
 	srv := New(st)
 	ctx := context.Background()
 
-	wsrv := NewWorkerServiceServer(st, "models")
+	wsrv := NewWorkerServiceServer(st)
 
 	const modelID = "m0"
 

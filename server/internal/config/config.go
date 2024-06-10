@@ -8,28 +8,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// S3Config is the S3 configuration.
-//
-// TODO(kenji): Consider removing this and eliminate the dependency on S3.
-// The path prefix is maintainted by each tenant, and the loader can report it
-// to the server.
-type S3Config struct {
-	PathPrefix string `yaml:"pathPrefix"`
-}
-
-// ObjectStoreConfig is the object store configuration.
-type ObjectStoreConfig struct {
-	S3 S3Config `yaml:"s3"`
-}
-
-// Validate validates the object store configuration.
-func (c *ObjectStoreConfig) Validate() error {
-	if c.S3.PathPrefix == "" {
-		return fmt.Errorf("s3 path prefix must be set")
-	}
-	return nil
-}
-
 // DebugConfig is the debug configuration.
 type DebugConfig struct {
 	Standalone bool   `yaml:"standalone"`
@@ -61,8 +39,6 @@ type Config struct {
 
 	Database db.Config `yaml:"database"`
 
-	ObjectStore ObjectStoreConfig `yaml:"objectStore"`
-
 	Debug DebugConfig `yaml:"debug"`
 
 	AuthConfig AuthConfig `yaml:"auth"`
@@ -78,10 +54,6 @@ func (c *Config) Validate() error {
 	}
 	if c.WorkerServiceGRPCPort <= 0 {
 		return fmt.Errorf("workerServiceGrpcPort must be greater than 0")
-	}
-
-	if err := c.ObjectStore.Validate(); err != nil {
-		return fmt.Errorf("object store: %s", err)
 	}
 
 	if c.Debug.Standalone {

@@ -21,10 +21,9 @@ const (
 )
 
 // NewWorkerServiceServer creates a new worker service server.
-func NewWorkerServiceServer(s *store.S, pathPrefix string) *WS {
+func NewWorkerServiceServer(s *store.S) *WS {
 	return &WS{
-		store:      s,
-		pathPrefix: pathPrefix,
+		store: s,
 	}
 }
 
@@ -35,7 +34,6 @@ type WS struct {
 	srv   *grpc.Server
 	store *store.S
 
-	pathPrefix string
 	enableAuth bool
 }
 

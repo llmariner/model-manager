@@ -26,10 +26,6 @@ workerServiceGrpcPort: 8082
 database:
   database: model_manager
 
-objectStore:
-  s3:
-    pathPrefix: models
-
 replicaCount: 1
 image:
   repository: public.ecr.aws/v8n3t7y5/llm-operator/model-manager-server

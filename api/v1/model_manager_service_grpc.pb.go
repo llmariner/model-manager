@@ -214,6 +214,10 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ModelsWorkerServiceClient interface {
+	// CreateStorageConfig creates a new storage config. Used by model-manager-loader.
+	CreateStorageConfig(ctx context.Context, in *CreateStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error)
+	// GetStorageConfig gets a storage config. Used by model-manager-loader.
+	GetStorageConfig(ctx context.Context, in *GetStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error)
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
 	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
@@ -236,6 +240,24 @@ type modelsWorkerServiceClient struct {
 
 func NewModelsWorkerServiceClient(cc grpc.ClientConnInterface) ModelsWorkerServiceClient {
 	return &modelsWorkerServiceClient{cc}
+}
+
+func (c *modelsWorkerServiceClient) CreateStorageConfig(ctx context.Context, in *CreateStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error) {
+	out := new(StorageConfig)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/CreateStorageConfig", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsWorkerServiceClient) GetStorageConfig(ctx context.Context, in *GetStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error) {
+	out := new(StorageConfig)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetStorageConfig", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *modelsWorkerServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
@@ -296,6 +318,10 @@ func (c *modelsWorkerServiceClient) GetBaseModelPath(ctx context.Context, in *Ge
 // All implementations must embed UnimplementedModelsWorkerServiceServer
 // for forward compatibility
 type ModelsWorkerServiceServer interface {
+	// CreateStorageConfig creates a new storage config. Used by model-manager-loader.
+	CreateStorageConfig(context.Context, *CreateStorageConfigRequest) (*StorageConfig, error)
+	// GetStorageConfig gets a storage config. Used by model-manager-loader.
+	GetStorageConfig(context.Context, *GetStorageConfigRequest) (*StorageConfig, error)
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
 	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
@@ -317,6 +343,12 @@ type ModelsWorkerServiceServer interface {
 type UnimplementedModelsWorkerServiceServer struct {
 }
 
+func (UnimplementedModelsWorkerServiceServer) CreateStorageConfig(context.Context, *CreateStorageConfigRequest) (*StorageConfig, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateStorageConfig not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) GetStorageConfig(context.Context, *GetStorageConfigRequest) (*StorageConfig, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetStorageConfig not implemented")
+}
 func (UnimplementedModelsWorkerServiceServer) GetModel(context.Context, *GetModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModel not implemented")
 }
@@ -346,6 +378,42 @@ type UnsafeModelsWorkerServiceServer interface {
 
 func RegisterModelsWorkerServiceServer(s grpc.ServiceRegistrar, srv ModelsWorkerServiceServer) {
 	s.RegisterService(&ModelsWorkerService_ServiceDesc, srv)
+}
+
+func _ModelsWorkerService_CreateStorageConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateStorageConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).CreateStorageConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/CreateStorageConfig",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).CreateStorageConfig(ctx, req.(*CreateStorageConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsWorkerService_GetStorageConfig_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetStorageConfigRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).GetStorageConfig(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetStorageConfig",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).GetStorageConfig(ctx, req.(*GetStorageConfigRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _ModelsWorkerService_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -463,6 +531,14 @@ var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "llmoperator.models.server.v1.ModelsWorkerService",
 	HandlerType: (*ModelsWorkerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "CreateStorageConfig",
+			Handler:    _ModelsWorkerService_CreateStorageConfig_Handler,
+		},
+		{
+			MethodName: "GetStorageConfig",
+			Handler:    _ModelsWorkerService_GetStorageConfig_Handler,
+		},
 		{
 			MethodName: "GetModel",
 			Handler:    _ModelsWorkerService_GetModel_Handler,
