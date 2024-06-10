@@ -79,6 +79,17 @@ service ModelsService {
 
 }
 
+message StorageConfig {
+  string path_prefix = 1;
+}
+
+message CreateStorageConfigRequest {
+  string path_prefix = 1;
+}
+
+message GetStorageConfigRequest {
+}
+
 message RegisterModelRequest {
   string base_model = 1;
   string suffix = 2;
@@ -123,6 +134,14 @@ message GetBaseModelPathResponse {
 }
 
 service ModelsWorkerService {
+  // CreateStorageConfig creates a new storage config. Used by model-manager-loader.
+  rpc CreateStorageConfig(CreateStorageConfigRequest) returns (StorageConfig) {
+  }
+
+  // GetStorageConfig gets a storage config. Used by model-manager-loader.
+  rpc GetStorageConfig(GetStorageConfigRequest) returns (StorageConfig) {
+  }
+
   // GetModel gets a model. Used by inference-manager-engine.
   rpc GetModel(GetModelRequest) returns (Model) {
   }

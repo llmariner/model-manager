@@ -3,15 +3,19 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"path/filepath"
 
 	mv1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/loader/internal/config"
 	"github.com/llm-operator/model-manager/loader/internal/loader"
 	"github.com/llm-operator/model-manager/loader/internal/s3"
+	"github.com/llm-operator/rbac-manager/pkg/auth"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/status"
 )
 
 const flagConfig = "config"
@@ -56,7 +60,11 @@ func run(ctx context.Context, c *config.Config) error {
 		if err != nil {
 			return err
 		}
-		mclient = mv1.NewModelsWorkerServiceClient(conn)
+		mc := mv1.NewModelsWorkerServiceClient(conn)
+		if err := createStorageClass(ctx, mc, s3c.PathPrefix); err != nil {
+			return err
+		}
+		mclient = mc
 	}
 
 	s := loader.New(
@@ -72,6 +80,25 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	return s.Run(ctx, c.ModelLoadInterval)
+}
+
+func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClient, pathPrefix string) error {
+	ctx = auth.AppendWorkerAuthorization(ctx)
+
+	_, err := mclient.GetStorageConfig(ctx, &mv1.GetStorageConfigRequest{})
+	if err == nil {
+		return nil
+	}
+
+	if s, ok := status.FromError(err); ok && s.Code() != codes.NotFound {
+		return err
+	}
+
+	log.Printf("Creating a storage class with path prefix %q", pathPrefix)
+	_, err = mclient.CreateStorageConfig(ctx, &mv1.CreateStorageConfigRequest{
+		PathPrefix: pathPrefix,
+	})
+	return err
 }
 
 func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {

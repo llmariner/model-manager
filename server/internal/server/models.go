@@ -206,7 +206,12 @@ func (s *WS) RegisterModel(
 		return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
 	}
 
-	path := fmt.Sprintf("%s/%s/%s", s.pathPrefix, clusterInfo.TenantID, id)
+	sc, err := s.store.GetStorageConfig(clusterInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get storage config: %s", err)
+	}
+
+	path := fmt.Sprintf("%s/%s/%s", sc.PathPrefix, clusterInfo.TenantID, id)
 	_, err = s.store.CreateModel(store.ModelSpec{
 		ModelID:        id,
 		TenantID:       clusterInfo.TenantID,

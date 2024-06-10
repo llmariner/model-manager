@@ -2,10 +2,6 @@ httpPort: 8080
 grpcPort: 8081
 workerServiceGrpcPort: 8082
 
-objectStore:
-  s3:
-    pathPrefix: models
-
 database:
   host: postgres
   port: 5432

@@ -259,6 +259,14 @@
           "description": "path is the path where the model is stored."
         }
       }
+    },
+    "v1StorageConfig": {
+      "type": "object",
+      "properties": {
+        "pathPrefix": {
+          "type": "string"
+        }
+      }
     }
   }
 }
