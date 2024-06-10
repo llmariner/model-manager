@@ -95,17 +95,17 @@ func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseM
 // New creates a new loader.
 func New(
 	baseModels []string,
-	objectStorPathPrefix string,
+	objectStorePathPrefix string,
 	modelDownloader ModelDownloader,
 	s3Client S3Client,
 	modelClient ModelClient,
 ) *L {
 	return &L{
-		baseModels:           baseModels,
-		objectStorPathPrefix: objectStorPathPrefix,
-		modelDownloader:      modelDownloader,
-		s3Client:             s3Client,
-		modelClient:          modelClient,
+		baseModels:            baseModels,
+		objectStorePathPrefix: objectStorePathPrefix,
+		modelDownloader:       modelDownloader,
+		s3Client:              s3Client,
+		modelClient:           modelClient,
 	}
 }
 
@@ -113,8 +113,8 @@ func New(
 type L struct {
 	baseModels []string
 
-	// objectStorPathPrefix is the prefix of the path to the base models in the object stoer.
-	objectStorPathPrefix string
+	// objectStorePathPrefix is the prefix of the path to the base models in the object stoer.
+	objectStorePathPrefix string
 
 	modelDownloader ModelDownloader
 
@@ -214,7 +214,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	toKey := func(path string) string {
 		// Remove the tmpdir path from the path. We need tmpDir[2:] since the path starts with "./" while 'path' omits it.
 		relativePath := strings.TrimPrefix(path, tmpDir[2:])
-		return filepath.Join(l.objectStorPathPrefix, modelID, relativePath)
+		return filepath.Join(l.objectStorePathPrefix, modelID, relativePath)
 	}
 
 	var paths []string
@@ -264,6 +264,6 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 		}
 	}
 
-	mpath := filepath.Join(l.objectStorPathPrefix, modelID)
+	mpath := filepath.Join(l.objectStorePathPrefix, modelID)
 	return mpath, ggufModelPath, nil
 }
