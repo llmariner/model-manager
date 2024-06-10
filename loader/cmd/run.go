@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"path/filepath"
@@ -14,6 +15,7 @@ import (
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 )
@@ -56,7 +58,14 @@ func run(ctx context.Context, c *config.Config) error {
 	if c.Debug.Standalone {
 		mclient = loader.NewFakeModelClient()
 	} else {
-		conn, err := grpc.Dial(c.ModelManagerWorkerServiceServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+		var option grpc.DialOption
+		if c.Worker.TLS.Enable {
+			option = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
+		} else {
+			option = grpc.WithTransportCredentials(insecure.NewCredentials())
+		}
+
+		conn, err := grpc.Dial(c.ModelManagerWorkerServiceServerAddr, option)
 		if err != nil {
 			return err
 		}

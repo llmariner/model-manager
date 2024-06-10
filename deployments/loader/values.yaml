@@ -14,6 +14,8 @@ global:
     registrationKeySecret:
       name:
       key:
+    tls:
+      enable: false
 
 baseModels:
 
