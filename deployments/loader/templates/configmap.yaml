@@ -29,3 +29,6 @@ data:
     modelLoadInterval: {{ .Values.modelLoadInterval }}
     runOnce: {{ .Values.runOnce }}
     modelManagerWorkerServiceServerAddr: {{ .Values.modelManagerWorkerServiceServerAddr }}
+    worker:
+      tls:
+        enable: {{ .Values.global.worker.tls.enable }}
