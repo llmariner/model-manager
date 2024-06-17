@@ -65,7 +65,7 @@ func run(ctx context.Context, c *config.Config) error {
 			option = grpc.WithTransportCredentials(insecure.NewCredentials())
 		}
 
-		conn, err := grpc.Dial(c.ModelManagerWorkerServiceServerAddr, option)
+		conn, err := grpc.Dial(c.ModelManagerServerWorkerServiceAddr, option)
 		if err != nil {
 			return err
 		}

@@ -134,7 +134,7 @@ type Config struct {
 
 	Downloader DownloaderConfig `yaml:"downloader"`
 
-	ModelManagerWorkerServiceServerAddr string `yaml:"modelManagerWorkerServiceServerAddr"`
+	ModelManagerServerWorkerServiceAddr string `yaml:"modelManagerServerWorkerServiceAddr"`
 
 	Worker WorkerConfig `yaml:"workerConfig"`
 
@@ -160,8 +160,8 @@ func (c *Config) Validate() error {
 	}
 
 	if !c.Debug.Standalone {
-		if c.ModelManagerWorkerServiceServerAddr == "" {
-			return fmt.Errorf("model manager worker service server address must be set")
+		if c.ModelManagerServerWorkerServiceAddr == "" {
+			return fmt.Errorf("model manager server worker service address must be set")
 		}
 	}
 	return nil
