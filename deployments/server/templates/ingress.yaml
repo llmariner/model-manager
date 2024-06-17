@@ -58,14 +58,7 @@ spec:
   rules:
   - http:
       paths:
-      - path: /llmoperator.fine_tuning.server.v1.FineTuningWorkerService
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ include "model-manager-server.fullname" . }}-worker-service-grpc
-            port:
-              number: {{ .Values.workerServiceGrpcPort }}
-      - path: /llmoperator.workspace.server.v1.WorkspaceWorkerService
+      - path: /llmoperator.models.server.v1.ModelsWorkerService
         pathType: Prefix
         backend:
           service:
