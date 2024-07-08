@@ -46,7 +46,7 @@ objectStore:
 
 replicaCount: 1
 image:
-  repository: public.ecr.aws/v8n3t7y5/llm-operator/model-manager-loader
+  repository: public.ecr.aws/cloudnatix/llm-operator/model-manager-loader
   pullPolicy: IfNotPresent
 
 version:
