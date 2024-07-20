@@ -136,7 +136,7 @@ type Config struct {
 
 	ModelManagerServerWorkerServiceAddr string `yaml:"modelManagerServerWorkerServiceAddr"`
 
-	Worker WorkerConfig `yaml:"workerConfig"`
+	Worker WorkerConfig `yaml:"worker"`
 
 	Debug DebugConfig `yaml:"debug"`
 }
