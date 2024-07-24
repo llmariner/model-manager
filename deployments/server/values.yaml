@@ -42,4 +42,9 @@ image:
   repository: public.ecr.aws/cloudnatix/llm-operator/model-manager-server
   pullPolicy: IfNotPresent
 
+podAnnotations:
+nodeSelector:
+affinity:
+tolerations:
+
 version:
