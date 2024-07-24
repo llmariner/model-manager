@@ -49,6 +49,10 @@ image:
   repository: public.ecr.aws/cloudnatix/llm-operator/model-manager-loader
   pullPolicy: IfNotPresent
 
+serviceAccount:
+  create: false
+  name: ""
+
 podAnnotations:
 nodeSelector:
 affinity:
