@@ -73,11 +73,20 @@ grpcurl -d '{"base_model": "base", "suffix": "suffix", "tenant_id": "fake-tenant
 
 # Uploading models to S3 bucket `llm-operator-models`
 
-Run `loader` with the following `config.yaml`:
+Run the following command and run `loader`. Please note that it is better to run this on
+an EC2 instance as it requires download and upload of large files.
 
-```console
-$ cat config.yaml
+```bash
+python3 -m venv ./venv
+source ./venv/bin/activate
+pip install -U "huggingface_hub[cli]"
 
+export AWS_PROFILE=<profile that has access to the bucket>
+export HUGGING_FACE_HUB_TOKEN=<Hugging Face API key>
+
+make build-loader
+
+cat << EOF > config.yaml
 objectStore:
   s3:
     endpointUrl: https://s3.us-west-2.amazonaws.com
@@ -95,13 +104,13 @@ downloader:
   kind: huggingFace
   huggingFace:
     # Change this to your cache directory.
-    cacheDir: /Users/kenji/.cache/huggingface/hub
+    cacheDir: /home/ubuntu/.cache/huggingface/hub
 
 debug:
   standalone: true
+EOF
 
-$ export AWS_PROFILE=<profile that has access to the bucket>
-$ ./bin/loader run --config config.yaml
+./bin/loader run --config config.yaml
 ```
 
 ### Generating a GGUF file
@@ -110,13 +119,22 @@ There might not be a GGUF file in Hugging Face repositories. If so, run the foll
 command to convert:
 
 ```baash
+pip install numpy
+pip install torch
+pip install sentencepiece
+pip install safetensors
+pip install transformers
+
 MODEL_NAME=meta-llama/Meta-Llama-3-8B-Instruct
 git clone https://github.com/ggerganov/llama.cpp
-cd llama.cp
+cd llama.cpp
 
 mkdir hf-model-dir
 huggingface-cli download "${MODEL_NAME}" --local-dir=hf-model-dir
-python3 convert-hf-to-gguf.py --outtype=f32 ./hf-model-dir --outfile model.gguf
+python3 convert_hf_to_gguf.py --outtype=f32 ./hf-model-dir --outfile model.gguf
+mv model.gguf hf-model-dir/
+
+aws s3 cp --recursive ./hf-model-dir s3://llm-operator-models/v1/base-models/"${MODEL_NAME}"
 ```
 
 ### Quantizing
@@ -142,8 +160,13 @@ Here is another example:
 ```bash
 git clone https://github.com/ggerganov/llama.cpp
 cd llama.cp
-make quantize
+make llama-quantize
 
-python convert-hf-to-gguf.py <model-path> --outtype f16 --outfile converted.bin
-./quantize converted.bin quantized.bin q4_0
+ORIG_MODEL_PATH=./hf-model-dir
+python convert_hf_to_gguf.py ${ORIG_MODEL_PATH} --outtype f16 --outfile converted.bin
+# See https://github.com/ggerganov/llama.cpp/discussions/406 to understand options like q4_0.
+./llama-quantize converted.bin quantized.bin q4_0
+
+MODEL_NAME=<target model name (e.g., meta-llama/Meta-Llama-3.1-8B-Instruct-q4 )>
+aws s3 cp quantized.bin s3://llm-operator-models/v1/base-models/"${MODEL_NAME}"/model.gguf
 ```
