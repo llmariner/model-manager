@@ -41,7 +41,9 @@ metadata:
   labels:
     {{- include "model-manager-server.labels" . | nindent 4 }}
   annotations:
-    {{- toYaml .Values.global.workerServiceGrpcService.annotations | nindent 4 }}
+    {{- with .Values.global.workerServiceGrpcService.annotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   type: ClusterIP
   ports:
