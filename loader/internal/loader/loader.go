@@ -197,7 +197,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	// - one of the symlinks reated by Hugging Face is .gitattributes, which is linked to ../../Users/kenji/.cache/.
 	//
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
-	tmpDir, err := os.MkdirTemp(".", "base-model")
+	tmpDir, err := os.MkdirTemp("/tmp", "base-model")
 	if err != nil {
 		return "", "", err
 	}
