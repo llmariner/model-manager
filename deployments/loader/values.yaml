@@ -71,7 +71,7 @@ resources:
 podSecurityContext:
   fsGroup: 2000
 securityContext:
-  readOnlyRootFilesystem: true  
+  readOnlyRootFilesystem: true
   capabilities:
     drop:
     - ALL
@@ -89,7 +89,7 @@ persistentVolume:
   # If defined, the engine uses the existing PV that has been provisioned in advance.
   volumeName:
 
-  size: 10Gi
+  size: 100Gi
   accessModes:
   - ReadWriteOnce
 
