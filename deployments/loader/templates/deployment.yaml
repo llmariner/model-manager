@@ -89,5 +89,10 @@ spec:
       - name: config
         configMap:
           name: {{ include "model-manager-loader.fullname" . }}
-      - name: tmp
+      - name: tmp          
+      {{- if .Values.persistentVolume.enabled }}
+        persistentVolumeClaim:
+          claimName: {{ .Values.persistentVolume.existingClaim | default (include "model-manager-loader.fullname" .) }}
+      {{- else }}
         emptyDir:
+      {{- end }}
