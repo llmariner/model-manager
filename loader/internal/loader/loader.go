@@ -106,6 +106,7 @@ func New(
 		modelDownloader:       modelDownloader,
 		s3Client:              s3Client,
 		modelClient:           modelClient,
+		tmpDir:                "/tmp",
 	}
 }
 
@@ -121,6 +122,8 @@ type L struct {
 	s3Client S3Client
 
 	modelClient ModelClient
+
+	tmpDir string
 }
 
 // Run runs the loader.
@@ -197,7 +200,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	// - one of the symlinks reated by Hugging Face is .gitattributes, which is linked to ../../Users/kenji/.cache/.
 	//
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
-	tmpDir, err := os.MkdirTemp("/tmp", "base-model")
+	tmpDir, err := os.MkdirTemp(l.tmpDir, "base-model")
 	if err != nil {
 		return "", "", err
 	}
