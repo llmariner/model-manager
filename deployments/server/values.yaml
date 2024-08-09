@@ -67,7 +67,7 @@ livenessProbe:
 podSecurityContext:
   fsGroup: 2000
 securityContext:
-  readOnlyRootFilesystem: true  
+  readOnlyRootFilesystem: true
   capabilities:
     drop:
     - ALL
