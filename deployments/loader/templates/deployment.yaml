@@ -20,8 +20,12 @@ spec:
         {{- end }}
     spec:
       serviceAccountName: {{ include "model-manager-loader.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
       - name: model-manager-loader
+        securityContext:
+          {{- toYaml .Values.securityContext | nindent 10 }}
         image: "{{ .Values.image.repository }}:{{ default .Chart.Version .Values.version }}"
         imagePullPolicy: {{ .Values.image.pullPolicy }}
         args:
@@ -32,6 +36,8 @@ spec:
         - name: config
           mountPath: /etc/config
           readOnly: true
+        - name: tmp
+          mountPath: /tmp
         env:
         {{- with .Values.global.awsSecret }}
         {{- if .name }}
@@ -65,6 +71,8 @@ spec:
               key: {{ .key }}
         {{- end }}
         {{- end }}
+        resources:
+          {{- toYaml .Values.resources | nindent 10 }}
       {{- with .Values.nodeSelector }}
       nodeSelector:
         {{- toYaml . | nindent 8 }}
@@ -81,3 +89,5 @@ spec:
       - name: config
         configMap:
           name: {{ include "model-manager-loader.fullname" . }}
+      - name: tmp
+        emptyDir:

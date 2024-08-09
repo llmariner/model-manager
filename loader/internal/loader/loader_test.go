@@ -35,6 +35,7 @@ func TestLoadBaseModel(t *testing.T) {
 		s3Client,
 		mc,
 	)
+	ld.tmpDir = "./"
 	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
 	assert.NoError(t, err)
 
