@@ -3,10 +3,16 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"gopkg.in/yaml.v3"
 )
+
+// baseModelsEnv is the environment variable for the base models.
+// If set, the environment variable is used instead of the value in the configuration file.
+// The value is a comma-separated list of base models.
+const baseModelsEnv = "BASE_MODELS"
 
 // S3Config is the S3 configuration.
 type S3Config struct {
@@ -177,5 +183,10 @@ func Parse(path string) (Config, error) {
 	if err = yaml.Unmarshal(b, &config); err != nil {
 		return config, fmt.Errorf("config: unmarshal: %s", err)
 	}
+
+	if val := os.Getenv(baseModelsEnv); val != "" {
+		config.BaseModels = strings.Split(val, ",")
+	}
+
 	return config, nil
 }
