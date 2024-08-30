@@ -4,6 +4,12 @@
 * This file is a generated Typescript file for GRPC Gateway, DO NOT MODIFY
 */
 import * as fm from "../../fetch.pb";
+export var ModelFormat;
+(function (ModelFormat) {
+    ModelFormat["MODEL_FORMAT_UNSPECIFIED"] = "MODEL_FORMAT_UNSPECIFIED";
+    ModelFormat["MODEL_FORMAT_GGUF"] = "MODEL_FORMAT_GGUF";
+    ModelFormat["MODEL_FORMAT_HUGGING_FACE"] = "MODEL_FORMAT_HUGGING_FACE";
+})(ModelFormat || (ModelFormat = {}));
 export class ModelsService {
     static ListModels(req, initReq) {
         return fm.fetchReq(`/v1/models?${fm.renderURLSearchParams(req, [])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));

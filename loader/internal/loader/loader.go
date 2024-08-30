@@ -176,9 +176,15 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
+	format := mv1.ModelFormat_MODEL_FORMAT_GGUF
+	if ggufModelPath == "" {
+		format = mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE
+	}
+
 	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
 		Id:            convertedModelID,
 		Path:          mpath,
+		Format:        format,
 		GgufModelPath: ggufModelPath,
 	}); err != nil {
 		return err
@@ -246,9 +252,6 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	log.Printf("Downloaded %d files\n", len(paths))
 	if len(paths) == 0 {
 		return "", "", fmt.Errorf("no files downloaded")
-	}
-	if ggufModelPath == "" {
-		return "", "", fmt.Errorf("no GGUF file found")
 	}
 
 	log.Printf("Uploading base model %q to the object store\n", modelID)

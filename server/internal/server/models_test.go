@@ -63,7 +63,7 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("m0", "path", "gguf-path", defaultTenantID)
+	_, err := st.CreateBaseModel("m0", "path", v1.ModelFormat_MODEL_FORMAT_GGUF, "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
 	srv := New(st)
@@ -94,7 +94,7 @@ func TestGetAndListModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel(baseModelID, "path", "gguf-path", defaultTenantID)
+	_, err = st.CreateBaseModel(baseModelID, "path", v1.ModelFormat_MODEL_FORMAT_GGUF, "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
 	srv := New(st)
@@ -124,7 +124,7 @@ func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("model0", "path", "gguf-path", defaultTenantID)
+	_, err := st.CreateBaseModel("model0", "path", v1.ModelFormat_MODEL_FORMAT_GGUF, "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{

@@ -5,6 +5,13 @@
 */
 
 import * as fm from "../../fetch.pb"
+
+export enum ModelFormat {
+  MODEL_FORMAT_UNSPECIFIED = "MODEL_FORMAT_UNSPECIFIED",
+  MODEL_FORMAT_GGUF = "MODEL_FORMAT_GGUF",
+  MODEL_FORMAT_HUGGING_FACE = "MODEL_FORMAT_HUGGING_FACE",
+}
+
 export type Model = {
   id?: string
   created?: string
@@ -89,6 +96,7 @@ export type GetModelPathResponse = {
 export type CreateBaseModelRequest = {
   id?: string
   path?: string
+  format?: ModelFormat
   ggufModelPath?: string
 }
 
@@ -97,6 +105,7 @@ export type GetBaseModelPathRequest = {
 }
 
 export type GetBaseModelPathResponse = {
+  format?: ModelFormat
   path?: string
   ggufModelPath?: string
 }
