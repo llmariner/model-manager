@@ -8,6 +8,12 @@ option go_package = "github.com/llm-operator/model-manager/api/v1";
 
 // The API specification fllows OpenAPI API specification (https://platform.openai.com/docs/api-reference/models).
 
+enum ModelFormat {
+  MODEL_FORMAT_UNSPECIFIED = 0;
+  MODEL_FORMAT_GGUF = 1;
+  MODEL_FORMAT_HUGGING_FACE = 2;
+}
+
 message Model {
   string id = 1;
   int64 created = 2;
@@ -121,7 +127,15 @@ message GetModelPathResponse {
 message CreateBaseModelRequest {
   string id = 1;
   string path = 2;
+
+  // format is the format of the base model. If not set, the format is considered as GGUF
+  // for backward compatibility.
+  ModelFormat format = 4;
+
+  // gguf_model_path is the path of the GGUF model. Set if the model format is GGUF.
   string gguf_model_path = 3;
+
+  // Next ID: 5
 }
 
 message GetBaseModelPathRequest {
@@ -129,8 +143,14 @@ message GetBaseModelPathRequest {
 }
 
 message GetBaseModelPathResponse {
+  ModelFormat format = 3;
+
   string path = 1;
+
+  // gguf_model_path is the path of the GGUF model. Set if the model format is GGUF.
   string gguf_model_path = 2;
+
+  // Next ID: 4
 }
 
 service ModelsWorkerService {

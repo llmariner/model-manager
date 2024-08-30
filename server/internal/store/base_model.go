@@ -2,6 +2,8 @@ package store
 
 import (
 	"gorm.io/gorm"
+
+	v1 "github.com/llm-operator/model-manager/api/v1"
 )
 
 // BaseModel represents a base model.
@@ -13,15 +15,24 @@ type BaseModel struct {
 	ModelID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id"`
 	Path    string
 
+	Format v1.ModelFormat
+
 	// GGUFModelPath is the path to the GGUF model.
 	GGUFModelPath string
 }
 
 // CreateBaseModel creates a model.
-func (s *S) CreateBaseModel(modelID, path, ggufModelPath, tenantID string) (*BaseModel, error) {
+func (s *S) CreateBaseModel(
+	modelID string,
+	path string,
+	format v1.ModelFormat,
+	ggufModelPath string,
+	tenantID string,
+) (*BaseModel, error) {
 	m := &BaseModel{
 		ModelID:       modelID,
 		Path:          path,
+		Format:        format,
 		GGUFModelPath: ggufModelPath,
 		TenantID:      tenantID,
 	}
