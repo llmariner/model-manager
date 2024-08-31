@@ -295,15 +295,16 @@ func (s *WS) CreateBaseModel(
 	if req.Path == "" {
 		return nil, status.Error(codes.InvalidArgument, "path is required")
 	}
-	if req.GgufModelPath == "" {
-		return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required")
-	}
 
 	format := req.Format
 	if format == v1.ModelFormat_MODEL_FORMAT_UNSPECIFIED {
 		// Fall back to GGUF for backward compatibility.
 		// TODO(kenji): Make this to return an errror once all clients are updated.
 		format = v1.ModelFormat_MODEL_FORMAT_GGUF
+	}
+
+	if format == v1.ModelFormat_MODEL_FORMAT_GGUF && req.GgufModelPath == "" {
+		return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required for the GGUF format")
 	}
 
 	m, err := s.store.CreateBaseModel(req.Id, req.Path, format, req.GgufModelPath, clusterInfo.TenantID)
