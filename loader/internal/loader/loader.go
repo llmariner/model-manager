@@ -221,8 +221,8 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	}
 
 	toKey := func(path string) string {
-		// Remove the tmpdir path from the path. We need tmpDir[2:] since the path starts with "./" while 'path' omits it.
-		relativePath := strings.TrimPrefix(path, tmpDir[2:])
+		// Remove the tmpdir path from the path.
+		relativePath := strings.TrimPrefix(path, tmpDir)
 		return filepath.Join(l.objectStorePathPrefix, modelID, relativePath)
 	}
 
