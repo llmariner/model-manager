@@ -1,6 +1,7 @@
 package store
 
 import (
+	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
 	v1 "github.com/llm-operator/model-manager/api/v1"
@@ -15,24 +16,41 @@ type BaseModel struct {
 	ModelID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id"`
 	Path    string
 
-	Format v1.ModelFormat
+	Formats []byte
 
 	// GGUFModelPath is the path to the GGUF model.
 	GGUFModelPath string
+}
+
+// UnmarshalModelFormats unmarshals model formats.
+func UnmarshalModelFormats(b []byte) ([]v1.ModelFormat, error) {
+	var formats v1.ModelFormats
+	if err := proto.Unmarshal(b, &formats); err != nil {
+		return nil, err
+	}
+	return formats.Formats, nil
 }
 
 // CreateBaseModel creates a model.
 func (s *S) CreateBaseModel(
 	modelID string,
 	path string,
-	format v1.ModelFormat,
+	formats []v1.ModelFormat,
 	ggufModelPath string,
 	tenantID string,
 ) (*BaseModel, error) {
+	p := v1.ModelFormats{
+		Formats: formats,
+	}
+	b, err := proto.Marshal(&p)
+	if err != nil {
+		return nil, err
+	}
+
 	m := &BaseModel{
 		ModelID:       modelID,
 		Path:          path,
-		Format:        format,
+		Formats:       b,
 		GGUFModelPath: ggufModelPath,
 		TenantID:      tenantID,
 	}

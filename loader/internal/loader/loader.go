@@ -11,6 +11,7 @@ import (
 	"time"
 
 	mv1 "github.com/llm-operator/model-manager/api/v1"
+	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -53,15 +54,17 @@ type ModelClient interface {
 // NewFakeModelClient creates a fake model client.
 func NewFakeModelClient() *FakeModelClient {
 	return &FakeModelClient{
-		pathsByID: map[string]string{},
-		ggufsByID: map[string]string{},
+		pathsByID:   map[string]string{},
+		ggufsByID:   map[string]string{},
+		formatsByID: map[string][]mv1.ModelFormat{},
 	}
 }
 
 // FakeModelClient is a fake model client.
 type FakeModelClient struct {
-	pathsByID map[string]string
-	ggufsByID map[string]string
+	pathsByID   map[string]string
+	ggufsByID   map[string]string
+	formatsByID map[string][]mv1.ModelFormat
 }
 
 // CreateBaseModel creates a base model.
@@ -71,6 +74,8 @@ func (c *FakeModelClient) CreateBaseModel(ctx context.Context, in *mv1.CreateBas
 	}
 	c.pathsByID[in.Id] = in.Path
 	c.ggufsByID[in.Id] = in.GgufModelPath
+	c.formatsByID[in.Id] = in.Formats
+
 	return &mv1.BaseModel{
 		Id: in.Id,
 	}, nil
@@ -86,8 +91,14 @@ func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseM
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "GGUF model %q not found", in.Id)
 	}
+	formats, ok := c.formatsByID[in.Id]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "formats for model %q not found", in.Id)
+	}
+
 	return &mv1.GetBaseModelPathResponse{
 		Path:          path,
+		Formats:       formats,
 		GgufModelPath: ggufPath,
 	}, nil
 }
@@ -171,21 +182,24 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	mpath, ggufModelPath, err := l.downloadAndUploadModel(ctx, modelID)
+	mpath, modelInfo, err := l.downloadAndUploadModel(ctx, modelID)
 	if err != nil {
 		return err
 	}
 
-	format := mv1.ModelFormat_MODEL_FORMAT_GGUF
-	if ggufModelPath == "" {
-		format = mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE
+	var formats []v1.ModelFormat
+	if modelInfo.ggufModelPath != "" {
+		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
+	}
+	if modelInfo.hasHuggingFaceConfigJSON {
+		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE)
 	}
 
 	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
 		Id:            convertedModelID,
 		Path:          mpath,
-		Format:        format,
-		GgufModelPath: ggufModelPath,
+		Formats:       formats,
+		GgufModelPath: modelInfo.ggufModelPath,
 	}); err != nil {
 		return err
 	}
@@ -194,7 +208,12 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	return nil
 }
 
-func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string, string, error) {
+type modelInfo struct {
+	ggufModelPath            string
+	hasHuggingFaceConfigJSON bool
+}
+
+func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string, *modelInfo, error) {
 	log.Printf("Started loading base model %q\n", modelID)
 
 	// Please note that the temp directory shouldn't contain a symlink. Otherwise
@@ -208,7 +227,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
 	tmpDir, err := os.MkdirTemp(l.tmpDir, "base-model")
 	if err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 	log.Printf("Created a temp dir %q\n", tmpDir)
 	defer func() {
@@ -217,7 +236,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 
 	log.Printf("Downloading base model %q\n", modelID)
 	if err := l.modelDownloader.download(modelID, tmpDir); err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 
 	toKey := func(path string) string {
@@ -226,8 +245,11 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 		return filepath.Join(l.objectStorePathPrefix, modelID, relativePath)
 	}
 
-	var paths []string
-	var ggufModelPath string
+	var (
+		paths                    []string
+		ggufModelPath            string
+		hasHuggingFaceConfigJSON bool
+	)
 	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -245,13 +267,17 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 			ggufModelPath = toKey(path)
 		}
 
+		if filepath.Base(path) == "config.json" {
+			hasHuggingFaceConfigJSON = true
+		}
+
 		return nil
 	}); err != nil {
-		return "", "", err
+		return "", nil, err
 	}
 	log.Printf("Downloaded %d files\n", len(paths))
 	if len(paths) == 0 {
-		return "", "", fmt.Errorf("no files downloaded")
+		return "", nil, fmt.Errorf("no files downloaded")
 	}
 
 	log.Printf("Uploading base model %q to the object store\n", modelID)
@@ -259,17 +285,20 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 		log.Printf("Uploading %q\n", path)
 		r, err := os.Open(path)
 		if err != nil {
-			return "", "", err
+			return "", nil, err
 		}
 
 		if err := l.s3Client.Upload(r, toKey(path)); err != nil {
-			return "", "", err
+			return "", nil, err
 		}
 		if err := r.Close(); err != nil {
-			return "", "", err
+			return "", nil, err
 		}
 	}
 
 	mpath := filepath.Join(l.objectStorePathPrefix, modelID)
-	return mpath, ggufModelPath, nil
+	return mpath, &modelInfo{
+		ggufModelPath:            ggufModelPath,
+		hasHuggingFaceConfigJSON: hasHuggingFaceConfigJSON,
+	}, nil
 }

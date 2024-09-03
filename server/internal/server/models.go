@@ -296,18 +296,22 @@ func (s *WS) CreateBaseModel(
 		return nil, status.Error(codes.InvalidArgument, "path is required")
 	}
 
-	format := req.Format
-	if format == v1.ModelFormat_MODEL_FORMAT_UNSPECIFIED {
+	var formats []v1.ModelFormat
+	if len(req.Formats) == 0 {
 		// Fall back to GGUF for backward compatibility.
 		// TODO(kenji): Make this to return an errror once all clients are updated.
-		format = v1.ModelFormat_MODEL_FORMAT_GGUF
+		formats = append(formats, v1.ModelFormat_MODEL_FORMAT_GGUF)
+	} else {
+		formats = append(formats, req.Formats...)
 	}
 
-	if format == v1.ModelFormat_MODEL_FORMAT_GGUF && req.GgufModelPath == "" {
-		return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required for the GGUF format")
+	for _, format := range formats {
+		if format == v1.ModelFormat_MODEL_FORMAT_GGUF && req.GgufModelPath == "" {
+			return nil, status.Error(codes.InvalidArgument, "gguf_model_path is required for the GGUF format")
+		}
 	}
 
-	m, err := s.store.CreateBaseModel(req.Id, req.Path, format, req.GgufModelPath, clusterInfo.TenantID)
+	m, err := s.store.CreateBaseModel(req.Id, req.Path, formats, req.GgufModelPath, clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
 	}
@@ -336,9 +340,15 @@ func (s *WS) GetBaseModelPath(
 		}
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
 	}
+
+	formats, err := store.UnmarshalModelFormats(m.Formats)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "unmarshal model formats: %s", err)
+	}
+
 	return &v1.GetBaseModelPathResponse{
 		Path:          m.Path,
-		Format:        m.Format,
+		Formats:       formats,
 		GgufModelPath: m.GGUFModelPath,
 	}, nil
 }

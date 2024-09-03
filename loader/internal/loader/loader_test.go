@@ -51,8 +51,44 @@ func TestLoadBaseModel(t *testing.T) {
 		Id: "google-gemma-2b",
 	})
 	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
 	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
 	assert.Equal(t, "models/base-models/google/gemma-2b/dir0/file1.gguf", got.GgufModelPath)
+}
+
+func TestLoadBaseModel_HuggingFace(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{},
+		files: []string{
+			"config.json",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		[]string{"google/gemma-2b"},
+		"models/base-models",
+		downloader,
+		s3Client,
+		mc,
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/google/gemma-2b/config.json",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "google-gemma-2b",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
+	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+	assert.Empty(t, got.GgufModelPath)
 }
 
 type mockS3Client struct {
