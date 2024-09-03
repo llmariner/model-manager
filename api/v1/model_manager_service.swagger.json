@@ -183,15 +183,18 @@
     "v1GetBaseModelPathResponse": {
       "type": "object",
       "properties": {
-        "format": {
-          "$ref": "#/definitions/v1ModelFormat"
+        "formats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1ModelFormat"
+          }
         },
         "path": {
           "type": "string"
         },
         "ggufModelPath": {
           "type": "string",
-          "description": "gguf_model_path is the path of the GGUF model. Set if the model format is GGUF."
+          "description": "gguf_model_path is the path of the GGUF model. Set if the model suppors the GGUF formta."
         }
       }
     },
