@@ -17,7 +17,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/llm-operator/model-manager.git"
+    "url": "git://github.com/llm-operator/model-manager.git"
   },
   "author": "llm-operator",
   "license": "Apache-2.0",
