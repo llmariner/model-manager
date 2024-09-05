@@ -2,6 +2,7 @@ package loader
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os/exec"
@@ -19,7 +20,7 @@ type HuggingFaceDownloader struct {
 	cacheDir string
 }
 
-func (h *HuggingFaceDownloader) download(modelName, destDir string) error {
+func (h *HuggingFaceDownloader) download(ctx context.Context, modelName, destDir string) error {
 	// Download the image with huggingface-cli. If the access to the specified model is gated,
 	// the environment variable HUGGING_FACE_HUB_TOKEN needs to be set.
 	cmdline := []string{

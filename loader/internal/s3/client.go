@@ -1,13 +1,13 @@
 package s3
 
 import (
+	"context"
 	"io"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/aws/credentials"
-	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 const (
@@ -24,46 +24,44 @@ type NewOptions struct {
 }
 
 // NewClient returns a new S3 client.
-func NewClient(o NewOptions) *Client {
-	var sopts session.Options
+func NewClient(ctx context.Context, o NewOptions) (*Client, error) {
+	var err error
+	var conf aws.Config
 	if o.UseAnonymousCredentials {
-		sopts = session.Options{
-			Config: aws.Config{
-				Credentials: credentials.AnonymousCredentials,
-			},
-		}
+		conf, err = config.LoadDefaultConfig(ctx,
+			config.WithCredentialsProvider(aws.AnonymousCredentials{}),
+		)
 	} else {
-		sopts = session.Options{
-			SharedConfigState: session.SharedConfigEnable,
-		}
+		conf, err = config.LoadDefaultConfig(ctx)
 	}
-
-	sess := session.Must(session.NewSessionWithOptions(sopts))
-
-	conf := &aws.Config{
-		Endpoint: aws.String(o.EndpointURL),
-		Region:   aws.String(o.Region),
+	if err != nil {
+		return nil, err
+	}
+	s3Client := s3.NewFromConfig(conf, func(opt *s3.Options) {
+		opt.BaseEndpoint = aws.String(o.EndpointURL)
+		opt.Region = o.Region
 		// This is needed as the minio server does not support the virtual host style.
-		S3ForcePathStyle: aws.Bool(true),
-	}
+		opt.UsePathStyle = true
+	})
 	return &Client{
-		svc:    s3.New(sess, conf),
+		svc:    s3Client,
 		bucket: o.Bucket,
-	}
+	}, nil
 }
 
 // Client is a client for S3.
 type Client struct {
-	svc    *s3.S3
+	svc    *s3.Client
 	bucket string
 }
 
-// Upload uploads the data that buf contains to a S3 object.
-func (c *Client) Upload(r io.Reader, key string) error {
-	uploader := s3manager.NewUploaderWithClient(c.svc, func(u *s3manager.Uploader) {
+// Upload uses an upload manager to upload a file to an object in a bucket.
+// The upload manager breaks large file into parts and uploads the parts concurrently.
+func (c *Client) Upload(ctx context.Context, r io.Reader, key string) error {
+	uploader := manager.NewUploader(c.svc, func(u *manager.Uploader) {
 		u.PartSize = partMiBs * 1024 * 1024
 	})
-	_, err := uploader.Upload(&s3manager.UploadInput{
+	_, err := uploader.Upload(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(c.bucket),
 		Key:    aws.String(key),
 		Body:   r,
@@ -74,12 +72,14 @@ func (c *Client) Upload(r io.Reader, key string) error {
 	return nil
 }
 
-// Download downloads the data from a S3 object.
-func (c *Client) Download(w io.WriterAt, key string) error {
-	downloader := s3manager.NewDownloaderWithClient(c.svc, func(d *s3manager.Downloader) {
+// Download uses a download manager to download an object from a bucket.
+// The download manager gets the data in parts and writes them to a buffer until all of
+// the data has been downloaded.
+func (c *Client) Download(ctx context.Context, w io.WriterAt, key string) error {
+	downloader := manager.NewDownloader(c.svc, func(d *manager.Downloader) {
 		d.PartSize = partMiBs * 1024 * 1024
 	})
-	_, err := downloader.Download(w, &s3.GetObjectInput{
+	_, err := downloader.Download(ctx, w, &s3.GetObjectInput{
 		Bucket: aws.String(c.bucket),
 		Key:    aws.String(key),
 	})
@@ -91,11 +91,27 @@ func (c *Client) Download(w io.WriterAt, key string) error {
 
 // ListObjectsPages returns S3 objects with pagination.
 func (c *Client) ListObjectsPages(
+	ctx context.Context,
 	prefix string,
-	f func(page *s3.ListObjectsOutput, lastPage bool) bool,
+	f func(page *s3.ListObjectsV2Output, lastPage bool) bool,
 ) error {
-	return c.svc.ListObjectsPages(&s3.ListObjectsInput{
-		Bucket: aws.String(c.bucket),
-		Prefix: aws.String(prefix),
-	}, f)
+	const maxKeys = int32(1000)
+	p := s3.NewListObjectsV2Paginator(
+		c.svc,
+		&s3.ListObjectsV2Input{
+			Bucket: aws.String(c.bucket),
+			Prefix: aws.String(prefix),
+		},
+		func(o *s3.ListObjectsV2PaginatorOptions) {
+			o.Limit = maxKeys
+		},
+	)
+	for p.HasMorePages() {
+		page, err := p.NextPage(ctx)
+		if err != nil {
+			return err
+		}
+		f(page, !p.HasMorePages())
+	}
+	return nil
 }

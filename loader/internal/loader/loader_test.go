@@ -95,7 +95,7 @@ type mockS3Client struct {
 	uploadedKeys []string
 }
 
-func (c *mockS3Client) Upload(r io.Reader, key string) error {
+func (c *mockS3Client) Upload(ctx context.Context, r io.Reader, key string) error {
 	c.uploadedKeys = append(c.uploadedKeys, key)
 	return nil
 }
@@ -105,7 +105,7 @@ type fakeDownloader struct {
 	files []string
 }
 
-func (d *fakeDownloader) download(modelName, desDir string) error {
+func (d *fakeDownloader) download(ctx context.Context, modelName, desDir string) error {
 	for _, d := range d.dirs {
 		if err := os.MkdirAll(filepath.Join(desDir, d), 0755); err != nil {
 			return err
