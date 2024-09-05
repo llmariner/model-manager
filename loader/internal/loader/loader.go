@@ -20,20 +20,20 @@ import (
 
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
-	download(modelName, destDir string) error
+	download(ctx context.Context, modelName, destDir string) error
 }
 
 // NoopModelDownloader is a no-op model downloader.
 type NoopModelDownloader struct {
 }
 
-func (d *NoopModelDownloader) download(modelName, destDir string) error {
+func (d *NoopModelDownloader) download(ctx context.Context, modelName, destDir string) error {
 	return nil
 }
 
 // S3Client is an interface for uploading a file to S3.
 type S3Client interface {
-	Upload(r io.Reader, key string) error
+	Upload(ctx context.Context, r io.Reader, key string) error
 }
 
 // NoopS3Client is a no-op S3 client.
@@ -41,7 +41,7 @@ type NoopS3Client struct {
 }
 
 // Upload uploads a file to S3.
-func (c *NoopS3Client) Upload(r io.Reader, key string) error {
+func (c *NoopS3Client) Upload(ctx context.Context, r io.Reader, key string) error {
 	return nil
 }
 
@@ -235,7 +235,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	}()
 
 	log.Printf("Downloading base model %q\n", modelID)
-	if err := l.modelDownloader.download(modelID, tmpDir); err != nil {
+	if err := l.modelDownloader.download(ctx, modelID, tmpDir); err != nil {
 		return "", nil, err
 	}
 
@@ -288,7 +288,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 			return "", nil, err
 		}
 
-		if err := l.s3Client.Upload(r, toKey(path)); err != nil {
+		if err := l.s3Client.Upload(ctx, r, toKey(path)); err != nil {
 			return "", nil, err
 		}
 		if err := r.Close(); err != nil {

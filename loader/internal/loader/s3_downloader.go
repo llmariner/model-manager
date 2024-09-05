@@ -1,6 +1,7 @@
 package loader
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -8,12 +9,12 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 )
 
 type s3Client interface {
-	Download(w io.WriterAt, key string) error
-	ListObjectsPages(prefix string, f func(page *s3.ListObjectsOutput, lastPage bool) bool) error
+	Download(ctx context.Context, w io.WriterAt, key string) error
+	ListObjectsPages(ctx context.Context, prefix string, f func(page *s3.ListObjectsV2Output, lastPage bool) bool) error
 }
 
 // NewS3Downloader returns a new S3Downloader.
@@ -30,11 +31,11 @@ type S3Downloader struct {
 	pathPrefix string
 }
 
-func (d *S3Downloader) download(modelName, destDir string) error {
+func (d *S3Downloader) download(ctx context.Context, modelName, destDir string) error {
 	log.Printf("Downloading the model %q\n", modelName)
 
 	var keys []string
-	f := func(page *s3.ListObjectsOutput, lastPage bool) bool {
+	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, obj := range page.Contents {
 			keys = append(keys, *obj.Key)
 		}
@@ -43,7 +44,7 @@ func (d *S3Downloader) download(modelName, destDir string) error {
 	prefix := filepath.Join(d.pathPrefix, modelName)
 	// We need to append "/". Otherwise, we will download all objects with the same prefix
 	// (e.g., "google/gemma-2b" will download "google/gemma-2b" and "google/gemma-2b-it").
-	if err := d.s3Client.ListObjectsPages(prefix+"/", f); err != nil {
+	if err := d.s3Client.ListObjectsPages(ctx, prefix+"/", f); err != nil {
 		return err
 	}
 	if len(keys) == 0 {
@@ -51,7 +52,7 @@ func (d *S3Downloader) download(modelName, destDir string) error {
 	}
 
 	for _, key := range keys {
-		if err := d.downloadOneObject(key, prefix, destDir); err != nil {
+		if err := d.downloadOneObject(ctx, key, prefix, destDir); err != nil {
 			return err
 		}
 	}
@@ -59,7 +60,7 @@ func (d *S3Downloader) download(modelName, destDir string) error {
 	return nil
 }
 
-func (d *S3Downloader) downloadOneObject(key, prefix, destDir string) error {
+func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destDir string) error {
 	filePath := filepath.Join(destDir, strings.TrimPrefix(key, prefix))
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
 		return err
@@ -73,7 +74,7 @@ func (d *S3Downloader) downloadOneObject(key, prefix, destDir string) error {
 	}()
 
 	log.Printf("Downloading S3 object %q and writing to %q\n", key, filePath)
-	if err := d.s3Client.Download(f, key); err != nil {
+	if err := d.s3Client.Download(ctx, f, key); err != nil {
 		return err
 	}
 

@@ -49,7 +49,7 @@ var runCmd = &cobra.Command{
 
 func run(ctx context.Context, c *config.Config) error {
 	s3c := c.ObjectStore.S3
-	d, err := newModelDownloader(c)
+	d, err := newModelDownloader(ctx, c)
 	if err != nil {
 		return err
 	}
@@ -76,11 +76,15 @@ func run(ctx context.Context, c *config.Config) error {
 		mclient = mc
 	}
 
+	s3client, err := newS3Client(ctx, c)
+	if err != nil {
+		return err
+	}
 	s := loader.New(
 		c.BaseModels,
 		filepath.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix),
 		d,
-		newS3Client(c),
+		s3client,
 		mclient,
 	)
 
@@ -110,10 +114,10 @@ func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClie
 	return err
 }
 
-func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
+func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDownloader, error) {
 	switch c.Downloader.Kind {
 	case config.DownloaderKindS3:
-		s3Client := s3.NewClient(s3.NewOptions{
+		s3Client, err := s3.NewClient(ctx, s3.NewOptions{
 			EndpointURL: c.Downloader.S3.EndpointURL,
 			Region:      c.Downloader.S3.Region,
 			Bucket:      c.Downloader.S3.Bucket,
@@ -121,6 +125,9 @@ func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
 			// used to upload the model.
 			UseAnonymousCredentials: true,
 		})
+		if err != nil {
+			return nil, err
+		}
 		return loader.NewS3Downloader(s3Client, c.Downloader.S3.PathPrefix), nil
 	case config.DownloaderKindHuggingFace:
 		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir), nil
@@ -129,8 +136,8 @@ func newModelDownloader(c *config.Config) (loader.ModelDownloader, error) {
 	}
 }
 
-func newS3Client(c *config.Config) loader.S3Client {
-	return s3.NewClient(s3.NewOptions{
+func newS3Client(ctx context.Context, c *config.Config) (loader.S3Client, error) {
+	return s3.NewClient(ctx, s3.NewOptions{
 		EndpointURL: c.ObjectStore.S3.EndpointURL,
 		Region:      c.ObjectStore.S3.Region,
 		Bucket:      c.ObjectStore.S3.Bucket,

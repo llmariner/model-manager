@@ -1,14 +1,16 @@
 package loader
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"testing"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -27,8 +29,9 @@ func TestS3Download(t *testing.T) {
 			"v1/base-models/google/gemma-2b/key2/key3": []byte("object2"),
 		},
 	}
+	ctx := context.Background()
 	d := NewS3Downloader(client, "v1/base-models")
-	err = d.download("google/gemma-2b", destDir)
+	err = d.download(ctx, "google/gemma-2b", destDir)
 	assert.NoError(t, err)
 
 	want := map[string]string{
@@ -47,7 +50,7 @@ type fakeS3Client struct {
 	objs map[string][]byte
 }
 
-func (c *fakeS3Client) Download(w io.WriterAt, key string) error {
+func (c *fakeS3Client) Download(ctx context.Context, w io.WriterAt, key string) error {
 	b, ok := c.objs[key]
 	if !ok {
 		return fmt.Errorf("unknown key: %s", key)
@@ -57,11 +60,11 @@ func (c *fakeS3Client) Download(w io.WriterAt, key string) error {
 
 }
 
-func (c *fakeS3Client) ListObjectsPages(prefix string, f func(page *s3.ListObjectsOutput, lastPage bool) bool) error {
-	var objs []*s3.Object
+func (c *fakeS3Client) ListObjectsPages(ctx context.Context, prefix string, f func(page *s3.ListObjectsV2Output, lastPage bool) bool) error {
+	var objs []types.Object
 	for key := range c.objs {
-		objs = append(objs, &s3.Object{Key: aws.String(key)})
+		objs = append(objs, types.Object{Key: aws.String(key)})
 	}
-	f(&s3.ListObjectsOutput{Contents: objs}, true)
+	f(&s3.ListObjectsV2Output{Contents: objs}, true)
 	return nil
 }
