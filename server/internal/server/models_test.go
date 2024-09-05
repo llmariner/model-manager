@@ -281,4 +281,5 @@ func TestBaseModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "path", getResp.Path)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, getResp.Formats)
 }
