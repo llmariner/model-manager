@@ -346,6 +346,11 @@ func (s *WS) GetBaseModelPath(
 		return nil, status.Errorf(codes.Internal, "unmarshal model formats: %s", err)
 	}
 
+	// Add GGUF as format if GGUF model path is set (for backward compatibility).
+	if m.GGUFModelPath != "" && len(formats) == 0 {
+		formats = append(formats, v1.ModelFormat_MODEL_FORMAT_GGUF)
+	}
+
 	return &v1.GetBaseModelPathResponse{
 		Path:          m.Path,
 		Formats:       formats,
