@@ -38,7 +38,9 @@ func NewClient(ctx context.Context, o NewOptions) (*Client, error) {
 		return nil, err
 	}
 	s3Client := s3.NewFromConfig(conf, func(opt *s3.Options) {
-		opt.BaseEndpoint = aws.String(o.EndpointURL)
+		if o.EndpointURL != "" {
+			opt.BaseEndpoint = aws.String(o.EndpointURL)
+		}
 		opt.Region = o.Region
 		// This is needed as the minio server does not support the virtual host style.
 		opt.UsePathStyle = true
