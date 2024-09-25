@@ -50,8 +50,8 @@ metadata:
     {{- toYaml . | nindent 4 }}
     {{- end }}
 spec:
-  ingressClassName: {{ .Values.global.workerServiceIngress.ingressClassName }}
-  {{- with .Values.global.workerServiceIngress.tls }}
+  ingressClassName: {{ .Values.global.ingress.ingressClassName }}
+  {{- with .Values.global.ingress.tls }}
   tls:
   - hosts:
       {{- toYaml .hosts | nindent 6 }}
