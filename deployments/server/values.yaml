@@ -29,11 +29,7 @@ global:
 
   workerServiceIngress:
     create: false
-    ingressClassName:
     annotations:
-    tls:
-      hosts:
-      secretName:
 
 httpPort: 8080
 grpcPort: 8081
