@@ -11,7 +11,7 @@ import (
 	"github.com/llm-operator/model-manager/loader/internal/config"
 	"github.com/llm-operator/model-manager/loader/internal/loader"
 	"github.com/llm-operator/model-manager/loader/internal/s3"
-	"github.com/llm-operator/rbac-manager/pkg/auth"
+	"github.com/llmariner/rbac-manager/pkg/auth"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

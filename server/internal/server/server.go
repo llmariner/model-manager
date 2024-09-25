@@ -9,7 +9,7 @@ import (
 	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/server/internal/config"
 	"github.com/llm-operator/model-manager/server/internal/store"
-	"github.com/llm-operator/rbac-manager/pkg/auth"
+	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/health"
