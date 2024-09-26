@@ -15,7 +15,7 @@ data:
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
         {{- with .Values.global.objectStore.s3.assumeRole }}
         {{- if .roleArn }}
-	assumeRole:
+        assumeRole:
           roleArn: {{ .roleArn }}
           externalId: {{ .externalId }}
         {{- end }}
