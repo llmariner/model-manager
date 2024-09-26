@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/llm-operator/common/pkg/id"
 	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/server/internal/store"
+	"github.com/llmariner/common/pkg/id"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"

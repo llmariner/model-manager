@@ -5,49 +5,24 @@ import (
 	"io"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/feature/s3/manager"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	laws "github.com/llmariner/common/pkg/aws"
 )
 
 const (
 	partMiBs int64 = 128
 )
 
-// NewOptions is the options for NewClient.
-type NewOptions struct {
-	EndpointURL string
-	Region      string
-	Bucket      string
-
-	UseAnonymousCredentials bool
-}
-
 // NewClient returns a new S3 client.
-func NewClient(ctx context.Context, o NewOptions) (*Client, error) {
-	var err error
-	var conf aws.Config
-	if o.UseAnonymousCredentials {
-		conf, err = config.LoadDefaultConfig(ctx,
-			config.WithCredentialsProvider(aws.AnonymousCredentials{}),
-		)
-	} else {
-		conf, err = config.LoadDefaultConfig(ctx)
-	}
+func NewClient(ctx context.Context, o laws.NewS3ClientOptions, bucket string) (*Client, error) {
+	svc, err := laws.NewS3Client(ctx, o)
 	if err != nil {
 		return nil, err
 	}
-	s3Client := s3.NewFromConfig(conf, func(opt *s3.Options) {
-		if o.EndpointURL != "" {
-			opt.BaseEndpoint = aws.String(o.EndpointURL)
-		}
-		opt.Region = o.Region
-		// This is needed as the minio server does not support the virtual host style.
-		opt.UsePathStyle = true
-	})
 	return &Client{
-		svc:    s3Client,
-		bucket: o.Bucket,
+		svc:    svc,
+		bucket: bucket,
 	}, nil
 }
 
