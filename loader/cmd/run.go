@@ -11,6 +11,7 @@ import (
 	"github.com/llm-operator/model-manager/loader/internal/config"
 	"github.com/llm-operator/model-manager/loader/internal/loader"
 	"github.com/llm-operator/model-manager/loader/internal/s3"
+	laws "github.com/llmariner/common/pkg/aws"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -117,14 +118,15 @@ func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClie
 func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDownloader, error) {
 	switch c.Downloader.Kind {
 	case config.DownloaderKindS3:
-		s3Client, err := s3.NewClient(ctx, s3.NewOptions{
+		s3Client, err := s3.NewClient(ctx, laws.NewS3ClientOptions{
 			EndpointURL: c.Downloader.S3.EndpointURL,
 			Region:      c.Downloader.S3.Region,
-			Bucket:      c.Downloader.S3.Bucket,
 			// Use anonymous credentials as the S3 bucket is public and we don't want to use the credential that is
 			// used to upload the model.
 			UseAnonymousCredentials: true,
-		})
+		},
+			c.Downloader.S3.Bucket,
+		)
 		if err != nil {
 			return nil, err
 		}
@@ -137,11 +139,18 @@ func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDown
 }
 
 func newS3Client(ctx context.Context, c *config.Config) (loader.S3Client, error) {
-	return s3.NewClient(ctx, s3.NewOptions{
-		EndpointURL: c.ObjectStore.S3.EndpointURL,
-		Region:      c.ObjectStore.S3.Region,
-		Bucket:      c.ObjectStore.S3.Bucket,
-	})
+	s := c.ObjectStore.S3
+	opts := laws.NewS3ClientOptions{
+		EndpointURL: s.EndpointURL,
+		Region:      s.Region,
+	}
+	if ar := s.AssumeRole; ar != nil {
+		opts.AssumeRole = &laws.AssumeRole{
+			RoleARN:    ar.RoleARN,
+			ExternalID: ar.ExternalID,
+		}
+	}
+	return s3.NewClient(ctx, opts, s.Bucket)
 
 }
 

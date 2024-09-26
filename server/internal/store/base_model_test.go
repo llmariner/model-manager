@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	gerrors "github.com/llm-operator/common/pkg/gormlib/errors"
 	v1 "github.com/llm-operator/model-manager/api/v1"
+	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )

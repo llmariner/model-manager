@@ -13,6 +13,13 @@ data:
         bucket: {{ .Values.global.objectStore.s3.bucket }}
         pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
+        {{- with .Values.global.objectStore.s3.assumeRole }}
+        {{- if .roleArn }}
+	assumeRole:
+          roleArn: {{ .roleArn }}
+          externalId: {{ .externalId }}
+        {{- end }}
+        {{- end }}
     downloader:
       kind: {{ .Values.downloader.kind }}
       s3:

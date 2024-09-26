@@ -4,9 +4,9 @@ import (
 	"context"
 	"errors"
 
-	gerrors "github.com/llm-operator/common/pkg/gormlib/errors"
 	v1 "github.com/llm-operator/model-manager/api/v1"
 	"github.com/llm-operator/model-manager/server/internal/store"
+	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"

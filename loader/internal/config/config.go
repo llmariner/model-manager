@@ -14,6 +14,19 @@ import (
 // The value is a comma-separated list of base models.
 const baseModelsEnv = "BASE_MODELS"
 
+// AssumeRoleConfig is the assume role configuration.
+type AssumeRoleConfig struct {
+	RoleARN    string `yaml:"roleArn"`
+	ExternalID string `yaml:"externalId"`
+}
+
+func (c *AssumeRoleConfig) validate() error {
+	if c.RoleARN == "" {
+		return fmt.Errorf("roleArn must be set")
+	}
+	return nil
+}
+
 // S3Config is the S3 configuration.
 type S3Config struct {
 	EndpointURL string `yaml:"endpointUrl"`
@@ -26,6 +39,8 @@ type S3Config struct {
 	// BaseModelPathPrefix is the path prefix for the base models in the object store. A model is stored under
 	// <ObjectStore.S3.PathPrefix>/<BaseModelPathPrefix>.
 	BaseModelPathPrefix string `yaml:"baseModelPathPrefix"`
+
+	AssumeRole *AssumeRoleConfig `yaml:"assumeRole"`
 }
 
 // ObjectStoreConfig is the object store configuration.
@@ -46,6 +61,11 @@ func (c *ObjectStoreConfig) validate() error {
 	}
 	if c.S3.BaseModelPathPrefix == "" {
 		return fmt.Errorf("baseModelPathPrefix must be set")
+	}
+	if ar := c.S3.AssumeRole; ar != nil {
+		if err := ar.validate(); err != nil {
+			return fmt.Errorf("assumeRole: %s", err)
+		}
 	}
 	return nil
 }
