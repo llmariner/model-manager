@@ -191,8 +191,10 @@ func (s *WS) RegisterModel(
 	if req.BaseModel == "" {
 		return nil, status.Error(codes.InvalidArgument, "base_model is required")
 	}
-	if req.Suffix == "" {
-		return nil, status.Error(codes.InvalidArgument, "suffix is required")
+	if req.Suffix == "" &&
+		req.Adapter == v1.AdapterType_ADAPTER_TYPE_UNSPECIFIED &&
+		req.Quantization == v1.QuantizationType_QUANTIZATION_TYPE_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "one of suffix, adapter, or quantization is required")
 	}
 	if req.OrganizationId == "" {
 		return nil, status.Error(codes.InvalidArgument, "organization_id is required")
@@ -219,6 +221,9 @@ func (s *WS) RegisterModel(
 		ProjectID:      req.ProjectId,
 		IsPublished:    false,
 		Path:           path,
+		BaseModelID:    req.BaseModel,
+		Adapter:        string(req.Adapter),
+		Quantization:   string(req.Quantization),
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
@@ -276,6 +281,35 @@ func (s *WS) GetModelPath(
 	}
 	return &v1.GetModelPathResponse{
 		Path: m.Path,
+	}, nil
+}
+
+// GetModelAttributes gets the model attributes.
+func (s *WS) GetModelAttributes(
+	ctx context.Context,
+	req *v1.GetModelAttributesRequest,
+) (*v1.ModelAttributes, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	m, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+	}
+	return &v1.ModelAttributes{
+		Path:         m.Path,
+		BaseModel:    m.BaseModelID,
+		Adapter:      v1.AdapterType(v1.AdapterType_value[m.Adapter]),
+		Quantization: v1.QuantizationType(v1.QuantizationType_value[m.Quantization]),
 	}, nil
 }
 

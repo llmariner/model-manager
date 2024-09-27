@@ -176,6 +176,8 @@ func TestRegisterAndPublishModel(t *testing.T) {
 		Suffix:         "fine-tuning",
 		OrganizationId: "o0",
 		ProjectId:      defaultProjectID,
+		Adapter:        v1.AdapterType_ADAPTER_TYPE_LORA,
+		Quantization:   v1.QuantizationType_QUANTIZATION_TYPE_AWQ,
 	})
 	assert.NoError(t, err)
 	modelID := resp.Id
@@ -245,6 +247,57 @@ func TestGetModelPath(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "model-path", resp.Path)
+}
+
+func TestGetModelAttributes(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID = "m0"
+		orgID   = "o0"
+	)
+
+	wsrv := NewWorkerServiceServer(st)
+	ctx := context.Background()
+	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
+		Id: modelID,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	_, err = st.CreateModel(store.ModelSpec{
+		ModelID:        modelID,
+		TenantID:       defaultTenantID,
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		Path:           "model-path",
+		IsPublished:    false,
+		BaseModelID:    "base-model0",
+		Adapter:        v1.AdapterType_ADAPTER_TYPE_LORA.String(),
+		Quantization:   v1.QuantizationType_QUANTIZATION_TYPE_AWQ.String(),
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.GetModelAttributes(ctx, &v1.GetModelAttributesRequest{
+		Id: modelID,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	_, err = wsrv.PublishModel(ctx, &v1.PublishModelRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
+
+	resp, err := wsrv.GetModelAttributes(ctx, &v1.GetModelAttributesRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "model-path", resp.Path)
+	assert.Equal(t, "base-model0", resp.BaseModel)
+	assert.Equal(t, v1.AdapterType_ADAPTER_TYPE_LORA, resp.Adapter)
+	assert.Equal(t, v1.QuantizationType_QUANTIZATION_TYPE_AWQ, resp.Quantization)
 }
 
 func TestBaseModels(t *testing.T) {

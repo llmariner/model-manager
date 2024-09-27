@@ -12,6 +12,18 @@ export enum ModelFormat {
   MODEL_FORMAT_HUGGING_FACE = "MODEL_FORMAT_HUGGING_FACE",
 }
 
+export enum AdapterType {
+  ADAPTER_TYPE_UNSPECIFIED = "ADAPTER_TYPE_UNSPECIFIED",
+  ADAPTER_TYPE_LORA = "ADAPTER_TYPE_LORA",
+  ADAPTER_TYPE_QLORA = "ADAPTER_TYPE_QLORA",
+}
+
+export enum QuantizationType {
+  QUANTIZATION_TYPE_UNSPECIFIED = "QUANTIZATION_TYPE_UNSPECIFIED",
+  QUANTIZATION_TYPE_GGUF = "QUANTIZATION_TYPE_GGUF",
+  QUANTIZATION_TYPE_AWQ = "QUANTIZATION_TYPE_AWQ",
+}
+
 export type ModelFormats = {
   formats?: ModelFormat[]
 }
@@ -75,6 +87,8 @@ export type RegisterModelRequest = {
   suffix?: string
   organizationId?: string
   projectId?: string
+  adapter?: AdapterType
+  quantization?: QuantizationType
 }
 
 export type RegisterModelResponse = {
@@ -95,6 +109,17 @@ export type GetModelPathRequest = {
 
 export type GetModelPathResponse = {
   path?: string
+}
+
+export type ModelAttributes = {
+  path?: string
+  baseModel?: string
+  adapter?: AdapterType
+  quantization?: QuantizationType
+}
+
+export type GetModelAttributesRequest = {
+  id?: string
 }
 
 export type CreateBaseModelRequest = {
@@ -146,6 +171,9 @@ export class ModelsWorkerService {
   }
   static GetModelPath(req: GetModelPathRequest, initReq?: fm.InitReq): Promise<GetModelPathResponse> {
     return fm.fetchReq<GetModelPathRequest, GetModelPathResponse>(`/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static GetModelAttributes(req: GetModelAttributesRequest, initReq?: fm.InitReq): Promise<ModelAttributes> {
+    return fm.fetchReq<GetModelAttributesRequest, ModelAttributes>(`/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static CreateBaseModel(req: CreateBaseModelRequest, initReq?: fm.InitReq): Promise<BaseModel> {
     return fm.fetchReq<CreateBaseModelRequest, BaseModel>(`/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel`, {...initReq, method: "POST", body: JSON.stringify(req)})

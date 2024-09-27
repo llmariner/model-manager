@@ -101,11 +101,26 @@ message CreateStorageConfigRequest {
 message GetStorageConfigRequest {
 }
 
+enum AdapterType {
+  ADAPTER_TYPE_UNSPECIFIED = 0;
+  ADAPTER_TYPE_LORA = 1;
+  ADAPTER_TYPE_QLORA = 2;
+}
+
+enum QuantizationType {
+  QUANTIZATION_TYPE_UNSPECIFIED = 0;
+  QUANTIZATION_TYPE_GGUF = 1;
+  QUANTIZATION_TYPE_AWQ = 2;
+}
+
 message RegisterModelRequest {
   string base_model = 1;
+  // suffix is deprecated, use fine_tune and quantization instead.
   string suffix = 2;
   string organization_id = 3;
   string project_id = 4;
+  AdapterType adapter = 5;
+  QuantizationType quantization = 6;
 }
 
 message RegisterModelResponse {
@@ -121,12 +136,25 @@ message PublishModelRequest {
 message PublishModelResponse {
 }
 
+// GetModelPathRequest is deprecated, use GetModelAttributesRequest instead.
 message GetModelPathRequest {
   string id = 1;
 }
 
+// GetModelPathResponse is deprecated, use GetModelAttributesResponse instead.
 message GetModelPathResponse {
   string path = 1;
+}
+
+message ModelAttributes {
+  string path = 1;
+  string base_model = 2;
+  AdapterType adapter = 3;
+  QuantizationType quantization = 4;
+}
+
+message GetModelAttributesRequest {
+  string id = 1;
 }
 
 message CreateBaseModelRequest {
@@ -182,6 +210,10 @@ service ModelsWorkerService {
 
   // GetModelPath returns the path of the model. Used by inference-manager-engine.
   rpc GetModelPath(GetModelPathRequest) returns (GetModelPathResponse) {
+  }
+
+  // GetModelAttributes returns the attributes of the model. Used by inference-manager-engine.
+  rpc GetModelAttributes(GetModelAttributesRequest) returns (ModelAttributes) {
   }
 
   // CreateBaseModel creates a new base model. Used by model-manager-loader.

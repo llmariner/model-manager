@@ -227,6 +227,8 @@ type ModelsWorkerServiceClient interface {
 	PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error)
 	// GetModelPath returns the path of the model. Used by inference-manager-engine.
 	GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error)
+	// GetModelAttributes returns the attributes of the model. Used by inference-manager-engine.
+	GetModelAttributes(ctx context.Context, in *GetModelAttributesRequest, opts ...grpc.CallOption) (*ModelAttributes, error)
 	// CreateBaseModel creates a new base model. Used by model-manager-loader.
 	CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error)
 	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
@@ -296,6 +298,15 @@ func (c *modelsWorkerServiceClient) GetModelPath(ctx context.Context, in *GetMod
 	return out, nil
 }
 
+func (c *modelsWorkerServiceClient) GetModelAttributes(ctx context.Context, in *GetModelAttributesRequest, opts ...grpc.CallOption) (*ModelAttributes, error) {
+	out := new(ModelAttributes)
+	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *modelsWorkerServiceClient) CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error) {
 	out := new(BaseModel)
 	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel", in, out, opts...)
@@ -331,6 +342,8 @@ type ModelsWorkerServiceServer interface {
 	PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error)
 	// GetModelPath returns the path of the model. Used by inference-manager-engine.
 	GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error)
+	// GetModelAttributes returns the attributes of the model. Used by inference-manager-engine.
+	GetModelAttributes(context.Context, *GetModelAttributesRequest) (*ModelAttributes, error)
 	// CreateBaseModel creates a new base model. Used by model-manager-loader.
 	CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error)
 	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
@@ -360,6 +373,9 @@ func (UnimplementedModelsWorkerServiceServer) PublishModel(context.Context, *Pub
 }
 func (UnimplementedModelsWorkerServiceServer) GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModelPath not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) GetModelAttributes(context.Context, *GetModelAttributesRequest) (*ModelAttributes, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetModelAttributes not implemented")
 }
 func (UnimplementedModelsWorkerServiceServer) CreateBaseModel(context.Context, *CreateBaseModelRequest) (*BaseModel, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateBaseModel not implemented")
@@ -488,6 +504,24 @@ func _ModelsWorkerService_GetModelPath_Handler(srv interface{}, ctx context.Cont
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsWorkerService_GetModelAttributes_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetModelAttributesRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).GetModelAttributes(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).GetModelAttributes(ctx, req.(*GetModelAttributesRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ModelsWorkerService_CreateBaseModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(CreateBaseModelRequest)
 	if err := dec(in); err != nil {
@@ -554,6 +588,10 @@ var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetModelPath",
 			Handler:    _ModelsWorkerService_GetModelPath_Handler,
+		},
+		{
+			MethodName: "GetModelAttributes",
+			Handler:    _ModelsWorkerService_GetModelAttributes_Handler,
 		},
 		{
 			MethodName: "CreateBaseModel",

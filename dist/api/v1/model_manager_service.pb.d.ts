@@ -4,6 +4,16 @@ export declare enum ModelFormat {
     MODEL_FORMAT_GGUF = "MODEL_FORMAT_GGUF",
     MODEL_FORMAT_HUGGING_FACE = "MODEL_FORMAT_HUGGING_FACE"
 }
+export declare enum AdapterType {
+    ADAPTER_TYPE_UNSPECIFIED = "ADAPTER_TYPE_UNSPECIFIED",
+    ADAPTER_TYPE_LORA = "ADAPTER_TYPE_LORA",
+    ADAPTER_TYPE_QLORA = "ADAPTER_TYPE_QLORA"
+}
+export declare enum QuantizationType {
+    QUANTIZATION_TYPE_UNSPECIFIED = "QUANTIZATION_TYPE_UNSPECIFIED",
+    QUANTIZATION_TYPE_GGUF = "QUANTIZATION_TYPE_GGUF",
+    QUANTIZATION_TYPE_AWQ = "QUANTIZATION_TYPE_AWQ"
+}
 export type ModelFormats = {
     formats?: ModelFormat[];
 };
@@ -51,6 +61,8 @@ export type RegisterModelRequest = {
     suffix?: string;
     organizationId?: string;
     projectId?: string;
+    adapter?: AdapterType;
+    quantization?: QuantizationType;
 };
 export type RegisterModelResponse = {
     id?: string;
@@ -65,6 +77,15 @@ export type GetModelPathRequest = {
 };
 export type GetModelPathResponse = {
     path?: string;
+};
+export type ModelAttributes = {
+    path?: string;
+    baseModel?: string;
+    adapter?: AdapterType;
+    quantization?: QuantizationType;
+};
+export type GetModelAttributesRequest = {
+    id?: string;
 };
 export type CreateBaseModelRequest = {
     id?: string;
@@ -93,6 +114,7 @@ export declare class ModelsWorkerService {
     static RegisterModel(req: RegisterModelRequest, initReq?: fm.InitReq): Promise<RegisterModelResponse>;
     static PublishModel(req: PublishModelRequest, initReq?: fm.InitReq): Promise<PublishModelResponse>;
     static GetModelPath(req: GetModelPathRequest, initReq?: fm.InitReq): Promise<GetModelPathResponse>;
+    static GetModelAttributes(req: GetModelAttributesRequest, initReq?: fm.InitReq): Promise<ModelAttributes>;
     static CreateBaseModel(req: CreateBaseModelRequest, initReq?: fm.InitReq): Promise<BaseModel>;
     static GetBaseModelPath(req: GetBaseModelPathRequest, initReq?: fm.InitReq): Promise<GetBaseModelPathResponse>;
 }
