@@ -10,6 +10,18 @@ export var ModelFormat;
     ModelFormat["MODEL_FORMAT_GGUF"] = "MODEL_FORMAT_GGUF";
     ModelFormat["MODEL_FORMAT_HUGGING_FACE"] = "MODEL_FORMAT_HUGGING_FACE";
 })(ModelFormat || (ModelFormat = {}));
+export var AdapterType;
+(function (AdapterType) {
+    AdapterType["ADAPTER_TYPE_UNSPECIFIED"] = "ADAPTER_TYPE_UNSPECIFIED";
+    AdapterType["ADAPTER_TYPE_LORA"] = "ADAPTER_TYPE_LORA";
+    AdapterType["ADAPTER_TYPE_QLORA"] = "ADAPTER_TYPE_QLORA";
+})(AdapterType || (AdapterType = {}));
+export var QuantizationType;
+(function (QuantizationType) {
+    QuantizationType["QUANTIZATION_TYPE_UNSPECIFIED"] = "QUANTIZATION_TYPE_UNSPECIFIED";
+    QuantizationType["QUANTIZATION_TYPE_GGUF"] = "QUANTIZATION_TYPE_GGUF";
+    QuantizationType["QUANTIZATION_TYPE_AWQ"] = "QUANTIZATION_TYPE_AWQ";
+})(QuantizationType || (QuantizationType = {}));
 export class ModelsService {
     static ListModels(req, initReq) {
         return fm.fetchReq(`/v1/models?${fm.renderURLSearchParams(req, [])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
@@ -42,6 +54,9 @@ export class ModelsWorkerService {
     }
     static GetModelPath(req, initReq) {
         return fm.fetchReq(`/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
+    static GetModelAttributes(req, initReq) {
+        return fm.fetchReq(`/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
     static CreateBaseModel(req, initReq) {
         return fm.fetchReq(`/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));

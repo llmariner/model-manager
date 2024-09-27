@@ -151,6 +151,15 @@
         }
       }
     },
+    "v1AdapterType": {
+      "type": "string",
+      "enum": [
+        "ADAPTER_TYPE_UNSPECIFIED",
+        "ADAPTER_TYPE_LORA",
+        "ADAPTER_TYPE_QLORA"
+      ],
+      "default": "ADAPTER_TYPE_UNSPECIFIED"
+    },
     "v1BaseModel": {
       "type": "object",
       "properties": {
@@ -204,7 +213,8 @@
         "path": {
           "type": "string"
         }
-      }
+      },
+      "description": "GetModelPathResponse is deprecated, use GetModelAttributesResponse instead."
     },
     "v1ListBaseModelsResponse": {
       "type": "object",
@@ -252,6 +262,23 @@
         }
       }
     },
+    "v1ModelAttributes": {
+      "type": "object",
+      "properties": {
+        "path": {
+          "type": "string"
+        },
+        "baseModel": {
+          "type": "string"
+        },
+        "adapter": {
+          "$ref": "#/definitions/v1AdapterType"
+        },
+        "quantization": {
+          "$ref": "#/definitions/v1QuantizationType"
+        }
+      }
+    },
     "v1ModelFormat": {
       "type": "string",
       "enum": [
@@ -263,6 +290,15 @@
     },
     "v1PublishModelResponse": {
       "type": "object"
+    },
+    "v1QuantizationType": {
+      "type": "string",
+      "enum": [
+        "QUANTIZATION_TYPE_UNSPECIFIED",
+        "QUANTIZATION_TYPE_GGUF",
+        "QUANTIZATION_TYPE_AWQ"
+      ],
+      "default": "QUANTIZATION_TYPE_UNSPECIFIED"
     },
     "v1RegisterModelResponse": {
       "type": "object",

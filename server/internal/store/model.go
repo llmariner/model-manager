@@ -17,6 +17,10 @@ type Model struct {
 
 	Path        string
 	IsPublished bool
+
+	BaseModelID  string `gorm:"index"`
+	Adapter      string
+	Quantization string
 }
 
 // ModelSpec represents a model spec that is passed to CreateModel.
@@ -27,6 +31,9 @@ type ModelSpec struct {
 	ProjectID      string
 	Path           string
 	IsPublished    bool
+	BaseModelID    string
+	Adapter        string
+	Quantization   string
 }
 
 // CreateModel creates a model.
@@ -38,6 +45,9 @@ func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 		ProjectID:      spec.ProjectID,
 		Path:           spec.Path,
 		IsPublished:    spec.IsPublished,
+		BaseModelID:    spec.BaseModelID,
+		Adapter:        spec.Adapter,
+		Quantization:   spec.Quantization,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err
