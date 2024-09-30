@@ -35,7 +35,7 @@ func NewModelsServiceClient(cc grpc.ClientConnInterface) ModelsServiceClient {
 
 func (c *modelsServiceClient) ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error) {
 	out := new(ListModelsResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsService/ListModels", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ListModels", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -44,7 +44,7 @@ func (c *modelsServiceClient) ListModels(ctx context.Context, in *ListModelsRequ
 
 func (c *modelsServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
 	out := new(Model)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsService/GetModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/GetModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -53,7 +53,7 @@ func (c *modelsServiceClient) GetModel(ctx context.Context, in *GetModelRequest,
 
 func (c *modelsServiceClient) DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error) {
 	out := new(DeleteModelResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsService/DeleteModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/DeleteModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -62,7 +62,7 @@ func (c *modelsServiceClient) DeleteModel(ctx context.Context, in *DeleteModelRe
 
 func (c *modelsServiceClient) ListBaseModels(ctx context.Context, in *ListBaseModelsRequest, opts ...grpc.CallOption) (*ListBaseModelsResponse, error) {
 	out := new(ListBaseModelsResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsService/ListBaseModels", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ListBaseModels", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -120,7 +120,7 @@ func _ModelsService_ListModels_Handler(srv interface{}, ctx context.Context, dec
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsService/ListModels",
+		FullMethod: "/llmariner.models.server.v1.ModelsService/ListModels",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsServiceServer).ListModels(ctx, req.(*ListModelsRequest))
@@ -138,7 +138,7 @@ func _ModelsService_GetModel_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsService/GetModel",
+		FullMethod: "/llmariner.models.server.v1.ModelsService/GetModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsServiceServer).GetModel(ctx, req.(*GetModelRequest))
@@ -156,7 +156,7 @@ func _ModelsService_DeleteModel_Handler(srv interface{}, ctx context.Context, de
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsService/DeleteModel",
+		FullMethod: "/llmariner.models.server.v1.ModelsService/DeleteModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsServiceServer).DeleteModel(ctx, req.(*DeleteModelRequest))
@@ -174,7 +174,7 @@ func _ModelsService_ListBaseModels_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsService/ListBaseModels",
+		FullMethod: "/llmariner.models.server.v1.ModelsService/ListBaseModels",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsServiceServer).ListBaseModels(ctx, req.(*ListBaseModelsRequest))
@@ -186,7 +186,7 @@ func _ModelsService_ListBaseModels_Handler(srv interface{}, ctx context.Context,
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ModelsService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "llmoperator.models.server.v1.ModelsService",
+	ServiceName: "llmariner.models.server.v1.ModelsService",
 	HandlerType: (*ModelsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
@@ -246,7 +246,7 @@ func NewModelsWorkerServiceClient(cc grpc.ClientConnInterface) ModelsWorkerServi
 
 func (c *modelsWorkerServiceClient) CreateStorageConfig(ctx context.Context, in *CreateStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error) {
 	out := new(StorageConfig)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/CreateStorageConfig", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/CreateStorageConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (c *modelsWorkerServiceClient) CreateStorageConfig(ctx context.Context, in 
 
 func (c *modelsWorkerServiceClient) GetStorageConfig(ctx context.Context, in *GetStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error) {
 	out := new(StorageConfig)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetStorageConfig", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetStorageConfig", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -264,7 +264,7 @@ func (c *modelsWorkerServiceClient) GetStorageConfig(ctx context.Context, in *Ge
 
 func (c *modelsWorkerServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
 	out := new(Model)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -273,7 +273,7 @@ func (c *modelsWorkerServiceClient) GetModel(ctx context.Context, in *GetModelRe
 
 func (c *modelsWorkerServiceClient) RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error) {
 	out := new(RegisterModelResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/RegisterModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/RegisterModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func (c *modelsWorkerServiceClient) RegisterModel(ctx context.Context, in *Regis
 
 func (c *modelsWorkerServiceClient) PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error) {
 	out := new(PublishModelResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/PublishModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/PublishModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -291,7 +291,7 @@ func (c *modelsWorkerServiceClient) PublishModel(ctx context.Context, in *Publis
 
 func (c *modelsWorkerServiceClient) GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error) {
 	out := new(GetModelPathResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetModelPath", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -300,7 +300,7 @@ func (c *modelsWorkerServiceClient) GetModelPath(ctx context.Context, in *GetMod
 
 func (c *modelsWorkerServiceClient) GetModelAttributes(ctx context.Context, in *GetModelAttributesRequest, opts ...grpc.CallOption) (*ModelAttributes, error) {
 	out := new(ModelAttributes)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetModelAttributes", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -309,7 +309,7 @@ func (c *modelsWorkerServiceClient) GetModelAttributes(ctx context.Context, in *
 
 func (c *modelsWorkerServiceClient) CreateBaseModel(ctx context.Context, in *CreateBaseModelRequest, opts ...grpc.CallOption) (*BaseModel, error) {
 	out := new(BaseModel)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/CreateBaseModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -318,7 +318,7 @@ func (c *modelsWorkerServiceClient) CreateBaseModel(ctx context.Context, in *Cre
 
 func (c *modelsWorkerServiceClient) GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error) {
 	out := new(GetBaseModelPathResponse)
-	err := c.cc.Invoke(ctx, "/llmoperator.models.server.v1.ModelsWorkerService/GetBaseModelPath", in, out, opts...)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetBaseModelPath", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -406,7 +406,7 @@ func _ModelsWorkerService_CreateStorageConfig_Handler(srv interface{}, ctx conte
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/CreateStorageConfig",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/CreateStorageConfig",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).CreateStorageConfig(ctx, req.(*CreateStorageConfigRequest))
@@ -424,7 +424,7 @@ func _ModelsWorkerService_GetStorageConfig_Handler(srv interface{}, ctx context.
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetStorageConfig",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/GetStorageConfig",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).GetStorageConfig(ctx, req.(*GetStorageConfigRequest))
@@ -442,7 +442,7 @@ func _ModelsWorkerService_GetModel_Handler(srv interface{}, ctx context.Context,
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetModel",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/GetModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).GetModel(ctx, req.(*GetModelRequest))
@@ -460,7 +460,7 @@ func _ModelsWorkerService_RegisterModel_Handler(srv interface{}, ctx context.Con
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/RegisterModel",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/RegisterModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).RegisterModel(ctx, req.(*RegisterModelRequest))
@@ -478,7 +478,7 @@ func _ModelsWorkerService_PublishModel_Handler(srv interface{}, ctx context.Cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/PublishModel",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/PublishModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).PublishModel(ctx, req.(*PublishModelRequest))
@@ -496,7 +496,7 @@ func _ModelsWorkerService_GetModelPath_Handler(srv interface{}, ctx context.Cont
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/GetModelPath",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).GetModelPath(ctx, req.(*GetModelPathRequest))
@@ -514,7 +514,7 @@ func _ModelsWorkerService_GetModelAttributes_Handler(srv interface{}, ctx contex
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/GetModelAttributes",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).GetModelAttributes(ctx, req.(*GetModelAttributesRequest))
@@ -532,7 +532,7 @@ func _ModelsWorkerService_CreateBaseModel_Handler(srv interface{}, ctx context.C
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/CreateBaseModel",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).CreateBaseModel(ctx, req.(*CreateBaseModelRequest))
@@ -550,7 +550,7 @@ func _ModelsWorkerService_GetBaseModelPath_Handler(srv interface{}, ctx context.
 	}
 	info := &grpc.UnaryServerInfo{
 		Server:     srv,
-		FullMethod: "/llmoperator.models.server.v1.ModelsWorkerService/GetBaseModelPath",
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/GetBaseModelPath",
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).GetBaseModelPath(ctx, req.(*GetBaseModelPathRequest))
@@ -562,7 +562,7 @@ func _ModelsWorkerService_GetBaseModelPath_Handler(srv interface{}, ctx context.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
 var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
-	ServiceName: "llmoperator.models.server.v1.ModelsWorkerService",
+	ServiceName: "llmariner.models.server.v1.ModelsWorkerService",
 	HandlerType: (*ModelsWorkerServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{

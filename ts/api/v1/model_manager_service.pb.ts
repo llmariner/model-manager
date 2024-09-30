@@ -155,30 +155,30 @@ export class ModelsService {
 }
 export class ModelsWorkerService {
   static CreateStorageConfig(req: CreateStorageConfigRequest, initReq?: fm.InitReq): Promise<StorageConfig> {
-    return fm.fetchReq<CreateStorageConfigRequest, StorageConfig>(`/llmoperator.models.server.v1.ModelsWorkerService/CreateStorageConfig`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<CreateStorageConfigRequest, StorageConfig>(`/llmariner.models.server.v1.ModelsWorkerService/CreateStorageConfig`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static GetStorageConfig(req: GetStorageConfigRequest, initReq?: fm.InitReq): Promise<StorageConfig> {
-    return fm.fetchReq<GetStorageConfigRequest, StorageConfig>(`/llmoperator.models.server.v1.ModelsWorkerService/GetStorageConfig`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GetStorageConfigRequest, StorageConfig>(`/llmariner.models.server.v1.ModelsWorkerService/GetStorageConfig`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model> {
-    return fm.fetchReq<GetModelRequest, Model>(`/llmoperator.models.server.v1.ModelsWorkerService/GetModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GetModelRequest, Model>(`/llmariner.models.server.v1.ModelsWorkerService/GetModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static RegisterModel(req: RegisterModelRequest, initReq?: fm.InitReq): Promise<RegisterModelResponse> {
-    return fm.fetchReq<RegisterModelRequest, RegisterModelResponse>(`/llmoperator.models.server.v1.ModelsWorkerService/RegisterModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<RegisterModelRequest, RegisterModelResponse>(`/llmariner.models.server.v1.ModelsWorkerService/RegisterModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static PublishModel(req: PublishModelRequest, initReq?: fm.InitReq): Promise<PublishModelResponse> {
-    return fm.fetchReq<PublishModelRequest, PublishModelResponse>(`/llmoperator.models.server.v1.ModelsWorkerService/PublishModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<PublishModelRequest, PublishModelResponse>(`/llmariner.models.server.v1.ModelsWorkerService/PublishModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static GetModelPath(req: GetModelPathRequest, initReq?: fm.InitReq): Promise<GetModelPathResponse> {
-    return fm.fetchReq<GetModelPathRequest, GetModelPathResponse>(`/llmoperator.models.server.v1.ModelsWorkerService/GetModelPath`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GetModelPathRequest, GetModelPathResponse>(`/llmariner.models.server.v1.ModelsWorkerService/GetModelPath`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static GetModelAttributes(req: GetModelAttributesRequest, initReq?: fm.InitReq): Promise<ModelAttributes> {
-    return fm.fetchReq<GetModelAttributesRequest, ModelAttributes>(`/llmoperator.models.server.v1.ModelsWorkerService/GetModelAttributes`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GetModelAttributesRequest, ModelAttributes>(`/llmariner.models.server.v1.ModelsWorkerService/GetModelAttributes`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static CreateBaseModel(req: CreateBaseModelRequest, initReq?: fm.InitReq): Promise<BaseModel> {
-    return fm.fetchReq<CreateBaseModelRequest, BaseModel>(`/llmoperator.models.server.v1.ModelsWorkerService/CreateBaseModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<CreateBaseModelRequest, BaseModel>(`/llmariner.models.server.v1.ModelsWorkerService/CreateBaseModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static GetBaseModelPath(req: GetBaseModelPathRequest, initReq?: fm.InitReq): Promise<GetBaseModelPathResponse> {
-    return fm.fetchReq<GetBaseModelPathRequest, GetBaseModelPathResponse>(`/llmoperator.models.server.v1.ModelsWorkerService/GetBaseModelPath`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<GetBaseModelPathRequest, GetBaseModelPathResponse>(`/llmariner.models.server.v1.ModelsWorkerService/GetBaseModelPath`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
 }

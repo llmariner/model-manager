@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+package llmoperator.models.server.v1;
+
+import "google/api/annotations.proto";
+import "api/v1/model_manager_service.proto";
+
+option go_package = "github.com/llm-operator/model-manager/api/v1/legacy";
+
+service ModelsWorkerService {
+  // CreateStorageConfig creates a new storage config. Used by model-manager-loader.
+  rpc CreateStorageConfig(llmariner.models.server.v1.CreateStorageConfigRequest) returns (llmariner.models.server.v1.StorageConfig) {
+  }
+
+  // GetStorageConfig gets a storage config. Used by model-manager-loader.
+  rpc GetStorageConfig(llmariner.models.server.v1.GetStorageConfigRequest) returns (llmariner.models.server.v1.StorageConfig) {
+  }
+
+  // GetModel gets a model. Used by inference-manager-engine.
+  rpc GetModel(llmariner.models.server.v1.GetModelRequest) returns (llmariner.models.server.v1.Model) {
+  }
+
+  // RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+  // The model is not published until PublishModel is called.
+  rpc RegisterModel(llmariner.models.server.v1.RegisterModelRequest) returns (llmariner.models.server.v1.RegisterModelResponse) {
+  }
+
+  // PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
+  rpc PublishModel(llmariner.models.server.v1.PublishModelRequest) returns (llmariner.models.server.v1.PublishModelResponse) {
+  }
+
+  // GetModelPath returns the path of the model. Used by inference-manager-engine.
+  rpc GetModelPath(llmariner.models.server.v1.GetModelPathRequest) returns (llmariner.models.server.v1.GetModelPathResponse) {
+  }
+
+  // GetModelAttributes returns the attributes of the model. Used by inference-manager-engine.
+  rpc GetModelAttributes(llmariner.models.server.v1.GetModelAttributesRequest) returns (llmariner.models.server.v1.ModelAttributes) {
+  }
+
+  // CreateBaseModel creates a new base model. Used by model-manager-loader.
+  rpc CreateBaseModel(llmariner.models.server.v1.CreateBaseModelRequest) returns (llmariner.models.server.v1.BaseModel) {
+  }
+
+  // GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
+  // inference-manager-engine, and model-manager-loader.
+  rpc GetBaseModelPath(llmariner.models.server.v1.GetBaseModelPathRequest) returns (llmariner.models.server.v1.GetBaseModelPathResponse) {
+  }
+}
