@@ -63,8 +63,8 @@ jobs:
         push: true
         platforms: linux/amd64,linux/arm64
         tags: |
-          public.ecr.aws/v8n3t7y5/llm-operator/model-manager-loader:${{ needs.update-tag.outputs.new_version }}
-          public.ecr.aws/v8n3t7y5/llm-operator/model-manager-loader:latest
+          public.ecr.aws/cloudnatix/llm-operator/model-manager-loader:${{ needs.update-tag.outputs.new_version }}
+          public.ecr.aws/cloudnatix/llm-operator/model-manager-loader:latest
     - name: Build, tag, and push server to Amazon ECR
       uses: docker/build-push-action@v5
       with:
@@ -72,8 +72,8 @@ jobs:
         push: true
         platforms: linux/amd64,linux/arm64
         tags: |
-          public.ecr.aws/v8n3t7y5/llm-operator/model-manager-server:${{ needs.update-tag.outputs.new_version }}
-          public.ecr.aws/v8n3t7y5/llm-operator/model-manager-server:latest
+          public.ecr.aws/cloudnatix/llm-operator/model-manager-server:${{ needs.update-tag.outputs.new_version }}
+          public.ecr.aws/cloudnatix/llm-operator/model-manager-server:latest
 
   publish-helm-chart:
     runs-on: ubuntu-latest
@@ -97,8 +97,8 @@ jobs:
     - name: build and push loader helm chart
       run: |
         helm package --version ${{ needs.update-tag.outputs.new_version }} ./deployments/loader
-        helm push model-manager-loader-${{ needs.update-tag.outputs.new_version }}.tgz oci://public.ecr.aws/v8n3t7y5/llm-operator-charts
+        helm push model-manager-loader-${{ needs.update-tag.outputs.new_version }}.tgz oci://public.ecr.aws/cloudnatix/llm-operator-charts
     - name: build and push server helm chart
       run: |
         helm package --version ${{ needs.update-tag.outputs.new_version }} ./deployments/server
-        helm push model-manager-server-${{ needs.update-tag.outputs.new_version }}.tgz oci://public.ecr.aws/v8n3t7y5/llm-operator-charts
+        helm push model-manager-server-${{ needs.update-tag.outputs.new_version }}.tgz oci://public.ecr.aws/cloudnatix/llm-operator-charts
