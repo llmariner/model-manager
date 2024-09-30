@@ -2,7 +2,7 @@ objectStore:
   s3:
     endpointUrl: http://minio:9000
     region: dummy
-    bucket: llm-operator
+    bucket: llmariner
     pathPrefix: models
     baseModelPathPrefix: base-models
 

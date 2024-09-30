@@ -1,5 +1,5 @@
 {
-  "name": "@llm-operator-types/model-manager",
+  "name": "@llmariner-types/model-manager",
   "version": "1.0.0",
   "description": "model-manager",
   "main": "dist/index.js",
@@ -17,12 +17,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git://github.com/llm-operator/model-manager.git"
+    "url": "git://github.com/llmariner/model-manager.git"
   },
-  "author": "llm-operator",
+  "author": "llmariner",
   "license": "Apache-2.0",
   "bugs": {
-    "url": "https://github.com/llm-operator/model-manager/issues"
+    "url": "https://github.com/llmariner/model-manager/issues"
   },
-  "homepage": "https://github.com/llm-operator/model-manager#readme"
+  "homepage": "https://github.com/llmariner/model-manager#readme"
 }

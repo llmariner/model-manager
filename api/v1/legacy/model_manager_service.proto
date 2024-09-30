@@ -5,7 +5,7 @@ package llmoperator.models.server.v1;
 import "google/api/annotations.proto";
 import "api/v1/model_manager_service.proto";
 
-option go_package = "github.com/llm-operator/model-manager/api/v1/legacy";
+option go_package = "github.com/llmariner/model-manager/api/v1/legacy";
 
 service ModelsWorkerService {
   // CreateStorageConfig creates a new storage config. Used by model-manager-loader.
