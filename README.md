@@ -24,9 +24,9 @@ docker exec -it <postgres container ID> psql -h localhost -U user --no-password 
 curl http://localhost:8080/v1/models
 
 docker exec -it <aws-cli container ID> bash
-export AWS_ACCESS_KEY_ID=llm-operator-key
-export AWS_SECRET_ACCESS_KEY=llm-operator-secret
-aws --endpoint-url http://minio:9000 s3 ls s3://llm-operator
+export AWS_ACCESS_KEY_ID=llmariner-key
+export AWS_SECRET_ACCESS_KEY=llmariner-secret
+aws --endpoint-url http://minio:9000 s3 ls s3://llmariner
 ```
 
 ## Running `server` Locally
@@ -71,7 +71,7 @@ curl http://localhost:8080/v1/models
 grpcurl -d '{"base_model": "base", "suffix": "suffix", "tenant_id": "fake-tenant-id"}' -plaintext localhost:8082 list llmoperator.models.server.v1.ModelsInternalService/CreateModel
 ```
 
-# Uploading models to S3 bucket `llm-operator-models`
+# Uploading models to S3 bucket `llmariner-models`
 
 Run the following command and run `loader`. Please note that it is better to run this on
 an EC2 instance as it requires download and upload of large files.

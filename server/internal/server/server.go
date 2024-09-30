@@ -6,9 +6,9 @@ import (
 	"log"
 	"net"
 
-	v1 "github.com/llm-operator/model-manager/api/v1"
-	"github.com/llm-operator/model-manager/server/internal/config"
-	"github.com/llm-operator/model-manager/server/internal/store"
+	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/server/internal/config"
+	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

@@ -36,6 +36,7 @@ downloader:
   s3:
     endpointUrl: https://s3.us-west-2.amazonaws.com
     region: us-west-2
+    # TODO(kenji): Switch to llmariner-models
     bucket: llm-operator-models
     pathPrefix: v1/base-models
   huggingFace:
@@ -51,7 +52,7 @@ objectStore:
 
 replicaCount: 1
 image:
-  repository: public.ecr.aws/cloudnatix/llm-operator/model-manager-loader
+  repository: public.ecr.aws/cloudnatix/llmariner/model-manager-loader
   pullPolicy: IfNotPresent
 
 serviceAccount:

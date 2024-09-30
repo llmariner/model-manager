@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 
-	v1 "github.com/llm-operator/model-manager/api/v1"
-	"github.com/llm-operator/model-manager/server/internal/store"
+	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/server/internal/store"
 	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

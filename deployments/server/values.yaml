@@ -40,7 +40,7 @@ database:
 
 replicaCount: 1
 image:
-  repository: public.ecr.aws/cloudnatix/llm-operator/model-manager-server
+  repository: public.ecr.aws/cloudnatix/llmariner/model-manager-server
   pullPolicy: IfNotPresent
 
 podAnnotations:

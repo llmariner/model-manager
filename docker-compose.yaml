@@ -48,8 +48,8 @@ services:
     command:
     - -c
     - "curl http://minio:9090/api/v1/login --cookie-jar cookies.txt --request POST --header 'Content-Type: application/json' --data '{\"accessKey\": \"minioadmin\", \"secretKey\": \"minioadmin\"}' &&
-       curl http://minio:9090/api/v1/service-account-credentials --cookie cookies.txt --request POST --header 'Content-Type: application/json' --data '{\"policy\": \"\", \"accessKey\": \"llm-operator-key\", \"secretKey\": \"llm-operator-secret\", \"description\": \"\", \"comment\": \"\", \"name\": \"LLM Operator\", \"expiry\": null}' ;
-       AWS_ACCESS_KEY_ID=llm-operator-key AWS_SECRET_ACCESS_KEY=llm-operator-secret aws --endpoint-url http://minio:9000 s3 mb s3://llm-operator &&
+       curl http://minio:9090/api/v1/service-account-credentials --cookie cookies.txt --request POST --header 'Content-Type: application/json' --data '{\"policy\": \"\", \"accessKey\": \"llmariner-key\", \"secretKey\": \"llmariner-secret\", \"description\": \"\", \"comment\": \"\", \"name\": \"LLM Operator\", \"expiry\": null}' ;
+       AWS_ACCESS_KEY_ID=llmariner-key AWS_SECRET_ACCESS_KEY=llmariner-secret aws --endpoint-url http://minio:9000 s3 mb s3://llmariner &&
        sleep infinity
     "
     healthcheck:
@@ -57,7 +57,7 @@ services:
       - CMD
       - /bin/bash
       - -c
-      - "AWS_ACCESS_KEY_ID=llm-operator-key AWS_SECRET_ACCESS_KEY=llm-operator-secret aws --endpoint-url http://minio:9000 s3 ls s3://llm-operator"
+      - "AWS_ACCESS_KEY_ID=llmariner-key AWS_SECRET_ACCESS_KEY=llmariner-secret aws --endpoint-url http://minio:9000 s3 ls s3://llmariner"
       interval: 1s
       timeout: 10s
       retries: 10
@@ -110,8 +110,8 @@ services:
     environment:
       DB_PASSWORD: password
       HUGGING_FACE_HUB_TOKEN: ${HUGGING_FACE_HUB_TOKEN}
-      AWS_ACCESS_KEY_ID: llm-operator-key
-      AWS_SECRET_ACCESS_KEY: llm-operator-secret
+      AWS_ACCESS_KEY_ID: llmariner-key
+      AWS_SECRET_ACCESS_KEY: llmariner-secret
     volumes:
     - ./configs/loader:/etc/config
     - ${HOME}/.cache/huggingface/hub:/hugging-face-cache

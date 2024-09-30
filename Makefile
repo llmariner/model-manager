@@ -22,12 +22,12 @@ build-loader:
 
 .PHONY: build-docker-server
 build-docker-server:
-	docker build --build-arg TARGETARCH=amd64 -t llm-operator/model-manager-server:latest -f build/server/Dockerfile .
+	docker build --build-arg TARGETARCH=amd64 -t llmariner/model-manager-server:latest -f build/server/Dockerfile .
 
 .PHONY: build-docker-loader
 build-docker-loader:
-	docker build --build-arg TARGETARCH=amd64 -t llm-operator/model-manager-loader:latest -f build/loader/Dockerfile .
+	docker build --build-arg TARGETARCH=amd64 -t llmariner/model-manager-loader:latest -f build/loader/Dockerfile .
 
 .PHONY: build-docker-convert-gguf
 build-docker-convert-gguf:
-	docker build --build-arg TARGETARCH=amd64 -t llm-operator/experiments-convert_gguf:latest -f build/experiments/convert_gguf/Dockerfile build/experiments/convert_gguf/
+	docker build --build-arg TARGETARCH=amd64 -t llmariner/experiments-convert_gguf:latest -f build/experiments/convert_gguf/Dockerfile build/experiments/convert_gguf/

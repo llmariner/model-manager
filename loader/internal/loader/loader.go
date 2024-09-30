@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	mv1 "github.com/llm-operator/model-manager/api/v1"
-	v1 "github.com/llm-operator/model-manager/api/v1"
+	mv1 "github.com/llmariner/model-manager/api/v1"
+	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"

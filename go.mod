@@ -1,4 +1,4 @@
-module github.com/llm-operator/model-manager
+module github.com/llmariner/model-manager
 
 go 1.22.2
 

@@ -4,7 +4,7 @@ import (
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
-	v1 "github.com/llm-operator/model-manager/api/v1"
+	v1 "github.com/llmariner/model-manager/api/v1"
 )
 
 // BaseModel represents a base model.
