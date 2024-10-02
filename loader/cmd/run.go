@@ -7,11 +7,11 @@ import (
 	"log"
 	"path/filepath"
 
+	laws "github.com/llmariner/common/pkg/aws"
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/llmariner/model-manager/loader/internal/loader"
 	"github.com/llmariner/model-manager/loader/internal/s3"
-	laws "github.com/llmariner/common/pkg/aws"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -66,7 +66,7 @@ func run(ctx context.Context, c *config.Config) error {
 			option = grpc.WithTransportCredentials(insecure.NewCredentials())
 		}
 
-		conn, err := grpc.Dial(c.ModelManagerServerWorkerServiceAddr, option)
+		conn, err := grpc.NewClient(c.ModelManagerServerWorkerServiceAddr, option)
 		if err != nil {
 			return err
 		}
