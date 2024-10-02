@@ -203,6 +203,16 @@ func TestRegisterAndPublishModel(t *testing.T) {
 		Id: modelID,
 	})
 	assert.NoError(t, err)
+
+	_, err = wsrv.RegisterModel(ctx, &v1.RegisterModelRequest{
+		Id:             modelID,
+		BaseModel:      "my-model",
+		OrganizationId: "o0",
+		ProjectId:      defaultProjectID,
+		Adapter:        v1.AdapterType_ADAPTER_TYPE_LORA,
+		Quantization:   v1.QuantizationType_QUANTIZATION_TYPE_AWQ,
+	})
+	assert.Error(t, err)
 }
 
 func TestGetModelPath(t *testing.T) {
@@ -275,8 +285,8 @@ func TestGetModelAttributes(t *testing.T) {
 		Path:           "model-path",
 		IsPublished:    false,
 		BaseModelID:    "base-model0",
-		Adapter:        v1.AdapterType_ADAPTER_TYPE_LORA.String(),
-		Quantization:   v1.QuantizationType_QUANTIZATION_TYPE_AWQ.String(),
+		Adapter:        v1.AdapterType_ADAPTER_TYPE_LORA,
+		Quantization:   v1.QuantizationType_QUANTIZATION_TYPE_AWQ,
 	})
 	assert.NoError(t, err)
 

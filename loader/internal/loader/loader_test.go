@@ -9,6 +9,7 @@ import (
 
 	"github.com/go-logr/logr/testr"
 	mv1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +32,9 @@ func TestLoadBaseModel(t *testing.T) {
 	mc := NewFakeModelClient()
 	ld := New(
 		[]string{"google/gemma-2b"},
-		"models/base-models",
+		nil,
+		"models",
+		"base-models",
 		downloader,
 		s3Client,
 		mc,
@@ -70,7 +73,9 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	mc := NewFakeModelClient()
 	ld := New(
 		[]string{"google/gemma-2b"},
-		"models/base-models",
+		nil,
+		"models",
+		"base-models",
 		downloader,
 		s3Client,
 		mc,
@@ -92,6 +97,57 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
 	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
+}
+
+func TestLoadModel_HuggingFace(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{},
+		files: []string{
+			"adapter_config.json",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		nil,
+		[]config.ModelConfig{
+			{
+				Model:       "abc/lora1",
+				BaseModel:   "google/gemma-2b",
+				AdapterType: "lora",
+			},
+		},
+		"models",
+		"base-models",
+		downloader,
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadModel(context.Background(), ld.models[0])
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/google/gemma-2b/adapter_config.json",
+		"models/default-tenant-id/abc/lora1/adapter_config.json",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "google-gemma-2b",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
+	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+	assert.Empty(t, got.GgufModelPath)
+
+	ret, err := mc.GetModelPath(context.Background(), &mv1.GetModelPathRequest{
+		Id: "abc-lora1",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "models/default-tenant-id/abc/lora1", ret.Path)
 }
 
 type mockS3Client struct {

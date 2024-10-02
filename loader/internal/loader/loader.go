@@ -12,6 +12,7 @@ import (
 	"github.com/go-logr/logr"
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -49,6 +50,9 @@ func (c *NoopS3Client) Upload(ctx context.Context, r io.Reader, key string) erro
 type ModelClient interface {
 	CreateBaseModel(ctx context.Context, in *mv1.CreateBaseModelRequest, opts ...grpc.CallOption) (*mv1.BaseModel, error)
 	GetBaseModelPath(ctx context.Context, in *mv1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*mv1.GetBaseModelPathResponse, error)
+	GetModelPath(ctx context.Context, in *mv1.GetModelPathRequest, opts ...grpc.CallOption) (*mv1.GetModelPathResponse, error)
+	RegisterModel(ctx context.Context, in *mv1.RegisterModelRequest, opts ...grpc.CallOption) (*mv1.RegisterModelResponse, error)
+	PublishModel(ctx context.Context, in *mv1.PublishModelRequest, opts ...grpc.CallOption) (*mv1.PublishModelResponse, error)
 }
 
 // NewFakeModelClient creates a fake model client.
@@ -103,10 +107,41 @@ func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseM
 	}, nil
 }
 
+// GetModelPath gets the path of a model.
+func (c *FakeModelClient) GetModelPath(ctx context.Context, in *mv1.GetModelPathRequest, opts ...grpc.CallOption) (*mv1.GetModelPathResponse, error) {
+	path, ok := c.pathsByID[in.Id]
+	if !ok {
+		return nil, status.Errorf(codes.NotFound, "model %q not found", in.Id)
+	}
+	return &mv1.GetModelPathResponse{
+		Path: path,
+	}, nil
+}
+
+// RegisterModel register a model.
+func (c *FakeModelClient) RegisterModel(ctx context.Context, in *mv1.RegisterModelRequest, opts ...grpc.CallOption) (*mv1.RegisterModelResponse, error) {
+	if _, ok := c.pathsByID[in.Id]; ok {
+		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", in.Id)
+	}
+	// path := "models/default-tenant-id/" + in.Id
+	c.pathsByID[in.Id] = in.Path
+	return &mv1.RegisterModelResponse{
+		Id:   in.Id,
+		Path: in.Path,
+	}, nil
+}
+
+// PublishModel publishes a model.
+func (c *FakeModelClient) PublishModel(ctx context.Context, in *mv1.PublishModelRequest, opts ...grpc.CallOption) (*mv1.PublishModelResponse, error) {
+	return &mv1.PublishModelResponse{}, nil
+}
+
 // New creates a new loader.
 func New(
 	baseModels []string,
+	models []config.ModelConfig,
 	objectStorePathPrefix string,
+	baseModelPathPrefix string,
 	modelDownloader ModelDownloader,
 	s3Client S3Client,
 	modelClient ModelClient,
@@ -114,7 +149,9 @@ func New(
 ) *L {
 	return &L{
 		baseModels:            baseModels,
+		models:                models,
 		objectStorePathPrefix: objectStorePathPrefix,
+		baseModelPathPrefix:   baseModelPathPrefix,
 		modelDownloader:       modelDownloader,
 		s3Client:              s3Client,
 		modelClient:           modelClient,
@@ -127,8 +164,11 @@ func New(
 type L struct {
 	baseModels []string
 
-	// objectStorePathPrefix is the prefix of the path to the base models in the object stoer.
+	models []config.ModelConfig
+
+	// objectStorePathPrefix is the prefix of the path to the base and non-base models in the object stoer.
 	objectStorePathPrefix string
+	baseModelPathPrefix   string
 
 	modelDownloader ModelDownloader
 
@@ -143,7 +183,7 @@ type L struct {
 
 // Run runs the loader.
 func (l *L) Run(ctx context.Context, interval time.Duration) error {
-	if err := l.LoadBaseModels(ctx); err != nil {
+	if err := l.LoadModels(ctx); err != nil {
 		return err
 	}
 
@@ -153,17 +193,22 @@ func (l *L) Run(ctx context.Context, interval time.Duration) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			if err := l.LoadBaseModels(ctx); err != nil {
+			if err := l.LoadModels(ctx); err != nil {
 				return err
 			}
 		}
 	}
 }
 
-// LoadBaseModels loads the base models.
-func (l *L) LoadBaseModels(ctx context.Context) error {
+// LoadModels loads base and non-base models.
+func (l *L) LoadModels(ctx context.Context) error {
 	for _, baseModel := range l.baseModels {
 		if err := l.loadBaseModel(ctx, baseModel); err != nil {
+			return err
+		}
+	}
+	for _, m := range l.models {
+		if err := l.loadModel(ctx, m); err != nil {
 			return err
 		}
 	}
@@ -186,7 +231,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	mpath, modelInfo, err := l.downloadAndUploadModel(ctx, modelID)
+	mpath, modelInfo, err := l.downloadAndUploadModel(ctx, modelID, true)
 	if err != nil {
 		return err
 	}
@@ -212,14 +257,59 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	return nil
 }
 
+func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
+	if err := l.loadBaseModel(ctx, model.BaseModel); err != nil {
+		return err
+	}
+
+	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
+	// TODO(kenji): Revisit this.
+	convertedModelID := strings.ReplaceAll(model.Model, "/", "-")
+	convertedBaseModelID := strings.ReplaceAll(model.BaseModel, "/", "-")
+
+	// First check if the model exists in the database.
+	ctx = auth.AppendWorkerAuthorization(ctx)
+	_, err := l.modelClient.GetModelPath(ctx, &mv1.GetModelPathRequest{Id: convertedModelID})
+	if err == nil {
+		l.log.Info("Already model exists", "modelID", convertedModelID)
+		return nil
+	}
+	if status.Code(err) != codes.NotFound {
+		return err
+	}
+
+	mPath, _, err := l.downloadAndUploadModel(ctx, model.Model, false)
+	if err != nil {
+		return err
+	}
+
+	if _, err := l.modelClient.RegisterModel(ctx, &mv1.RegisterModelRequest{
+		Id:           convertedModelID,
+		BaseModel:    convertedBaseModelID,
+		Adapter:      config.ToAdapterType(model.AdapterType),
+		Quantization: config.ToQuantizationType(model.QuantizationType),
+		Path:         mPath,
+		// TODO(guangrui): Allow to configure project and org for models.
+		ProjectId:      "default",
+		OrganizationId: "default",
+	}); err != nil {
+		return err
+	}
+	if _, err := l.modelClient.PublishModel(ctx, &v1.PublishModelRequest{Id: convertedModelID}); err != nil {
+		return err
+	}
+	l.log.Info("Successfully loaded, registered, and published model", "model", model.Model)
+	return nil
+}
+
 type modelInfo struct {
 	ggufModelPath            string
 	hasHuggingFaceConfigJSON bool
 }
 
-func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string, *modelInfo, error) {
+func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseModel bool) (string, *modelInfo, error) {
 	log := l.log.WithValues("modelID", modelID)
-	log.Info("Started loading base model")
+	log.Info("Started loading model")
 
 	// Please note that the temp directory shouldn't contain a symlink. Otherwise
 	// symlinks created by Hugging Face doesn't work.
@@ -239,7 +329,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 		_ = os.RemoveAll(tmpDir)
 	}()
 
-	log.Info("Downloading base model")
+	log.Info("Downloading model")
 	if err := l.modelDownloader.download(ctx, modelID, tmpDir); err != nil {
 		return "", nil, err
 	}
@@ -247,7 +337,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	toKey := func(path string) string {
 		// Remove the tmpdir path from the path.
 		relativePath := strings.TrimPrefix(path, tmpDir)
-		return filepath.Join(l.objectStorePathPrefix, modelID, relativePath)
+		return filepath.Join(l.toPathPrefix(isBaseModel), modelID, relativePath)
 	}
 
 	var (
@@ -272,7 +362,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 			ggufModelPath = toKey(path)
 		}
 
-		if filepath.Base(path) == "config.json" {
+		if filepath.Base(path) == "config.json" || filepath.Base(path) == "adapter_config.json" {
 			hasHuggingFaceConfigJSON = true
 		}
 
@@ -285,7 +375,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 		return "", nil, fmt.Errorf("no files downloaded")
 	}
 
-	log.Info("Uploading base model to the object store", modelID)
+	log.Info("Uploading model to the object store")
 	for _, path := range paths {
 		log.Info("Uploading", "path", path)
 		r, err := os.Open(path)
@@ -301,9 +391,17 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 		}
 	}
 
-	mpath := filepath.Join(l.objectStorePathPrefix, modelID)
+	mpath := filepath.Join(l.toPathPrefix(isBaseModel), modelID)
 	return mpath, &modelInfo{
 		ggufModelPath:            ggufModelPath,
 		hasHuggingFaceConfigJSON: hasHuggingFaceConfigJSON,
 	}, nil
+}
+
+func (l *L) toPathPrefix(isBaseModel bool) string {
+	if isBaseModel {
+		return filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix)
+	}
+	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
+	return filepath.Join(l.objectStorePathPrefix, "default-tenant-id")
 }

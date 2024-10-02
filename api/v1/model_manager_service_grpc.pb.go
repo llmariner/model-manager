@@ -220,12 +220,12 @@ type ModelsWorkerServiceClient interface {
 	GetStorageConfig(ctx context.Context, in *GetStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error)
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
-	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
 	// The model is not published until PublishModel is called.
 	RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error)
-	// PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
+	// PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
 	PublishModel(ctx context.Context, in *PublishModelRequest, opts ...grpc.CallOption) (*PublishModelResponse, error)
-	// GetModelPath returns the path of the model. Used by inference-manager-engine.
+	// GetModelPath returns the path of the model. Used by inference-manager-engine and model-manager-loader.
 	GetModelPath(ctx context.Context, in *GetModelPathRequest, opts ...grpc.CallOption) (*GetModelPathResponse, error)
 	// GetModelAttributes returns the attributes of the model. Used by inference-manager-engine.
 	GetModelAttributes(ctx context.Context, in *GetModelAttributesRequest, opts ...grpc.CallOption) (*ModelAttributes, error)
@@ -335,12 +335,12 @@ type ModelsWorkerServiceServer interface {
 	GetStorageConfig(context.Context, *GetStorageConfigRequest) (*StorageConfig, error)
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
-	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
 	// The model is not published until PublishModel is called.
 	RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error)
-	// PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
+	// PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
 	PublishModel(context.Context, *PublishModelRequest) (*PublishModelResponse, error)
-	// GetModelPath returns the path of the model. Used by inference-manager-engine.
+	// GetModelPath returns the path of the model. Used by inference-manager-engine and model-manager-loader.
 	GetModelPath(context.Context, *GetModelPathRequest) (*GetModelPathResponse, error)
 	// GetModelAttributes returns the attributes of the model. Used by inference-manager-engine.
 	GetModelAttributes(context.Context, *GetModelAttributesRequest) (*ModelAttributes, error)

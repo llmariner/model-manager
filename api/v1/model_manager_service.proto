@@ -114,13 +114,18 @@ enum QuantizationType {
 }
 
 message RegisterModelRequest {
+  // id is the model name.
+  string id = 7;
   string base_model = 1;
-  // suffix is deprecated, use fine_tune and quantization instead.
+  // suffix is deprecated, use adapter and quantization instead.
   string suffix = 2;
   string organization_id = 3;
   string project_id = 4;
   AdapterType adapter = 5;
   QuantizationType quantization = 6;
+  string path = 8;
+
+  // Next ID: 9;
 }
 
 message RegisterModelResponse {
@@ -199,16 +204,16 @@ service ModelsWorkerService {
   rpc GetModel(GetModelRequest) returns (Model) {
   }
 
-  // RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher.
+  // RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
   // The model is not published until PublishModel is called.
   rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse) {
   }
 
-  // PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher.
+  // PublishModel publishes the fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
   rpc PublishModel(PublishModelRequest) returns (PublishModelResponse) {
   }
 
-  // GetModelPath returns the path of the model. Used by inference-manager-engine.
+  // GetModelPath returns the path of the model. Used by inference-manager-engine and model-manager-loader.
   rpc GetModelPath(GetModelPathRequest) returns (GetModelPathResponse) {
   }
 
