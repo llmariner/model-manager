@@ -7,6 +7,8 @@ import (
 	"log"
 	"path/filepath"
 
+	"github.com/go-logr/logr"
+	"github.com/go-logr/stdr"
 	laws "github.com/llmariner/common/pkg/aws"
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
@@ -21,34 +23,37 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const flagConfig = "config"
-
-var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "run",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		path, err := cmd.Flags().GetString(flagConfig)
-		if err != nil {
-			return err
-		}
-
-		c, err := config.Parse(path)
-		if err != nil {
-			return err
-		}
-
-		if err := c.Validate(); err != nil {
-			return err
-		}
-
-		if err := run(cmd.Context(), &c); err != nil {
-			return err
-		}
-		return nil
-	},
+func runCmd() *cobra.Command {
+	var path string
+	var logLevel int
+	cmd := &cobra.Command{
+		Use:   "run",
+		Short: "run",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			c, err := config.Parse(path)
+			if err != nil {
+				return err
+			}
+			if err := c.Validate(); err != nil {
+				return err
+			}
+			stdr.SetVerbosity(logLevel)
+			if err := run(cmd.Context(), &c); err != nil {
+				return err
+			}
+			return nil
+		},
+	}
+	cmd.Flags().StringVar(&path, "config", "", "Path to the config file")
+	cmd.Flags().IntVar(&logLevel, "v", 0, "Log level")
+	_ = cmd.MarkFlagRequired("config")
+	return cmd
 }
 
 func run(ctx context.Context, c *config.Config) error {
+	logger := stdr.New(log.Default())
+	ctx = logr.NewContext(ctx, logger)
+
 	s3c := c.ObjectStore.S3
 	d, err := newModelDownloader(ctx, c)
 	if err != nil {
@@ -87,6 +92,7 @@ func run(ctx context.Context, c *config.Config) error {
 		d,
 		s3client,
 		mclient,
+		logger,
 	)
 
 	if c.RunOnce {
@@ -108,7 +114,7 @@ func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClie
 		return err
 	}
 
-	log.Printf("Creating a storage class with path prefix %q", pathPrefix)
+	logr.FromContextOrDiscard(ctx).WithName("boot").Info("Creating a storage class", "pathPrefix", pathPrefix)
 	_, err = mclient.CreateStorageConfig(ctx, &mv1.CreateStorageConfigRequest{
 		PathPrefix: pathPrefix,
 	})
@@ -116,6 +122,7 @@ func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClie
 }
 
 func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDownloader, error) {
+	logger := logr.FromContextOrDiscard(ctx)
 	switch c.Downloader.Kind {
 	case config.DownloaderKindS3:
 		s3Client, err := s3.NewClient(ctx, laws.NewS3ClientOptions{
@@ -130,9 +137,9 @@ func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDown
 		if err != nil {
 			return nil, err
 		}
-		return loader.NewS3Downloader(s3Client, c.Downloader.S3.PathPrefix), nil
+		return loader.NewS3Downloader(s3Client, c.Downloader.S3.PathPrefix, logger), nil
 	case config.DownloaderKindHuggingFace:
-		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir), nil
+		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir, logger), nil
 	default:
 		return nil, fmt.Errorf("unknown downloader kind: %s", c.Downloader.Kind)
 	}
@@ -151,10 +158,4 @@ func newS3Client(ctx context.Context, c *config.Config) (loader.S3Client, error)
 		}
 	}
 	return s3.NewClient(ctx, opts, s.Bucket)
-
-}
-
-func init() {
-	runCmd.Flags().StringP(flagConfig, "c", "", "Configuration file path")
-	_ = runCmd.MarkFlagRequired(flagConfig)
 }

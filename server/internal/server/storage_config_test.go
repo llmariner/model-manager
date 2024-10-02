@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/go-logr/logr/testr"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/stretchr/testify/assert"
@@ -15,7 +16,7 @@ func TestStorageConfig(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	wsrv := NewWorkerServiceServer(st)
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
 	ctx := context.Background()
 
 	_, err := wsrv.GetStorageConfig(ctx, &v1.GetStorageConfigRequest{})

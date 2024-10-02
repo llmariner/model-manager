@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/aws/aws-sdk-go-v2/service/s3/types"
+	"github.com/go-logr/logr/testr"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -30,7 +31,7 @@ func TestS3Download(t *testing.T) {
 		},
 	}
 	ctx := context.Background()
-	d := NewS3Downloader(client, "v1/base-models")
+	d := NewS3Downloader(client, "v1/base-models", testr.New(t))
 	err = d.download(ctx, "google/gemma-2b", destDir)
 	assert.NoError(t, err)
 

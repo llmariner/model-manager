@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"fmt"
-	"log"
 	"net"
 
+	"github.com/go-logr/logr"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	v1legacy "github.com/llmariner/model-manager/api/v1/legacy"
 	"github.com/llmariner/model-manager/server/internal/config"
@@ -22,9 +22,10 @@ const (
 )
 
 // NewWorkerServiceServer creates a new worker service server.
-func NewWorkerServiceServer(s *store.S) *WS {
+func NewWorkerServiceServer(s *store.S, log logr.Logger) *WS {
 	return &WS{
 		store: s,
+		log:   log.WithName("worker"),
 	}
 }
 
@@ -39,13 +40,14 @@ type WS struct {
 
 	srv   *grpc.Server
 	store *store.S
+	log   logr.Logger
 
 	enableAuth bool
 }
 
 // Run runs the worker service server.
 func (ws *WS) Run(ctx context.Context, port int, authConfig config.AuthConfig) error {
-	log.Printf("Starting worker service server on port %d", port)
+	ws.log.Info("Starting worker service server...", "port", port)
 
 	var opts []grpc.ServerOption
 	if authConfig.Enable {

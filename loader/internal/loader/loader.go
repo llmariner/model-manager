@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/go-logr/logr"
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/rbac-manager/pkg/auth"
@@ -110,6 +110,7 @@ func New(
 	modelDownloader ModelDownloader,
 	s3Client S3Client,
 	modelClient ModelClient,
+	log logr.Logger,
 ) *L {
 	return &L{
 		baseModels:            baseModels,
@@ -117,6 +118,7 @@ func New(
 		modelDownloader:       modelDownloader,
 		s3Client:              s3Client,
 		modelClient:           modelClient,
+		log:                   log.WithName("loader"),
 		tmpDir:                "/tmp",
 	}
 }
@@ -133,6 +135,8 @@ type L struct {
 	s3Client S3Client
 
 	modelClient ModelClient
+
+	log logr.Logger
 
 	tmpDir string
 }
@@ -175,7 +179,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	ctx = auth.AppendWorkerAuthorization(ctx)
 	_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: convertedModelID})
 	if err == nil {
-		log.Printf("Model %q exists. Do nothing.\n", convertedModelID)
+		l.log.Info("Already model exists", "modelID", convertedModelID)
 		return nil
 	}
 	if status.Code(err) != codes.NotFound {
@@ -204,7 +208,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	log.Printf("Successfully loaded base model %q\n", modelID)
+	l.log.Info("Successfully loaded base model", "model", modelID)
 	return nil
 }
 
@@ -214,7 +218,8 @@ type modelInfo struct {
 }
 
 func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string, *modelInfo, error) {
-	log.Printf("Started loading base model %q\n", modelID)
+	log := l.log.WithValues("modelID", modelID)
+	log.Info("Started loading base model")
 
 	// Please note that the temp directory shouldn't contain a symlink. Otherwise
 	// symlinks created by Hugging Face doesn't work.
@@ -229,12 +234,12 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	if err != nil {
 		return "", nil, err
 	}
-	log.Printf("Created a temp dir %q\n", tmpDir)
+	log.Info("Created a temp dir", "path", tmpDir)
 	defer func() {
 		_ = os.RemoveAll(tmpDir)
 	}()
 
-	log.Printf("Downloading base model %q\n", modelID)
+	log.Info("Downloading base model")
 	if err := l.modelDownloader.download(ctx, modelID, tmpDir); err != nil {
 		return "", nil, err
 	}
@@ -275,14 +280,14 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string) (string,
 	}); err != nil {
 		return "", nil, err
 	}
-	log.Printf("Downloaded %d files\n", len(paths))
+	log.Info("Downloaded files", "count", len(paths))
 	if len(paths) == 0 {
 		return "", nil, fmt.Errorf("no files downloaded")
 	}
 
-	log.Printf("Uploading base model %q to the object store\n", modelID)
+	log.Info("Uploading base model to the object store", modelID)
 	for _, path := range paths {
-		log.Printf("Uploading %q\n", path)
+		log.Info("Uploading", "path", path)
 		r, err := os.Open(path)
 		if err != nil {
 			return "", nil, err

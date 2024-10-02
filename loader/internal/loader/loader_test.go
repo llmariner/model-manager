@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/go-logr/logr/testr"
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,6 +35,7 @@ func TestLoadBaseModel(t *testing.T) {
 		downloader,
 		s3Client,
 		mc,
+		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
 	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
@@ -72,6 +74,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 		downloader,
 		s3Client,
 		mc,
+		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
 	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")

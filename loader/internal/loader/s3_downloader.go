@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	"github.com/go-logr/logr"
 )
 
 type s3Client interface {
@@ -18,9 +18,10 @@ type s3Client interface {
 }
 
 // NewS3Downloader returns a new S3Downloader.
-func NewS3Downloader(s3Client s3Client, pathPrefix string) *S3Downloader {
+func NewS3Downloader(s3Client s3Client, pathPrefix string, log logr.Logger) *S3Downloader {
 	return &S3Downloader{
 		s3Client:   s3Client,
+		log:        log.WithName("s3"),
 		pathPrefix: pathPrefix,
 	}
 }
@@ -28,11 +29,12 @@ func NewS3Downloader(s3Client s3Client, pathPrefix string) *S3Downloader {
 // S3Downloader downloads models from S3.
 type S3Downloader struct {
 	s3Client   s3Client
+	log        logr.Logger
 	pathPrefix string
 }
 
 func (d *S3Downloader) download(ctx context.Context, modelName, destDir string) error {
-	log.Printf("Downloading the model %q\n", modelName)
+	d.log.Info("Downloading the model", "name", modelName)
 
 	var keys []string
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
@@ -73,7 +75,7 @@ func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destD
 		_ = f.Close()
 	}()
 
-	log.Printf("Downloading S3 object %q and writing to %q\n", key, filePath)
+	d.log.Info("Downloading S3 object", "key", key, "filePath", filePath)
 	if err := d.s3Client.Download(ctx, f, key); err != nil {
 		return err
 	}
