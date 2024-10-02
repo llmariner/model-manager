@@ -32,7 +32,7 @@ func TestModels(t *testing.T) {
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
 	})
@@ -68,7 +68,7 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
 	})
@@ -99,7 +99,7 @@ func TestGetAndListModels(t *testing.T) {
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
 	})
@@ -139,7 +139,7 @@ func TestInternalGetModel(t *testing.T) {
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 	got, err := wsrv.GetModel(ctx, &v1.GetModelRequest{
 		Id: "model0",
 	})
@@ -165,7 +165,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 
 	srv := New(st, testr.New(t))
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
 		PathPrefix: "models",
@@ -215,7 +215,7 @@ func TestGetModelPath(t *testing.T) {
 	)
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
 	})
@@ -260,7 +260,7 @@ func TestGetModelAttributes(t *testing.T) {
 	)
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
 	})
@@ -306,7 +306,7 @@ func TestBaseModels(t *testing.T) {
 	defer tearDown()
 
 	srv := New(st, testr.New(t))
-	ctx := context.Background()
+	ctx := fakeAuthInto(context.Background())
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
