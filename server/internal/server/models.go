@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/llmariner/common/pkg/id"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/server/internal/store"
-	"github.com/llmariner/common/pkg/id"
+	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -19,9 +20,9 @@ func (s *S) ListModels(
 	ctx context.Context,
 	req *v1.ListModelsRequest,
 ) (*v1.ListModelsResponse, error) {
-	userInfo, err := s.extractUserInfoFromContext(ctx)
-	if err != nil {
-		return nil, err
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
 	}
 
 	var modelProtos []*v1.Model
@@ -55,9 +56,9 @@ func (s *S) GetModel(
 	ctx context.Context,
 	req *v1.GetModelRequest,
 ) (*v1.Model, error) {
-	userInfo, err := s.extractUserInfoFromContext(ctx)
-	if err != nil {
-		return nil, err
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
 	}
 
 	if req.Id == "" {
@@ -89,9 +90,9 @@ func (s *S) DeleteModel(
 	ctx context.Context,
 	req *v1.DeleteModelRequest,
 ) (*v1.DeleteModelResponse, error) {
-	userInfo, err := s.extractUserInfoFromContext(ctx)
-	if err != nil {
-		return nil, err
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
 	}
 
 	if req.Id == "" {
@@ -125,9 +126,9 @@ func (s *S) ListBaseModels(
 	ctx context.Context,
 	req *v1.ListBaseModelsRequest,
 ) (*v1.ListBaseModelsResponse, error) {
-	userInfo, err := s.extractUserInfoFromContext(ctx)
-	if err != nil {
-		return nil, err
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
 	}
 
 	ms, err := s.store.ListBaseModels(userInfo.TenantID)

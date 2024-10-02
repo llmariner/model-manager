@@ -31,6 +31,9 @@ global:
     create: false
     annotations:
 
+  usageSender:
+    apiUsageInternalServerAddr:
+
 httpPort: 8080
 grpcPort: 8081
 workerServiceGrpcPort: 8082
