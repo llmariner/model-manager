@@ -69,4 +69,11 @@ spec:
             name: {{ include "model-manager-server.fullname" . }}-worker-service-grpc
             port:
               number: {{ .Values.workerServiceGrpcPort }}
+      - path: /llmariner.models.server.v1.ModelsWorkerService
+        pathType: Prefix
+        backend:
+          service:
+            name: {{ include "model-manager-server.fullname" . }}-worker-service-grpc
+            port:
+              number: {{ .Values.workerServiceGrpcPort }}
 {{- end -}}
