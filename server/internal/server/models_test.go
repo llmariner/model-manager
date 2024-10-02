@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/go-logr/logr/testr"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/stretchr/testify/assert"
@@ -30,7 +31,7 @@ func TestModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	srv := New(st)
+	srv := New(st, testr.New(t))
 	ctx := context.Background()
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
@@ -66,7 +67,7 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	_, err := st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
-	srv := New(st)
+	srv := New(st, testr.New(t))
 	ctx := context.Background()
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
@@ -97,7 +98,7 @@ func TestGetAndListModels(t *testing.T) {
 	_, err = st.CreateBaseModel(baseModelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", defaultTenantID)
 	assert.NoError(t, err)
 
-	srv := New(st)
+	srv := New(st, testr.New(t))
 	ctx := context.Background()
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
@@ -136,7 +137,7 @@ func TestInternalGetModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	wsrv := NewWorkerServiceServer(st)
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
 	ctx := context.Background()
 	got, err := wsrv.GetModel(ctx, &v1.GetModelRequest{
@@ -162,8 +163,8 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st)
-	wsrv := NewWorkerServiceServer(st)
+	srv := New(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
 	ctx := context.Background()
 
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
@@ -213,7 +214,7 @@ func TestGetModelPath(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	wsrv := NewWorkerServiceServer(st)
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
 	ctx := context.Background()
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
@@ -258,7 +259,7 @@ func TestGetModelAttributes(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	wsrv := NewWorkerServiceServer(st)
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
 	ctx := context.Background()
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
@@ -304,10 +305,10 @@ func TestBaseModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st)
+	srv := New(st, testr.New(t))
 	ctx := context.Background()
 
-	wsrv := NewWorkerServiceServer(st)
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
 	const modelID = "m0"
 
