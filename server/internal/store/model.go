@@ -1,6 +1,7 @@
 package store
 
 import (
+	"github.com/llmariner/model-manager/api/v1"
 	"gorm.io/gorm"
 )
 
@@ -19,8 +20,8 @@ type Model struct {
 	IsPublished bool
 
 	BaseModelID  string `gorm:"index"`
-	Adapter      string
-	Quantization string
+	Adapter        v1.AdapterType
+	Quantization   v1.QuantizationType
 }
 
 // ModelSpec represents a model spec that is passed to CreateModel.
@@ -32,8 +33,8 @@ type ModelSpec struct {
 	Path           string
 	IsPublished    bool
 	BaseModelID    string
-	Adapter        string
-	Quantization   string
+	Adapter        v1.AdapterType
+	Quantization   v1.QuantizationType
 }
 
 // CreateModel creates a model.

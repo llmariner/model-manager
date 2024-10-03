@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	v1 "github.com/llmariner/model-manager/api/v1"
 	"gopkg.in/yaml.v3"
 )
 
@@ -128,6 +129,42 @@ func (c *DownloaderConfig) validate() error {
 	return nil
 }
 
+// ModelConfig is the configuration for non-base-models.
+type ModelConfig struct {
+	Model            string `yaml:"model"`
+	BaseModel        string `yaml:"baseModel"`
+	AdapterType      string `yaml:"adapterType"`
+	QuantizationType string `yaml:"quantizationType"`
+}
+
+// validate validates the model configuration.
+func (c *ModelConfig) validate() error {
+	if c.Model == "" {
+		return fmt.Errorf("model must be set")
+	}
+	if c.BaseModel == "" {
+		return fmt.Errorf("baseModel must be set")
+	}
+	if c.AdapterType == "" && c.QuantizationType == "" {
+		return fmt.Errorf("one of adapterType or quantizationType must be set")
+	}
+	if c.AdapterType != "" {
+		a := ToAdapterType(c.AdapterType)
+		if 	a != v1.AdapterType_ADAPTER_TYPE_LORA &&
+			a != v1.AdapterType_ADAPTER_TYPE_QLORA {
+			return fmt.Errorf("unsupported adapter type: %s", c.AdapterType)
+		}
+	}
+	if c.QuantizationType != "" {
+		q := ToQuantizationType(c.QuantizationType)
+		if 	q != v1.QuantizationType_QUANTIZATION_TYPE_AWQ &&
+			q != v1.QuantizationType_QUANTIZATION_TYPE_GGUF {
+			return fmt.Errorf("unsupported quantization type: %s", c.QuantizationType)
+		}
+	}
+	return nil
+}
+
 // DebugConfig is the debug configuration.
 type DebugConfig struct {
 	Standalone bool `yaml:"standalone"`
@@ -150,6 +187,9 @@ type Config struct {
 	// BaseModels is the list of base models to load. Currently each model follows Hugging Face's model format.
 	BaseModels []string `yaml:"baseModels"`
 
+	// Models is the list of fine-tuned or quantized models to load. Currently each model follows Hugging Face's model format.
+	Models []ModelConfig `yaml:"models"`
+
 	ModelLoadInterval time.Duration `yaml:"modelLoadInterval"`
 
 	// RunOnce is set to true when models are loaded only once.
@@ -168,6 +208,12 @@ type Config struct {
 func (c *Config) Validate() error {
 	if len(c.BaseModels) == 0 {
 		return fmt.Errorf("baseModels must be set")
+	}
+
+	for _, m := range c.Models {
+		if err := m.validate(); err != nil {
+			return fmt.Errorf("model: %s", err)
+		}
 	}
 
 	if !c.RunOnce && c.ModelLoadInterval == 0 {
@@ -209,4 +255,28 @@ func Parse(path string) (Config, error) {
 	}
 
 	return config, nil
+}
+
+// ToAdapterType converts to v1.AdapterType.
+func ToAdapterType(s string) v1.AdapterType {
+	switch strings.ToLower(s) {
+	case "lora":
+		return v1.AdapterType_ADAPTER_TYPE_LORA
+	case "qlora":
+		return v1.AdapterType_ADAPTER_TYPE_QLORA
+	default:
+		return v1.AdapterType_ADAPTER_TYPE_UNSPECIFIED
+	}
+}
+
+// ToQuantizationType converts to v1.QuantizationType.
+func ToQuantizationType(s string) v1.QuantizationType {
+	switch strings.ToLower(s) {
+	case "awq":
+		return v1.QuantizationType_QUANTIZATION_TYPE_AWQ
+	case "gguf":
+		return v1.QuantizationType_QUANTIZATION_TYPE_GGUF
+	default:
+		return v1.QuantizationType_QUANTIZATION_TYPE_UNSPECIFIED
+	}
 }

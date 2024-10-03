@@ -23,6 +23,7 @@ global:
     controlPlaneAddr: ""
 
 baseModels:
+models:
 
 modelLoadInterval: 1m
 runOnce: false

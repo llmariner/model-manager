@@ -71,7 +71,7 @@ func (s *S) GetModel(
 		return baseToModelProto(bm), nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Errorf(codes.Internal, "get model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 	}
 
 	// Then check if it's a generated model.
@@ -80,7 +80,7 @@ func (s *S) GetModel(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "get model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
 	}
 	return toModelProto(m), nil
 }
@@ -101,7 +101,7 @@ func (s *S) DeleteModel(
 
 	if _, err := s.store.GetBaseModel(req.Id, userInfo.TenantID); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.Internal, "get model: %s", err)
+			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
 		// Do nothing
 	} else {
@@ -165,7 +165,7 @@ func (s *WS) GetModel(
 		return baseToModelProto(bm), nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Errorf(codes.Internal, "get model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 	}
 
 	// Then check if it's a generated model.
@@ -174,7 +174,7 @@ func (s *WS) GetModel(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "get model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
 	}
 	return toModelProto(m), nil
 }
@@ -188,7 +188,9 @@ func (s *WS) RegisterModel(
 	if err != nil {
 		return nil, err
 	}
-
+	if req.Id == "" && req.Suffix == "" {
+		return nil, status.Error(codes.InvalidArgument, "id or suffix is required")
+	}
 	if req.BaseModel == "" {
 		return nil, status.Error(codes.InvalidArgument, "base_model is required")
 	}
@@ -204,17 +206,30 @@ func (s *WS) RegisterModel(
 		return nil, status.Error(codes.InvalidArgument, "project_id is required")
 	}
 
-	id, err := s.genenerateModelID(req.BaseModel, req.Suffix)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
+	id := req.Id
+	if id != "" {
+		_, err := s.store.GetModelByModelID(id)
+		if err == nil {
+			return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", id)
+		}
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get model by model ID: %s", err)
+		}
+	} else {
+		id, err = s.genenerateModelID(req.BaseModel, req.Suffix)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
+		}
 	}
 
-	sc, err := s.store.GetStorageConfig(clusterInfo.TenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get storage config: %s", err)
+	path := req.Path
+	if path == "" {
+		sc, err := s.store.GetStorageConfig(clusterInfo.TenantID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get storage config: %s", err)
+		}
+		path = fmt.Sprintf("%s/%s/%s", sc.PathPrefix, clusterInfo.TenantID, id)
 	}
-
-	path := fmt.Sprintf("%s/%s/%s", sc.PathPrefix, clusterInfo.TenantID, id)
 	_, err = s.store.CreateModel(store.ModelSpec{
 		ModelID:        id,
 		TenantID:       clusterInfo.TenantID,
@@ -223,8 +238,8 @@ func (s *WS) RegisterModel(
 		IsPublished:    false,
 		Path:           path,
 		BaseModelID:    req.BaseModel,
-		Adapter:        string(req.Adapter),
-		Quantization:   string(req.Quantization),
+		Adapter:        req.Adapter,
+		Quantization:   req.Quantization,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
@@ -254,7 +269,7 @@ func (s *WS) PublishModel(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+		return nil, status.Errorf(codes.Internal, "update model: %s", err)
 	}
 	return &v1.PublishModelResponse{}, nil
 }
@@ -278,7 +293,7 @@ func (s *WS) GetModelPath(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
 	}
 	return &v1.GetModelPathResponse{
 		Path: m.Path,
@@ -304,13 +319,13 @@ func (s *WS) GetModelAttributes(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
 	}
 	return &v1.ModelAttributes{
 		Path:         m.Path,
 		BaseModel:    m.BaseModelID,
-		Adapter:      v1.AdapterType(v1.AdapterType_value[m.Adapter]),
-		Quantization: v1.QuantizationType(v1.QuantizationType_value[m.Quantization]),
+		Adapter:      m.Adapter,
+		Quantization: m.Quantization,
 	}, nil
 }
 
@@ -373,7 +388,7 @@ func (s *WS) GetBaseModelPath(
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 	}
 
 	formats, err := store.UnmarshalModelFormats(m.Formats)

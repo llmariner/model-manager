@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"log"
-	"path/filepath"
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/stdr"
@@ -88,7 +87,9 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 	s := loader.New(
 		c.BaseModels,
-		filepath.Join(s3c.PathPrefix, s3c.BaseModelPathPrefix),
+		c.Models,
+		s3c.PathPrefix,
+		s3c.BaseModelPathPrefix,
 		d,
 		s3client,
 		mclient,
@@ -96,7 +97,7 @@ func run(ctx context.Context, c *config.Config) error {
 	)
 
 	if c.RunOnce {
-		return s.LoadBaseModels(ctx)
+		return s.LoadModels(ctx)
 	}
 
 	return s.Run(ctx, c.ModelLoadInterval)

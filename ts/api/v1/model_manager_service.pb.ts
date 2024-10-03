@@ -83,12 +83,14 @@ export type GetStorageConfigRequest = {
 }
 
 export type RegisterModelRequest = {
+  id?: string
   baseModel?: string
   suffix?: string
   organizationId?: string
   projectId?: string
   adapter?: AdapterType
   quantization?: QuantizationType
+  path?: string
 }
 
 export type RegisterModelResponse = {
