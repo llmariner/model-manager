@@ -33,7 +33,10 @@ data:
     {{- range .Values.baseModels }}
     - {{ . }}
     {{- end }}
-    models: {{- toYaml .Values.models | nindent 4 }}
+    models:
+    {{- range .Values.models }}
+    - {{ . }}
+    {{- end }}
     modelLoadInterval: {{ .Values.modelLoadInterval }}
     runOnce: {{ .Values.runOnce }}
     modelManagerServerWorkerServiceAddr: {{ .Values.global.worker.controlPlaneAddr | default .Values.modelManagerServerWorkerServiceAddr }}
