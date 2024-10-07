@@ -157,7 +157,7 @@ docker run --rm -it --net host --gpus all \
   tritonserver --model-repository=/data/repo/llama3
 ```
 
-Here is an example CURL command to hit the endpoint.
+Here is an example curl command to hit the endpoint.
 
 ```console
 curl -X POST http://localhost:8000/v2/models/ensemble/generate -d \
