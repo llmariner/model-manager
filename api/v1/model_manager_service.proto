@@ -12,6 +12,10 @@ enum ModelFormat {
   MODEL_FORMAT_UNSPECIFIED = 0;
   MODEL_FORMAT_GGUF = 1;
   MODEL_FORMAT_HUGGING_FACE = 2;
+  // Model format for Nvidia Triton Inference Server. This model files include the tokenizer configuration
+  // of the original model, compiled model files for TensorRT-LLM backend, and configuration files for
+  // Triton Inference Server.
+  MODEL_FORMAT_NVIDIA_TRITON = 3;
 }
 
 // ModelFormats is a list of model formats. Used to store marshalled data into a store.
