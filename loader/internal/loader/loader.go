@@ -236,18 +236,10 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	var formats []v1.ModelFormat
-	if modelInfo.ggufModelPath != "" {
-		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
-	}
-	if modelInfo.hasHuggingFaceConfigJSON {
-		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE)
-	}
-
 	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
 		Id:            convertedModelID,
 		Path:          mpath,
-		Formats:       formats,
+		Formats:       modelInfo.formats,
 		GgufModelPath: modelInfo.ggufModelPath,
 	}); err != nil {
 		return err
@@ -303,8 +295,8 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 }
 
 type modelInfo struct {
-	ggufModelPath            string
-	hasHuggingFaceConfigJSON bool
+	ggufModelPath string
+	formats       []v1.ModelFormat
 }
 
 func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseModel bool) (string, *modelInfo, error) {
@@ -344,6 +336,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 		paths                    []string
 		ggufModelPath            string
 		hasHuggingFaceConfigJSON bool
+		hasTensorRTLLMConfig     bool
 	)
 	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
@@ -364,6 +357,10 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 
 		if filepath.Base(path) == "config.json" || filepath.Base(path) == "adapter_config.json" {
 			hasHuggingFaceConfigJSON = true
+		}
+
+		if strings.HasSuffix(path, "tensorrt_llm/config.pbtxt") {
+			hasTensorRTLLMConfig = true
 		}
 
 		return nil
@@ -391,10 +388,21 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 		}
 	}
 
+	var formats []v1.ModelFormat
+	if ggufModelPath != "" {
+		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
+	}
+	if hasHuggingFaceConfigJSON {
+		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE)
+	}
+	if hasTensorRTLLMConfig {
+		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON)
+	}
+
 	mpath := filepath.Join(l.toPathPrefix(isBaseModel), modelID)
 	return mpath, &modelInfo{
-		ggufModelPath:            ggufModelPath,
-		hasHuggingFaceConfigJSON: hasHuggingFaceConfigJSON,
+		ggufModelPath: ggufModelPath,
+		formats:       formats,
 	}, nil
 }
 
