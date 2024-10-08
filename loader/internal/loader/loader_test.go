@@ -99,6 +99,48 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	assert.Empty(t, got.GgufModelPath)
 }
 
+func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{
+			"repo",
+			"repo/llama3",
+			"repo/llama3/tensorrt_llm",
+		},
+		files: []string{
+			"repo/llama3/tensorrt_llm/config.pbtxt",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		[]string{"meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton"},
+		nil,
+		"models",
+		"base-models",
+		downloader,
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadBaseModel(context.Background(), "meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton")
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton/repo/llama3/tensorrt_llm/config.pbtxt",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "meta-llama-Meta-Llama-3.1-70B-Instruct-awq-triton",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON}, got.Formats)
+	assert.Equal(t, "models/base-models/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", got.Path)
+	assert.Empty(t, got.GgufModelPath)
+}
+
 func TestLoadModel_HuggingFace(t *testing.T) {
 	downloader := &fakeDownloader{
 		dirs: []string{},
