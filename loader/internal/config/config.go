@@ -150,14 +150,14 @@ func (c *ModelConfig) validate() error {
 	}
 	if c.AdapterType != "" {
 		a := ToAdapterType(c.AdapterType)
-		if 	a != v1.AdapterType_ADAPTER_TYPE_LORA &&
+		if a != v1.AdapterType_ADAPTER_TYPE_LORA &&
 			a != v1.AdapterType_ADAPTER_TYPE_QLORA {
 			return fmt.Errorf("unsupported adapter type: %s", c.AdapterType)
 		}
 	}
 	if c.QuantizationType != "" {
 		q := ToQuantizationType(c.QuantizationType)
-		if 	q != v1.QuantizationType_QUANTIZATION_TYPE_AWQ &&
+		if q != v1.QuantizationType_QUANTIZATION_TYPE_AWQ &&
 			q != v1.QuantizationType_QUANTIZATION_TYPE_GGUF {
 			return fmt.Errorf("unsupported quantization type: %s", c.QuantizationType)
 		}
