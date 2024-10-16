@@ -20,8 +20,8 @@ type Model struct {
 	IsPublished bool
 
 	BaseModelID  string `gorm:"index"`
-	Adapter        v1.AdapterType
-	Quantization   v1.QuantizationType
+	Adapter      v1.AdapterType
+	Quantization v1.QuantizationType
 }
 
 // ModelSpec represents a model spec that is passed to CreateModel.
