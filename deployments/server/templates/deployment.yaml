@@ -15,8 +15,6 @@ spec:
         {{- include "model-manager-server.selectorLabels" . | nindent 8 }}
       annotations:
         checksum/config: {{ sha256sum (toJson .Values) }}
-      annotations:
-        checksum/config: {{ sha256sum (toJson .Values) }}
         {{- with .Values.podAnnotations }}
         {{- toYaml . | nindent 8 }}
         {{- end }}
