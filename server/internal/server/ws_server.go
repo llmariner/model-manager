@@ -7,7 +7,6 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "github.com/llmariner/model-manager/api/v1"
-	v1legacy "github.com/llmariner/model-manager/api/v1/legacy"
 	"github.com/llmariner/model-manager/server/internal/config"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/llmariner/rbac-manager/pkg/auth"
@@ -29,14 +28,9 @@ func NewWorkerServiceServer(s *store.S, log logr.Logger) *WS {
 	}
 }
 
-// nolint:unused
-type legacyWorkerService = v1legacy.UnimplementedModelsWorkerServiceServer
-
 // WS is a server for worker services.
 type WS struct {
 	v1.UnimplementedModelsWorkerServiceServer
-	// nolint:unused
-	legacyWorkerService
 
 	srv   *grpc.Server
 	store *store.S
@@ -63,7 +57,6 @@ func (ws *WS) Run(ctx context.Context, port int, authConfig config.AuthConfig) e
 
 	srv := grpc.NewServer(opts...)
 	v1.RegisterModelsWorkerServiceServer(srv, ws)
-	v1legacy.RegisterModelsWorkerServiceServer(srv, ws)
 	reflection.Register(srv)
 
 	ws.srv = srv
