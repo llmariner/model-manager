@@ -33,9 +33,8 @@ data:
     {{- range .Values.baseModels }}
     - {{ . }}
     {{- end }}
-    models:
-    {{- range .Values.models }}
-    - {{ . }}
+    {{- if .Values.models}}
+    models: {{- toYaml .Values.models | nindent 4 }}
     {{- end }}
     modelLoadInterval: {{ .Values.modelLoadInterval }}
     runOnce: {{ .Values.runOnce }}
