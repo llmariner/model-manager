@@ -1,6 +1,15 @@
 apiVersion: v2
 name: model-manager-server
-description: A Helm chart for model-manager-server
+description: The model-manager-server manages model status and exposes model APIs.
+home: https://llmariner.ai/
+icon: https://raw.githubusercontent.com/llmariner/llmariner.github.io/refs/heads/main/assets/icons/logo.svg
 type: application
 version: 1.0.1
 appVersion: 1.0.1
+sources:
+  - https://github.com/llmariner/model-manager
+keywords:
+  - llmariner
+annotations:
+  "artifacthub.io/category": ai-machine-learning
+  "artifacthub.io/license": Apache-2.0
