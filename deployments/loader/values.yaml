@@ -89,7 +89,7 @@ modelManagerServerWorkerServiceAddr: model-manager-server-worker-service-grpc:80
 # - model: my-model-name
 #   baseMode: google/gemma-2b-it-q4_0
 #   adapterType: "" # or lora, qlora
-#   QuantizationType: "" # or gguf, awq
+#   quantizationType: "" # or gguf, awq
 #
 # +docs:property
 models: []
