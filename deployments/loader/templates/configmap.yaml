@@ -29,12 +29,13 @@ data:
         pathPrefix: {{ .Values.downloader.s3.pathPrefix }}
       huggingFace:
         cacheDir: {{ .Values.downloader.huggingFace.cacheDir }}
+    {{- with .Values.baseModels }}
     baseModels:
-    {{- range .Values.baseModels }}
-    - {{ . }}
+    {{- toYaml . | nindent 4 }}
     {{- end }}
-    {{- if .Values.models}}
-    models: {{- toYaml .Values.models | nindent 4 }}
+    {{- with .Values.models }}
+    models:
+    {{- toYaml . | nindent 4 }}
     {{- end }}
     modelLoadInterval: {{ .Values.modelLoadInterval }}
     runOnce: {{ .Values.runOnce }}
