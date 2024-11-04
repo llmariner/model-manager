@@ -38,6 +38,9 @@ spec:
           readOnly: true
         - name: tmp
           mountPath: /tmp
+        {{- with .Values.volumeMounts }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
         env:
         {{- with .Values.global.awsSecret }}
         {{- if .name }}
@@ -95,4 +98,7 @@ spec:
           claimName: {{ .Values.persistentVolume.existingClaim | default (include "model-manager-loader.fullname" .) }}
       {{- else }}
         emptyDir:
+      {{- end }}
+      {{- with .Values.volumes }}
+      {{- toYaml . | nindent 6 }}
       {{- end }}

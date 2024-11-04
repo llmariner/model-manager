@@ -1,6 +1,15 @@
 apiVersion: v2
 name: model-manager-loader
-description: A Helm chart for model-manager-loader
+description: The model-manager-loader downloads the configured models and uploads to the object storage.
+home: https://llmariner.ai/
+icon: https://raw.githubusercontent.com/llmariner/llmariner.github.io/refs/heads/main/assets/icons/logo.svg
 type: application
 version: 1.0.1
 appVersion: 1.0.1
+sources:
+  - https://github.com/llmariner/model-manager
+keywords:
+  - llmariner
+annotations:
+  "artifacthub.io/category": ai-machine-learning
+  "artifacthub.io/license": Apache-2.0
