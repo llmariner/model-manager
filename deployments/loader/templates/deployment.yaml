@@ -1,14 +1,21 @@
+{{- if .Values.runOnce }}
+apiVersion: batch/v1
+kind: Job
+{{- else }}
 apiVersion: apps/v1
 kind: Deployment
+{{- end }}
 metadata:
   name: {{ include "model-manager-loader.fullname" . }}
   labels:
     {{- include "model-manager-loader.labels" . | nindent 4 }}
 spec:
+  {{- if not .Values.runOnce }}
   replicas: {{ .Values.replicaCount }}
   selector:
     matchLabels:
       {{- include "model-manager-loader.selectorLabels" . | nindent 6 }}
+  {{- end }}
   template:
     metadata:
       labels:
@@ -19,6 +26,9 @@ spec:
         {{- toYaml . | nindent 8 }}
         {{- end }}
     spec:
+      {{- if .Values.runOnce }}
+      restartPolicy: Never
+      {{- end }}
       serviceAccountName: {{ include "model-manager-loader.serviceAccountName" . }}
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
@@ -92,7 +102,7 @@ spec:
       - name: config
         configMap:
           name: {{ include "model-manager-loader.fullname" . }}
-      - name: tmp          
+      - name: tmp
       {{- if .Values.persistentVolume.enabled }}
         persistentVolumeClaim:
           claimName: {{ .Values.persistentVolume.existingClaim | default (include "model-manager-loader.fullname" .) }}
