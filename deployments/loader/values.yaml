@@ -85,7 +85,6 @@ modelManagerServerWorkerServiceAddr: model-manager-server-worker-service-grpc:80
 # baseModels: []
 
 # The list of fine-tuned or quantized models to load into LLMariner.
-# Either adapterType or quantizationType is required.
 # adapterType: One of `lora` or `qlora`.
 # quantizationType: One of `gguf` or `awq`.
 #
