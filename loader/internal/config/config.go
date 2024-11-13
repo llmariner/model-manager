@@ -145,9 +145,6 @@ func (c *ModelConfig) validate() error {
 	if c.BaseModel == "" {
 		return fmt.Errorf("baseModel must be set")
 	}
-	if c.AdapterType == "" && c.QuantizationType == "" {
-		return fmt.Errorf("one of adapterType or quantizationType must be set")
-	}
 	if c.AdapterType != "" {
 		a := ToAdapterType(c.AdapterType)
 		if a != v1.AdapterType_ADAPTER_TYPE_LORA &&

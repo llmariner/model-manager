@@ -194,11 +194,6 @@ func (s *WS) RegisterModel(
 	if req.BaseModel == "" {
 		return nil, status.Error(codes.InvalidArgument, "base_model is required")
 	}
-	if req.Suffix == "" &&
-		req.Adapter == v1.AdapterType_ADAPTER_TYPE_UNSPECIFIED &&
-		req.Quantization == v1.QuantizationType_QUANTIZATION_TYPE_UNSPECIFIED {
-		return nil, status.Error(codes.InvalidArgument, "one of suffix, adapter, or quantization is required")
-	}
 	if req.OrganizationId == "" {
 		return nil, status.Error(codes.InvalidArgument, "organization_id is required")
 	}
