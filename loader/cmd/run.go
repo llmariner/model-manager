@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr"
 	"github.com/go-logr/stdr"
+	cmstatus "github.com/llmariner/cluster-manager/pkg/status"
 	laws "github.com/llmariner/common/pkg/aws"
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
@@ -15,6 +16,7 @@ import (
 	"github.com/llmariner/model-manager/loader/internal/s3"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"github.com/spf13/cobra"
+	"golang.org/x/sync/errgroup"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
@@ -63,14 +65,7 @@ func run(ctx context.Context, c *config.Config) error {
 	if c.Debug.Standalone {
 		mclient = loader.NewFakeModelClient()
 	} else {
-		var option grpc.DialOption
-		if c.Worker.TLS.Enable {
-			option = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
-		} else {
-			option = grpc.WithTransportCredentials(insecure.NewCredentials())
-		}
-
-		conn, err := grpc.NewClient(c.ModelManagerServerWorkerServiceAddr, option)
+		conn, err := grpc.NewClient(c.ModelManagerServerWorkerServiceAddr, grpcOption(c))
 		if err != nil {
 			return err
 		}
@@ -100,7 +95,20 @@ func run(ctx context.Context, c *config.Config) error {
 		return s.LoadModels(ctx)
 	}
 
-	return s.Run(ctx, c.ModelLoadInterval)
+	ss, err := cmstatus.NewBeaconSender(c.ComponentStatusSender, grpcOption(c), logger)
+	if err != nil {
+		return err
+	}
+
+	eg, ctx := errgroup.WithContext(ctx)
+	eg.Go(func() error { return s.Run(ctx, c.ModelLoadInterval) })
+	if c.ComponentStatusSender.Enable {
+		eg.Go(func() error {
+			ss.Run(ctx)
+			return nil
+		})
+	}
+	return eg.Wait()
 }
 
 func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClient, pathPrefix string) error {
@@ -159,4 +167,11 @@ func newS3Client(ctx context.Context, c *config.Config) (loader.S3Client, error)
 		}
 	}
 	return s3.NewClient(ctx, opts, s.Bucket)
+}
+
+func grpcOption(c *config.Config) grpc.DialOption {
+	if c.Worker.TLS.Enable {
+		return grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{}))
+	}
+	return grpc.WithTransportCredentials(insecure.NewCredentials())
 }
