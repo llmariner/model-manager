@@ -73,6 +73,18 @@ runOnce: false
 # The following default values work if model-manager-server runs in the same namespace.
 modelManagerServerWorkerServiceAddr: model-manager-server-worker-service-grpc:8082
 
+componentStatusSender:
+  # The flag to enable sending component status to the cluster-manager-server.
+  enable : true
+  # The name of the component.
+  name: model-manager-loader
+  # initialDelay is the time to wait before starting the sender.
+  initialDelay: 1m
+  # The interval time to send the component status.
+  interval: 15m
+  # The address of the cluster-manager-server to call worker services.
+  clusterManagerServerWorkerServiceAddr: cluster-manager-server-worker-service-grpc:8082
+
 # The list of base models to load into LLMariner.
 # For more information, see [Supported Open Models](https://llmariner.ai/docs/features/models/).
 #

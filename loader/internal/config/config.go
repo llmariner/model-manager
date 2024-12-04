@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/llmariner/cluster-manager/pkg/status"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"gopkg.in/yaml.v3"
 )
@@ -196,6 +197,8 @@ type Config struct {
 
 	ModelManagerServerWorkerServiceAddr string `yaml:"modelManagerServerWorkerServiceAddr"`
 
+	ComponentStatusSender status.Config `yaml:"componentStatusSender"`
+
 	Worker WorkerConfig `yaml:"worker"`
 
 	Debug DebugConfig `yaml:"debug"`
@@ -223,6 +226,10 @@ func (c *Config) Validate() error {
 
 	if err := c.Downloader.validate(); err != nil {
 		return fmt.Errorf("downloader: %s", err)
+	}
+
+	if err := c.ComponentStatusSender.Validate(); err != nil {
+		return fmt.Errorf("componentStatusSender: %s", err)
 	}
 
 	if !c.Debug.Standalone {
