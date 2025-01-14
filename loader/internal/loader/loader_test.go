@@ -11,6 +11,8 @@ import (
 	mv1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/stretchr/testify/assert"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestLoadBaseModel(t *testing.T) {
@@ -36,6 +38,7 @@ func TestLoadBaseModel(t *testing.T) {
 		"models",
 		"base-models",
 		downloader,
+		false,
 		s3Client,
 		mc,
 		testr.New(t),
@@ -77,6 +80,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 		"models",
 		"base-models",
 		downloader,
+		false,
 		s3Client,
 		mc,
 		testr.New(t),
@@ -119,6 +123,7 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 		"models",
 		"base-models",
 		downloader,
+		false,
 		s3Client,
 		mc,
 		testr.New(t),
@@ -139,6 +144,60 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON}, got.Formats)
 	assert.Equal(t, "models/base-models/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", got.Path)
 	assert.Empty(t, got.GgufModelPath)
+}
+
+func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{},
+		files: []string{
+			"phi-4-Q3_K_L.gguf",
+			"phi-4-Q3_K_M.gguf",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		[]string{"lmstudio-community/phi-4-GGUF"},
+		nil,
+		"models",
+		"base-models",
+		downloader,
+		true,
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF")
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
+		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	// No model created for the HuggingFace repo name.
+	ctx := context.Background()
+	_, err = mc.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{
+		Id: "lmstudio-community-phi-4-GGUF",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	for _, q := range []string{"K_L", "K_M"} {
+		got, err := mc.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{
+			Id: "lmstudio-community-phi-4-GGUF-phi-4-Q3_" + q,
+		})
+		assert.NoError(t, err)
+		assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+		assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q, got.Path)
+		assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q+".gguf", got.GgufModelPath)
+	}
+
+	_, err = mc.GetHFModelRepo(ctx, &mv1.GetHFModelRepoRequest{Name: "lmstudio-community/phi-4-GGUF"})
+	assert.NoError(t, err)
 }
 
 func TestLoadModel_HuggingFace(t *testing.T) {
@@ -163,6 +222,7 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 		"models",
 		"base-models",
 		downloader,
+		false,
 		s3Client,
 		mc,
 		testr.New(t),
@@ -190,6 +250,42 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, "models/default-tenant-id/abc/lora1", ret.Path)
+}
+
+func TestBuildModelIDForGGUF(t *testing.T) {
+	tcs := []struct {
+		modelID           string
+		ggufModelFilePath string
+		want              string
+	}{
+		{
+			modelID:           "lmstudio-community/phi-4-GGUF",
+			ggufModelFilePath: "/tmp/phi-4-Q3_K_L.gguf",
+			want:              "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L",
+		},
+	}
+
+	for _, tc := range tcs {
+		got := buildModelIDForGGUF(tc.modelID, tc.ggufModelFilePath)
+		assert.Equal(t, tc.want, got)
+	}
+}
+
+func TestToLLMarinerModelID(t *testing.T) {
+	tcs := []struct {
+		id   string
+		want string
+	}{
+		{
+			id:   "meta-llama/Llama-3.3-70B-Instruct",
+			want: "meta-llama-Llama-3.3-70B-Instruct",
+		},
+	}
+
+	for _, tc := range tcs {
+		got := toLLMarinerModelID(tc.id)
+		assert.Equal(t, tc.want, got)
+	}
 }
 
 type mockS3Client struct {
