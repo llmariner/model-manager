@@ -234,6 +234,10 @@ type ModelsWorkerServiceClient interface {
 	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
 	// inference-manager-engine, and model-manager-loader.
 	GetBaseModelPath(ctx context.Context, in *GetBaseModelPathRequest, opts ...grpc.CallOption) (*GetBaseModelPathResponse, error)
+	// CreateHFModelRepo creates a HuggingFace model repo.
+	CreateHFModelRepo(ctx context.Context, in *CreateHFModelRepoRequest, opts ...grpc.CallOption) (*HFModelRepo, error)
+	// GetHFModelRepo returns the HuggingFace model repo that has been downloaded. Used by model-manager-loader.
+	GetHFModelRepo(ctx context.Context, in *GetHFModelRepoRequest, opts ...grpc.CallOption) (*HFModelRepo, error)
 }
 
 type modelsWorkerServiceClient struct {
@@ -325,6 +329,24 @@ func (c *modelsWorkerServiceClient) GetBaseModelPath(ctx context.Context, in *Ge
 	return out, nil
 }
 
+func (c *modelsWorkerServiceClient) CreateHFModelRepo(ctx context.Context, in *CreateHFModelRepoRequest, opts ...grpc.CallOption) (*HFModelRepo, error) {
+	out := new(HFModelRepo)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/CreateHFModelRepo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsWorkerServiceClient) GetHFModelRepo(ctx context.Context, in *GetHFModelRepoRequest, opts ...grpc.CallOption) (*HFModelRepo, error) {
+	out := new(HFModelRepo)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetHFModelRepo", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ModelsWorkerServiceServer is the server API for ModelsWorkerService service.
 // All implementations must embed UnimplementedModelsWorkerServiceServer
 // for forward compatibility
@@ -349,6 +371,10 @@ type ModelsWorkerServiceServer interface {
 	// GetBaseModelPath returns the path of the base model. Used by job-manager-dispatcher,
 	// inference-manager-engine, and model-manager-loader.
 	GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error)
+	// CreateHFModelRepo creates a HuggingFace model repo.
+	CreateHFModelRepo(context.Context, *CreateHFModelRepoRequest) (*HFModelRepo, error)
+	// GetHFModelRepo returns the HuggingFace model repo that has been downloaded. Used by model-manager-loader.
+	GetHFModelRepo(context.Context, *GetHFModelRepoRequest) (*HFModelRepo, error)
 	mustEmbedUnimplementedModelsWorkerServiceServer()
 }
 
@@ -382,6 +408,12 @@ func (UnimplementedModelsWorkerServiceServer) CreateBaseModel(context.Context, *
 }
 func (UnimplementedModelsWorkerServiceServer) GetBaseModelPath(context.Context, *GetBaseModelPathRequest) (*GetBaseModelPathResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetBaseModelPath not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) CreateHFModelRepo(context.Context, *CreateHFModelRepoRequest) (*HFModelRepo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateHFModelRepo not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) GetHFModelRepo(context.Context, *GetHFModelRepoRequest) (*HFModelRepo, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method GetHFModelRepo not implemented")
 }
 func (UnimplementedModelsWorkerServiceServer) mustEmbedUnimplementedModelsWorkerServiceServer() {}
 
@@ -558,6 +590,42 @@ func _ModelsWorkerService_GetBaseModelPath_Handler(srv interface{}, ctx context.
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsWorkerService_CreateHFModelRepo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateHFModelRepoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).CreateHFModelRepo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/CreateHFModelRepo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).CreateHFModelRepo(ctx, req.(*CreateHFModelRepoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsWorkerService_GetHFModelRepo_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetHFModelRepoRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).GetHFModelRepo(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/GetHFModelRepo",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).GetHFModelRepo(ctx, req.(*GetHFModelRepoRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ModelsWorkerService_ServiceDesc is the grpc.ServiceDesc for ModelsWorkerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -600,6 +668,14 @@ var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetBaseModelPath",
 			Handler:    _ModelsWorkerService_GetBaseModelPath_Handler,
+		},
+		{
+			MethodName: "CreateHFModelRepo",
+			Handler:    _ModelsWorkerService_CreateHFModelRepo_Handler,
+		},
+		{
+			MethodName: "GetHFModelRepo",
+			Handler:    _ModelsWorkerService_GetHFModelRepo_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

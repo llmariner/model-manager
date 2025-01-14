@@ -25,6 +25,7 @@ func autoMigrate(db *gorm.DB) error {
 	return db.AutoMigrate(
 		&Model{},
 		&BaseModel{},
+		&HFModelRepo{},
 		&StorageConfig{},
 	)
 }

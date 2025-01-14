@@ -216,6 +216,14 @@
       },
       "description": "GetModelPathResponse is deprecated, use GetModelAttributesResponse instead."
     },
+    "v1HFModelRepo": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        }
+      }
+    },
     "v1ListBaseModelsResponse": {
       "type": "object",
       "properties": {

@@ -142,6 +142,18 @@ export type GetBaseModelPathResponse = {
   ggufModelPath?: string
 }
 
+export type CreateHFModelRepoRequest = {
+  name?: string
+}
+
+export type HFModelRepo = {
+  name?: string
+}
+
+export type GetHFModelRepoRequest = {
+  name?: string
+}
+
 export class ModelsService {
   static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse> {
     return fm.fetchReq<ListModelsRequest, ListModelsResponse>(`/v1/models?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
@@ -183,5 +195,11 @@ export class ModelsWorkerService {
   }
   static GetBaseModelPath(req: GetBaseModelPathRequest, initReq?: fm.InitReq): Promise<GetBaseModelPathResponse> {
     return fm.fetchReq<GetBaseModelPathRequest, GetBaseModelPathResponse>(`/llmariner.models.server.v1.ModelsWorkerService/GetBaseModelPath`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static CreateHFModelRepo(req: CreateHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo> {
+    return fm.fetchReq<CreateHFModelRepoRequest, HFModelRepo>(`/llmariner.models.server.v1.ModelsWorkerService/CreateHFModelRepo`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static GetHFModelRepo(req: GetHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo> {
+    return fm.fetchReq<GetHFModelRepoRequest, HFModelRepo>(`/llmariner.models.server.v1.ModelsWorkerService/GetHFModelRepo`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
 }
