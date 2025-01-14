@@ -53,6 +53,9 @@ type ModelClient interface {
 	GetModelPath(ctx context.Context, in *mv1.GetModelPathRequest, opts ...grpc.CallOption) (*mv1.GetModelPathResponse, error)
 	RegisterModel(ctx context.Context, in *mv1.RegisterModelRequest, opts ...grpc.CallOption) (*mv1.RegisterModelResponse, error)
 	PublishModel(ctx context.Context, in *mv1.PublishModelRequest, opts ...grpc.CallOption) (*mv1.PublishModelResponse, error)
+
+	CreateHFModelRepo(ctx context.Context, in *mv1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error)
+	GetHFModelRepo(ctx context.Context, in *mv1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error)
 }
 
 // NewFakeModelClient creates a fake model client.
@@ -61,6 +64,8 @@ func NewFakeModelClient() *FakeModelClient {
 		pathsByID:   map[string]string{},
 		ggufsByID:   map[string]string{},
 		formatsByID: map[string][]mv1.ModelFormat{},
+
+		hfModelRepos: map[string]bool{},
 	}
 }
 
@@ -69,6 +74,8 @@ type FakeModelClient struct {
 	pathsByID   map[string]string
 	ggufsByID   map[string]string
 	formatsByID map[string][]mv1.ModelFormat
+
+	hfModelRepos map[string]bool
 }
 
 // CreateBaseModel creates a base model.
@@ -136,6 +143,24 @@ func (c *FakeModelClient) PublishModel(ctx context.Context, in *mv1.PublishModel
 	return &mv1.PublishModelResponse{}, nil
 }
 
+// CreateHFModelRepo creates a new HuggingFace model repo.
+func (c *FakeModelClient) CreateHFModelRepo(ctx context.Context, in *mv1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error) {
+	if _, ok := c.hfModelRepos[in.Name]; ok {
+		return nil, status.Errorf(codes.AlreadyExists, "hugging-face model repo %q already exists", in.Name)
+	}
+	c.hfModelRepos[in.Name] = true
+	return &mv1.HFModelRepo{Name: in.Name}, nil
+
+}
+
+// GetHFModelRepo returns a HuggingFace model repo.
+func (c *FakeModelClient) GetHFModelRepo(ctx context.Context, in *mv1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error) {
+	if _, ok := c.hfModelRepos[in.Name]; !ok {
+		return nil, status.Errorf(codes.NotFound, "hugging-face model repo %q not found", in.Name)
+	}
+	return &mv1.HFModelRepo{Name: in.Name}, nil
+}
+
 // New creates a new loader.
 func New(
 	baseModels []string,
@@ -143,20 +168,22 @@ func New(
 	objectStorePathPrefix string,
 	baseModelPathPrefix string,
 	modelDownloader ModelDownloader,
+	isDownloadingFromHuggingFace bool,
 	s3Client S3Client,
 	modelClient ModelClient,
 	log logr.Logger,
 ) *L {
 	return &L{
-		baseModels:            baseModels,
-		models:                models,
-		objectStorePathPrefix: objectStorePathPrefix,
-		baseModelPathPrefix:   baseModelPathPrefix,
-		modelDownloader:       modelDownloader,
-		s3Client:              s3Client,
-		modelClient:           modelClient,
-		log:                   log.WithName("loader"),
-		tmpDir:                "/tmp",
+		baseModels:                   baseModels,
+		models:                       models,
+		objectStorePathPrefix:        objectStorePathPrefix,
+		baseModelPathPrefix:          baseModelPathPrefix,
+		modelDownloader:              modelDownloader,
+		isDownloadingFromHuggingFace: isDownloadingFromHuggingFace,
+		s3Client:                     s3Client,
+		modelClient:                  modelClient,
+		log:                          log.WithName("loader"),
+		tmpDir:                       "/tmp",
 	}
 }
 
@@ -170,7 +197,8 @@ type L struct {
 	objectStorePathPrefix string
 	baseModelPathPrefix   string
 
-	modelDownloader ModelDownloader
+	modelDownloader              ModelDownloader
+	isDownloadingFromHuggingFace bool
 
 	s3Client S3Client
 
@@ -216,9 +244,7 @@ func (l *L) LoadModels(ctx context.Context) error {
 }
 
 func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
-	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
-	// TODO(kenji): Revisit this.
-	convertedModelID := strings.ReplaceAll(modelID, "/", "-")
+	convertedModelID := toLLMarinerModelID(modelID)
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
@@ -231,23 +257,49 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	// Check if the corresponding HuggingFace repo has already been downloaded.
+	if l.isDownloadingFromHuggingFace {
+		// Check if the corresponding HuggingFace repo has already been downloaded.
+		_, err = l.modelClient.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: modelID})
+		if err == nil {
+			l.log.Info("Already HuggingFace model repo exists", "modelID", modelID)
+			return nil
+		}
+		if status.Code(err) != codes.NotFound {
+			return err
+		}
+	}
 
-	mpath, modelInfo, err := l.downloadAndUploadModel(ctx, modelID, true)
+	modelInfos, err := l.downloadAndUploadModel(ctx, modelID, true)
 	if err != nil {
 		return err
 	}
 
-	if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
-		Id:            convertedModelID,
-		Path:          mpath,
-		Formats:       modelInfo.formats,
-		GgufModelPath: modelInfo.ggufModelPath,
-	}); err != nil {
-		return err
+	for _, mi := range modelInfos {
+		modelID := toLLMarinerModelID(mi.id)
+		_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: modelID})
+		if err == nil {
+			l.log.Info("Already model exists", "modelID", modelID)
+			continue
+		}
+		if status.Code(err) != codes.NotFound {
+			return err
+		}
+
+		if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
+			Id:            modelID,
+			Path:          mi.path,
+			Formats:       mi.formats,
+			GgufModelPath: mi.ggufModelPath,
+		}); err != nil {
+			return err
+		}
 	}
 
-	// If it is a HuggingFace model that contains multiple models, upload
+	if l.isDownloadingFromHuggingFace {
+		if _, err = l.modelClient.CreateHFModelRepo(ctx, &v1.CreateHFModelRepoRequest{Name: modelID}); err != nil {
+			return err
+		}
+	}
 
 	l.log.Info("Successfully loaded base model", "model", modelID)
 	return nil
@@ -258,10 +310,7 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 		return err
 	}
 
-	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
-	// TODO(kenji): Revisit this.
-	convertedModelID := strings.ReplaceAll(model.Model, "/", "-")
-	convertedBaseModelID := strings.ReplaceAll(model.BaseModel, "/", "-")
+	convertedModelID := toLLMarinerModelID(model.Model)
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
@@ -274,17 +323,21 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 		return err
 	}
 
-	mPath, _, err := l.downloadAndUploadModel(ctx, model.Model, false)
+	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, false)
 	if err != nil {
 		return err
 	}
+	if n := len(modelInfos); n != 1 {
+		return fmt.Errorf("unsupported number of model infos: %d", n)
+	}
+	mi := modelInfos[0]
 
 	if _, err := l.modelClient.RegisterModel(ctx, &mv1.RegisterModelRequest{
 		Id:           convertedModelID,
-		BaseModel:    convertedBaseModelID,
+		BaseModel:    toLLMarinerModelID(model.BaseModel),
 		Adapter:      config.ToAdapterType(model.AdapterType),
 		Quantization: config.ToQuantizationType(model.QuantizationType),
-		Path:         mPath,
+		Path:         mi.path,
 		// TODO(guangrui): Allow to configure project and org for models.
 		ProjectId:      "default",
 		OrganizationId: "default",
@@ -299,11 +352,14 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 }
 
 type modelInfo struct {
+	id string
+	// path is the base path of model files.
+	path          string
 	ggufModelPath string
 	formats       []v1.ModelFormat
 }
 
-func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseModel bool) (string, *modelInfo, error) {
+func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseModel bool) ([]*modelInfo, error) {
 	log := l.log.WithValues("modelID", modelID)
 	log.Info("Started loading model")
 
@@ -318,7 +374,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
 	tmpDir, err := os.MkdirTemp(l.tmpDir, "base-model")
 	if err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	log.Info("Created a temp dir", "path", tmpDir)
 	defer func() {
@@ -327,7 +383,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 
 	log.Info("Downloading model")
 	if err := l.modelDownloader.download(ctx, modelID, tmpDir); err != nil {
-		return "", nil, err
+		return nil, err
 	}
 
 	toKey := func(path string) string {
@@ -338,7 +394,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 
 	var (
 		paths                    []string
-		ggufModelPath            string
+		ggufModelPaths           []string
 		hasHuggingFaceConfigJSON bool
 		hasTensorRTLLMConfig     bool
 	)
@@ -353,10 +409,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 		paths = append(paths, path)
 
 		if strings.HasSuffix(path, ".gguf") {
-			if ggufModelPath != "" {
-				return fmt.Errorf("multiple GGUF files found: %q and %q", ggufModelPath, path)
-			}
-			ggufModelPath = toKey(path)
+			ggufModelPaths = append(ggufModelPaths, toKey(path))
 		}
 
 		if filepath.Base(path) == "config.json" || filepath.Base(path) == "adapter_config.json" {
@@ -369,11 +422,11 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 
 		return nil
 	}); err != nil {
-		return "", nil, err
+		return nil, err
 	}
 	log.Info("Downloaded files", "count", len(paths))
 	if len(paths) == 0 {
-		return "", nil, fmt.Errorf("no files downloaded")
+		return nil, fmt.Errorf("no files downloaded")
 	}
 
 	log.Info("Uploading model to the object store")
@@ -381,21 +434,18 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 		log.Info("Uploading", "path", path)
 		r, err := os.Open(path)
 		if err != nil {
-			return "", nil, err
+			return nil, err
 		}
 
 		if err := l.s3Client.Upload(ctx, r, toKey(path)); err != nil {
-			return "", nil, err
+			return nil, err
 		}
 		if err := r.Close(); err != nil {
-			return "", nil, err
+			return nil, err
 		}
 	}
 
 	var formats []v1.ModelFormat
-	if ggufModelPath != "" {
-		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
-	}
 	if hasHuggingFaceConfigJSON {
 		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE)
 	}
@@ -403,11 +453,40 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON)
 	}
 
-	mpath := filepath.Join(l.toPathPrefix(isBaseModel), modelID)
-	return mpath, &modelInfo{
-		ggufModelPath: ggufModelPath,
-		formats:       formats,
-	}, nil
+	if len(ggufModelPaths) <= 1 {
+		var ggufModelPath string
+		if len(ggufModelPaths) == 1 {
+			formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
+			ggufModelPath = ggufModelPaths[0]
+		}
+		return []*modelInfo{
+			{
+				id:            toLLMarinerModelID(modelID),
+				path:          filepath.Join(l.toPathPrefix(isBaseModel), modelID),
+				ggufModelPath: ggufModelPath,
+				formats:       formats,
+			},
+		}, nil
+	}
+
+	log.Info("Found multiple GGPU files. Creating a model info per GGUF file")
+	if len(formats) != 0 {
+		return nil, fmt.Errorf("multiple gguf files (%v) found with other model format (%v)", ggufModelPaths, formats)
+	}
+
+	var minfos []*modelInfo
+	for _, gpath := range ggufModelPaths {
+		id := buildModelIDForGGUF(modelID, gpath)
+
+		minfos = append(minfos, &modelInfo{
+			id:            toLLMarinerModelID(id),
+			path:          filepath.Join(l.toPathPrefix(isBaseModel), id),
+			ggufModelPath: gpath,
+			formats:       []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF},
+		})
+	}
+
+	return minfos, nil
 }
 
 func (l *L) toPathPrefix(isBaseModel bool) string {
@@ -416,4 +495,15 @@ func (l *L) toPathPrefix(isBaseModel bool) string {
 	}
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
 	return filepath.Join(l.objectStorePathPrefix, "default-tenant-id")
+}
+
+func buildModelIDForGGUF(modelID, ggufModelFilePath string) string {
+	p := strings.TrimSuffix(ggufModelFilePath, ".gguf")
+	return filepath.Join(modelID, filepath.Base(p))
+}
+
+func toLLMarinerModelID(id string) string {
+	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
+	// TODO(kenji): Revisit this.
+	return strings.ReplaceAll(id, "/", "-")
 }

@@ -86,6 +86,7 @@ func run(ctx context.Context, c *config.Config) error {
 		s3c.PathPrefix,
 		s3c.BaseModelPathPrefix,
 		d,
+		c.Downloader.Kind == config.DownloaderKindHuggingFace,
 		s3client,
 		mclient,
 		logger,
