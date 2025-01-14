@@ -65,4 +65,10 @@ export class ModelsWorkerService {
     static GetBaseModelPath(req, initReq) {
         return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/GetBaseModelPath`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
+    static CreateHFModelRepo(req, initReq) {
+        return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/CreateHFModelRepo`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
+    static GetHFModelRepo(req, initReq) {
+        return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/GetHFModelRepo`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
 }

@@ -231,6 +231,8 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
+	// Check if the corresponding HuggingFace repo has already been downloaded.
+
 	mpath, modelInfo, err := l.downloadAndUploadModel(ctx, modelID, true)
 	if err != nil {
 		return err
@@ -244,6 +246,8 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	}); err != nil {
 		return err
 	}
+
+	// If it is a HuggingFace model that contains multiple models, upload
 
 	l.log.Info("Successfully loaded base model", "model", modelID)
 	return nil

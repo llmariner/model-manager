@@ -1476,6 +1476,147 @@ func (x *GetBaseModelPathResponse) GetGgufModelPath() string {
 	return ""
 }
 
+type CreateHFModelRepoRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *CreateHFModelRepoRequest) Reset() {
+	*x = CreateHFModelRepoRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_v1_model_manager_service_proto_msgTypes[24]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *CreateHFModelRepoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*CreateHFModelRepoRequest) ProtoMessage() {}
+
+func (x *CreateHFModelRepoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_model_manager_service_proto_msgTypes[24]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use CreateHFModelRepoRequest.ProtoReflect.Descriptor instead.
+func (*CreateHFModelRepoRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_model_manager_service_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *CreateHFModelRepoRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type HFModelRepo struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *HFModelRepo) Reset() {
+	*x = HFModelRepo{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_v1_model_manager_service_proto_msgTypes[25]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *HFModelRepo) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*HFModelRepo) ProtoMessage() {}
+
+func (x *HFModelRepo) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_model_manager_service_proto_msgTypes[25]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use HFModelRepo.ProtoReflect.Descriptor instead.
+func (*HFModelRepo) Descriptor() ([]byte, []int) {
+	return file_api_v1_model_manager_service_proto_rawDescGZIP(), []int{25}
+}
+
+func (x *HFModelRepo) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
+type GetHFModelRepoRequest struct {
+	state         protoimpl.MessageState
+	sizeCache     protoimpl.SizeCache
+	unknownFields protoimpl.UnknownFields
+
+	Name string `protobuf:"bytes,1,opt,name=name,proto3" json:"name,omitempty"`
+}
+
+func (x *GetHFModelRepoRequest) Reset() {
+	*x = GetHFModelRepoRequest{}
+	if protoimpl.UnsafeEnabled {
+		mi := &file_api_v1_model_manager_service_proto_msgTypes[26]
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		ms.StoreMessageInfo(mi)
+	}
+}
+
+func (x *GetHFModelRepoRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetHFModelRepoRequest) ProtoMessage() {}
+
+func (x *GetHFModelRepoRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_api_v1_model_manager_service_proto_msgTypes[26]
+	if protoimpl.UnsafeEnabled && x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetHFModelRepoRequest.ProtoReflect.Descriptor instead.
+func (*GetHFModelRepoRequest) Descriptor() ([]byte, []int) {
+	return file_api_v1_model_manager_service_proto_rawDescGZIP(), []int{26}
+}
+
+func (x *GetHFModelRepoRequest) GetName() string {
+	if x != nil {
+		return x.Name
+	}
+	return ""
+}
+
 var File_api_v1_model_manager_service_proto protoreflect.FileDescriptor
 
 var file_api_v1_model_manager_service_proto_rawDesc = []byte{
@@ -1609,7 +1750,15 @@ var file_api_v1_model_manager_service_proto_rawDesc = []byte{
 	0x74, 0x73, 0x12, 0x12, 0x0a, 0x04, 0x70, 0x61, 0x74, 0x68, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09,
 	0x52, 0x04, 0x70, 0x61, 0x74, 0x68, 0x12, 0x26, 0x0a, 0x0f, 0x67, 0x67, 0x75, 0x66, 0x5f, 0x6d,
 	0x6f, 0x64, 0x65, 0x6c, 0x5f, 0x70, 0x61, 0x74, 0x68, 0x18, 0x02, 0x20, 0x01, 0x28, 0x09, 0x52,
-	0x0d, 0x67, 0x67, 0x75, 0x66, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x2a, 0x81,
+	0x0d, 0x67, 0x67, 0x75, 0x66, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x22, 0x2e,
+	0x0a, 0x18, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65, 0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52,
+	0x65, 0x70, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61,
+	0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x22, 0x21,
+	0x0a, 0x0b, 0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x12, 0x12, 0x0a,
+	0x04, 0x6e, 0x61, 0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d,
+	0x65, 0x22, 0x2b, 0x0a, 0x15, 0x47, 0x65, 0x74, 0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52,
+	0x65, 0x70, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65, 0x73, 0x74, 0x12, 0x12, 0x0a, 0x04, 0x6e, 0x61,
+	0x6d, 0x65, 0x18, 0x01, 0x20, 0x01, 0x28, 0x09, 0x52, 0x04, 0x6e, 0x61, 0x6d, 0x65, 0x2a, 0x81,
 	0x01, 0x0a, 0x0b, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x46, 0x6f, 0x72, 0x6d, 0x61, 0x74, 0x12, 0x1c,
 	0x0a, 0x18, 0x4d, 0x4f, 0x44, 0x45, 0x4c, 0x5f, 0x46, 0x4f, 0x52, 0x4d, 0x41, 0x54, 0x5f, 0x55,
 	0x4e, 0x53, 0x50, 0x45, 0x43, 0x49, 0x46, 0x49, 0x45, 0x44, 0x10, 0x00, 0x12, 0x15, 0x0a, 0x11,
@@ -1665,7 +1814,7 @@ var file_api_v1_model_manager_service_proto_rawDesc = []byte{
 	0x31, 0x2e, 0x4c, 0x69, 0x73, 0x74, 0x42, 0x61, 0x73, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x73,
 	0x52, 0x65, 0x73, 0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x16, 0x82, 0xd3, 0xe4, 0x93, 0x02, 0x10,
 	0x12, 0x0e, 0x2f, 0x76, 0x31, 0x2f, 0x62, 0x61, 0x73, 0x65, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73,
-	0x32, 0xb4, 0x08, 0x0a, 0x13, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x57, 0x6f, 0x72, 0x6b, 0x65,
+	0x32, 0x9a, 0x0a, 0x0a, 0x13, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x57, 0x6f, 0x72, 0x6b, 0x65,
 	0x72, 0x53, 0x65, 0x72, 0x76, 0x69, 0x63, 0x65, 0x12, 0x7a, 0x0a, 0x13, 0x43, 0x72, 0x65, 0x61,
 	0x74, 0x65, 0x53, 0x74, 0x6f, 0x72, 0x61, 0x67, 0x65, 0x43, 0x6f, 0x6e, 0x66, 0x69, 0x67, 0x12,
 	0x36, 0x2e, 0x6c, 0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65,
@@ -1732,10 +1881,25 @@ var file_api_v1_model_manager_service_proto_rawDesc = []byte{
 	0x34, 0x2e, 0x6c, 0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65,
 	0x6c, 0x73, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
 	0x42, 0x61, 0x73, 0x65, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x50, 0x61, 0x74, 0x68, 0x52, 0x65, 0x73,
-	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x42, 0x2b, 0x5a, 0x29, 0x67, 0x69, 0x74, 0x68, 0x75,
-	0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2f,
-	0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x2d, 0x6d, 0x61, 0x6e, 0x61, 0x67, 0x65, 0x72, 0x2f, 0x61, 0x70,
-	0x69, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74, 0x6f, 0x33,
+	0x70, 0x6f, 0x6e, 0x73, 0x65, 0x22, 0x00, 0x12, 0x74, 0x0a, 0x11, 0x43, 0x72, 0x65, 0x61, 0x74,
+	0x65, 0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x12, 0x34, 0x2e, 0x6c,
+	0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e,
+	0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x43, 0x72, 0x65, 0x61, 0x74, 0x65,
+	0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x27, 0x2e, 0x6c, 0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2e, 0x6d,
+	0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e,
+	0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x22, 0x00, 0x12, 0x6e, 0x0a,
+	0x0e, 0x47, 0x65, 0x74, 0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x12,
+	0x31, 0x2e, 0x6c, 0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2e, 0x6d, 0x6f, 0x64, 0x65,
+	0x6c, 0x73, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e, 0x47, 0x65, 0x74,
+	0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x52, 0x65, 0x71, 0x75, 0x65,
+	0x73, 0x74, 0x1a, 0x27, 0x2e, 0x6c, 0x6c, 0x6d, 0x61, 0x72, 0x69, 0x6e, 0x65, 0x72, 0x2e, 0x6d,
+	0x6f, 0x64, 0x65, 0x6c, 0x73, 0x2e, 0x73, 0x65, 0x72, 0x76, 0x65, 0x72, 0x2e, 0x76, 0x31, 0x2e,
+	0x48, 0x46, 0x4d, 0x6f, 0x64, 0x65, 0x6c, 0x52, 0x65, 0x70, 0x6f, 0x22, 0x00, 0x42, 0x2b, 0x5a,
+	0x29, 0x67, 0x69, 0x74, 0x68, 0x75, 0x62, 0x2e, 0x63, 0x6f, 0x6d, 0x2f, 0x6c, 0x6c, 0x6d, 0x61,
+	0x72, 0x69, 0x6e, 0x65, 0x72, 0x2f, 0x6d, 0x6f, 0x64, 0x65, 0x6c, 0x2d, 0x6d, 0x61, 0x6e, 0x61,
+	0x67, 0x65, 0x72, 0x2f, 0x61, 0x70, 0x69, 0x2f, 0x76, 0x31, 0x62, 0x06, 0x70, 0x72, 0x6f, 0x74,
+	0x6f, 0x33,
 }
 
 var (
@@ -1751,7 +1915,7 @@ func file_api_v1_model_manager_service_proto_rawDescGZIP() []byte {
 }
 
 var file_api_v1_model_manager_service_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_api_v1_model_manager_service_proto_msgTypes = make([]protoimpl.MessageInfo, 24)
+var file_api_v1_model_manager_service_proto_msgTypes = make([]protoimpl.MessageInfo, 27)
 var file_api_v1_model_manager_service_proto_goTypes = []interface{}{
 	(ModelFormat)(0),                   // 0: llmariner.models.server.v1.ModelFormat
 	(AdapterType)(0),                   // 1: llmariner.models.server.v1.AdapterType
@@ -1780,6 +1944,9 @@ var file_api_v1_model_manager_service_proto_goTypes = []interface{}{
 	(*CreateBaseModelRequest)(nil),     // 24: llmariner.models.server.v1.CreateBaseModelRequest
 	(*GetBaseModelPathRequest)(nil),    // 25: llmariner.models.server.v1.GetBaseModelPathRequest
 	(*GetBaseModelPathResponse)(nil),   // 26: llmariner.models.server.v1.GetBaseModelPathResponse
+	(*CreateHFModelRepoRequest)(nil),   // 27: llmariner.models.server.v1.CreateHFModelRepoRequest
+	(*HFModelRepo)(nil),                // 28: llmariner.models.server.v1.HFModelRepo
+	(*GetHFModelRepoRequest)(nil),      // 29: llmariner.models.server.v1.GetHFModelRepoRequest
 }
 var file_api_v1_model_manager_service_proto_depIdxs = []int32{
 	0,  // 0: llmariner.models.server.v1.ModelFormats.formats:type_name -> llmariner.models.server.v1.ModelFormat
@@ -1804,21 +1971,25 @@ var file_api_v1_model_manager_service_proto_depIdxs = []int32{
 	23, // 19: llmariner.models.server.v1.ModelsWorkerService.GetModelAttributes:input_type -> llmariner.models.server.v1.GetModelAttributesRequest
 	24, // 20: llmariner.models.server.v1.ModelsWorkerService.CreateBaseModel:input_type -> llmariner.models.server.v1.CreateBaseModelRequest
 	25, // 21: llmariner.models.server.v1.ModelsWorkerService.GetBaseModelPath:input_type -> llmariner.models.server.v1.GetBaseModelPathRequest
-	6,  // 22: llmariner.models.server.v1.ModelsService.ListModels:output_type -> llmariner.models.server.v1.ListModelsResponse
-	4,  // 23: llmariner.models.server.v1.ModelsService.GetModel:output_type -> llmariner.models.server.v1.Model
-	9,  // 24: llmariner.models.server.v1.ModelsService.DeleteModel:output_type -> llmariner.models.server.v1.DeleteModelResponse
-	12, // 25: llmariner.models.server.v1.ModelsService.ListBaseModels:output_type -> llmariner.models.server.v1.ListBaseModelsResponse
-	13, // 26: llmariner.models.server.v1.ModelsWorkerService.CreateStorageConfig:output_type -> llmariner.models.server.v1.StorageConfig
-	13, // 27: llmariner.models.server.v1.ModelsWorkerService.GetStorageConfig:output_type -> llmariner.models.server.v1.StorageConfig
-	4,  // 28: llmariner.models.server.v1.ModelsWorkerService.GetModel:output_type -> llmariner.models.server.v1.Model
-	17, // 29: llmariner.models.server.v1.ModelsWorkerService.RegisterModel:output_type -> llmariner.models.server.v1.RegisterModelResponse
-	19, // 30: llmariner.models.server.v1.ModelsWorkerService.PublishModel:output_type -> llmariner.models.server.v1.PublishModelResponse
-	21, // 31: llmariner.models.server.v1.ModelsWorkerService.GetModelPath:output_type -> llmariner.models.server.v1.GetModelPathResponse
-	22, // 32: llmariner.models.server.v1.ModelsWorkerService.GetModelAttributes:output_type -> llmariner.models.server.v1.ModelAttributes
-	11, // 33: llmariner.models.server.v1.ModelsWorkerService.CreateBaseModel:output_type -> llmariner.models.server.v1.BaseModel
-	26, // 34: llmariner.models.server.v1.ModelsWorkerService.GetBaseModelPath:output_type -> llmariner.models.server.v1.GetBaseModelPathResponse
-	22, // [22:35] is the sub-list for method output_type
-	9,  // [9:22] is the sub-list for method input_type
+	27, // 22: llmariner.models.server.v1.ModelsWorkerService.CreateHFModelRepo:input_type -> llmariner.models.server.v1.CreateHFModelRepoRequest
+	29, // 23: llmariner.models.server.v1.ModelsWorkerService.GetHFModelRepo:input_type -> llmariner.models.server.v1.GetHFModelRepoRequest
+	6,  // 24: llmariner.models.server.v1.ModelsService.ListModels:output_type -> llmariner.models.server.v1.ListModelsResponse
+	4,  // 25: llmariner.models.server.v1.ModelsService.GetModel:output_type -> llmariner.models.server.v1.Model
+	9,  // 26: llmariner.models.server.v1.ModelsService.DeleteModel:output_type -> llmariner.models.server.v1.DeleteModelResponse
+	12, // 27: llmariner.models.server.v1.ModelsService.ListBaseModels:output_type -> llmariner.models.server.v1.ListBaseModelsResponse
+	13, // 28: llmariner.models.server.v1.ModelsWorkerService.CreateStorageConfig:output_type -> llmariner.models.server.v1.StorageConfig
+	13, // 29: llmariner.models.server.v1.ModelsWorkerService.GetStorageConfig:output_type -> llmariner.models.server.v1.StorageConfig
+	4,  // 30: llmariner.models.server.v1.ModelsWorkerService.GetModel:output_type -> llmariner.models.server.v1.Model
+	17, // 31: llmariner.models.server.v1.ModelsWorkerService.RegisterModel:output_type -> llmariner.models.server.v1.RegisterModelResponse
+	19, // 32: llmariner.models.server.v1.ModelsWorkerService.PublishModel:output_type -> llmariner.models.server.v1.PublishModelResponse
+	21, // 33: llmariner.models.server.v1.ModelsWorkerService.GetModelPath:output_type -> llmariner.models.server.v1.GetModelPathResponse
+	22, // 34: llmariner.models.server.v1.ModelsWorkerService.GetModelAttributes:output_type -> llmariner.models.server.v1.ModelAttributes
+	11, // 35: llmariner.models.server.v1.ModelsWorkerService.CreateBaseModel:output_type -> llmariner.models.server.v1.BaseModel
+	26, // 36: llmariner.models.server.v1.ModelsWorkerService.GetBaseModelPath:output_type -> llmariner.models.server.v1.GetBaseModelPathResponse
+	28, // 37: llmariner.models.server.v1.ModelsWorkerService.CreateHFModelRepo:output_type -> llmariner.models.server.v1.HFModelRepo
+	28, // 38: llmariner.models.server.v1.ModelsWorkerService.GetHFModelRepo:output_type -> llmariner.models.server.v1.HFModelRepo
+	24, // [24:39] is the sub-list for method output_type
+	9,  // [9:24] is the sub-list for method input_type
 	9,  // [9:9] is the sub-list for extension type_name
 	9,  // [9:9] is the sub-list for extension extendee
 	0,  // [0:9] is the sub-list for field type_name
@@ -2118,6 +2289,42 @@ func file_api_v1_model_manager_service_proto_init() {
 				return nil
 			}
 		}
+		file_api_v1_model_manager_service_proto_msgTypes[24].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*CreateHFModelRepoRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_v1_model_manager_service_proto_msgTypes[25].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*HFModelRepo); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
+		file_api_v1_model_manager_service_proto_msgTypes[26].Exporter = func(v interface{}, i int) interface{} {
+			switch v := v.(*GetHFModelRepoRequest); i {
+			case 0:
+				return &v.state
+			case 1:
+				return &v.sizeCache
+			case 2:
+				return &v.unknownFields
+			default:
+				return nil
+			}
+		}
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
@@ -2125,7 +2332,7 @@ func file_api_v1_model_manager_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: file_api_v1_model_manager_service_proto_rawDesc,
 			NumEnums:      3,
-			NumMessages:   24,
+			NumMessages:   27,
 			NumExtensions: 0,
 			NumServices:   2,
 		},

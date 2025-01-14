@@ -104,6 +104,15 @@ export type GetBaseModelPathResponse = {
     path?: string;
     ggufModelPath?: string;
 };
+export type CreateHFModelRepoRequest = {
+    name?: string;
+};
+export type HFModelRepo = {
+    name?: string;
+};
+export type GetHFModelRepoRequest = {
+    name?: string;
+};
 export declare class ModelsService {
     static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse>;
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
@@ -120,4 +129,6 @@ export declare class ModelsWorkerService {
     static GetModelAttributes(req: GetModelAttributesRequest, initReq?: fm.InitReq): Promise<ModelAttributes>;
     static CreateBaseModel(req: CreateBaseModelRequest, initReq?: fm.InitReq): Promise<BaseModel>;
     static GetBaseModelPath(req: GetBaseModelPathRequest, initReq?: fm.InitReq): Promise<GetBaseModelPathResponse>;
+    static CreateHFModelRepo(req: CreateHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo>;
+    static GetHFModelRepo(req: GetHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo>;
 }

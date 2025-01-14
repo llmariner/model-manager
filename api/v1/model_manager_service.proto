@@ -195,6 +195,18 @@ message GetBaseModelPathResponse {
   // Next ID: 4
 }
 
+message CreateHFModelRepoRequest {
+  string name = 1;
+}
+
+message HFModelRepo {
+  string name = 1;
+}
+
+message GetHFModelRepoRequest {
+  string name = 1;
+}
+
 service ModelsWorkerService {
   // CreateStorageConfig creates a new storage config. Used by model-manager-loader.
   rpc CreateStorageConfig(CreateStorageConfigRequest) returns (StorageConfig) {
@@ -233,4 +245,13 @@ service ModelsWorkerService {
   // inference-manager-engine, and model-manager-loader.
   rpc GetBaseModelPath(GetBaseModelPathRequest) returns (GetBaseModelPathResponse) {
   }
+
+  // CreateHFModelRepo creates a HuggingFace model repo.
+  rpc CreateHFModelRepo(CreateHFModelRepoRequest) returns (HFModelRepo) {
+  }
+
+  // GetHFModelRepo returns the HuggingFace model repo that has been downloaded. Used by model-manager-loader.
+  rpc GetHFModelRepo(GetHFModelRepoRequest) returns (HFModelRepo) {
+  }
+
 }
