@@ -33,7 +33,7 @@ func TestLoadBaseModel(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		[]string{"google/gemma-2b"},
+		nil,
 		nil,
 		"models",
 		"base-models",
@@ -75,7 +75,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		[]string{"google/gemma-2b"},
+		nil,
 		nil,
 		"models",
 		"base-models",
@@ -118,7 +118,7 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		[]string{"meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton"},
+		nil,
 		nil,
 		"models",
 		"base-models",
@@ -158,7 +158,7 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		[]string{"lmstudio-community/phi-4-GGUF"},
+		nil,
 		nil,
 		"models",
 		"base-models",
@@ -198,6 +198,67 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 
 	_, err = mc.GetHFModelRepo(ctx, &mv1.GetHFModelRepoRequest{Name: "lmstudio-community/phi-4-GGUF"})
 	assert.NoError(t, err)
+}
+
+func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{},
+		files: []string{
+			"phi-4-Q3_K_M.gguf",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		nil,
+		nil,
+		"models",
+		"base-models",
+		downloader,
+		true,
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf")
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "lmstudio-community-phi-4-GGUF-phi-4-Q3_K_M.gguf",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF", got.Path)
+	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", got.GgufModelPath)
+
+	// Download another file.
+
+	downloader.files = []string{
+		"phi-4-Q3_K_L.gguf",
+	}
+	s3Client.uploadedKeys = []string{}
+	err = ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf")
+	assert.NoError(t, err)
+
+	want = []string{
+		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err = mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "lmstudio-community-phi-4-GGUF-phi-4-Q3_K_L.gguf",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF", got.Path)
+	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", got.GgufModelPath)
 }
 
 func TestLoadModel_HuggingFace(t *testing.T) {
@@ -288,6 +349,42 @@ func TestToLLMarinerModelID(t *testing.T) {
 	}
 }
 
+func TestSplitHFRepoAndFile(t *testing.T) {
+	tcs := []struct {
+		modelID  string
+		wantRepo string
+		wantFile string
+		wantErr  bool
+	}{
+		{
+			modelID:  "lmstudio-community/phi-4-GGUF",
+			wantRepo: "lmstudio-community/phi-4-GGUF",
+			wantFile: "",
+		},
+		{
+			modelID:  "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
+			wantRepo: "lmstudio-community/phi-4-GGUF",
+			wantFile: "phi-4-Q3_K_L.gguf",
+		},
+		{
+			modelID: "a/b/c/d",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.modelID, func(t *testing.T) {
+			gotRepo, gotFile, err := splitHFRepoAndFile(tc.modelID)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.Equal(t, tc.wantRepo, gotRepo)
+			assert.Equal(t, tc.wantFile, gotFile)
+		})
+	}
+}
+
 type mockS3Client struct {
 	uploadedKeys []string
 }
@@ -302,7 +399,7 @@ type fakeDownloader struct {
 	files []string
 }
 
-func (d *fakeDownloader) download(ctx context.Context, modelName, desDir string) error {
+func (d *fakeDownloader) download(ctx context.Context, modelName, filename string, desDir string) error {
 	for _, d := range d.dirs {
 		if err := os.MkdirAll(filepath.Join(desDir, d), 0755); err != nil {
 			return err

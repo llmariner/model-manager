@@ -21,7 +21,7 @@ import (
 
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
-	download(ctx context.Context, modelName, destDir string) error
+	download(ctx context.Context, modelName, filename, destDir string) error
 }
 
 // NoopModelDownloader is a no-op model downloader.
@@ -257,9 +257,17 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		return err
 	}
 
-	if l.isDownloadingFromHuggingFace {
+	modelIDToDownload, filename, err := splitHFRepoAndFile(modelID)
+	if err != nil {
+		return err
+	}
+
+	// Check if the HF repo has already been downloaded. We need to check if when
+	// a repo contains multiple GGUF files as there is no one-to-one mapping between the repo and
+	// base models.
+	if l.isDownloadingFromHuggingFace && filename == "" {
 		// Check if the corresponding HuggingFace repo has already been downloaded.
-		_, err = l.modelClient.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: modelID})
+		_, err := l.modelClient.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: modelID})
 		if err == nil {
 			l.log.Info("Already HuggingFace model repo exists", "modelID", modelID)
 			return nil
@@ -269,7 +277,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		}
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, modelID, true)
+	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, true)
 	if err != nil {
 		return err
 	}
@@ -293,15 +301,16 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		}); err != nil {
 			return err
 		}
+
+		l.log.Info("Successfully loaded base model", "model", modelID)
 	}
 
-	if l.isDownloadingFromHuggingFace {
-		if _, err = l.modelClient.CreateHFModelRepo(ctx, &v1.CreateHFModelRepoRequest{Name: modelID}); err != nil {
+	if l.isDownloadingFromHuggingFace && filename == "" {
+		if _, err := l.modelClient.CreateHFModelRepo(ctx, &v1.CreateHFModelRepoRequest{Name: modelID}); err != nil {
 			return err
 		}
 	}
 
-	l.log.Info("Successfully loaded base model", "model", modelID)
 	return nil
 }
 
@@ -323,7 +332,7 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 		return err
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, false)
+	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", false)
 	if err != nil {
 		return err
 	}
@@ -359,7 +368,7 @@ type modelInfo struct {
 	formats       []v1.ModelFormat
 }
 
-func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseModel bool) ([]*modelInfo, error) {
+func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string, isBaseModel bool) ([]*modelInfo, error) {
 	log := l.log.WithValues("modelID", modelID)
 	log.Info("Started loading model")
 
@@ -382,7 +391,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 	}()
 
 	log.Info("Downloading model")
-	if err := l.modelDownloader.download(ctx, modelID, tmpDir); err != nil {
+	if err := l.modelDownloader.download(ctx, modelID, filename, tmpDir); err != nil {
 		return nil, err
 	}
 
@@ -459,9 +468,14 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 			formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
 			ggufModelPath = ggufModelPaths[0]
 		}
+
+		id := modelID
+		if filename != "" {
+			id = modelID + "/" + filename
+		}
 		return []*modelInfo{
 			{
-				id:            toLLMarinerModelID(modelID),
+				id:            id,
 				path:          filepath.Join(l.toPathPrefix(isBaseModel), modelID),
 				ggufModelPath: ggufModelPath,
 				formats:       formats,
@@ -479,7 +493,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID string, isBaseMo
 		id := buildModelIDForGGUF(modelID, gpath)
 
 		minfos = append(minfos, &modelInfo{
-			id:            toLLMarinerModelID(id),
+			id:            id,
 			path:          filepath.Join(l.toPathPrefix(isBaseModel), id),
 			ggufModelPath: gpath,
 			formats:       []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF},
@@ -506,4 +520,17 @@ func toLLMarinerModelID(id string) string {
 	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
 	// TODO(kenji): Revisit this.
 	return strings.ReplaceAll(id, "/", "-")
+}
+
+// splitHFRepoAndFile returns the HuggingFace repo name and the filename to be downloaded.
+// If the modelID is of the form "repo/filename", the function returns "repo" and "filename".
+func splitHFRepoAndFile(modelID string) (string, string, error) {
+	l := strings.Split(modelID, "/")
+	if len(l) > 3 {
+		return "", "", fmt.Errorf("unexpected model ID format: %s", modelID)
+	}
+	if len(l) == 3 {
+		return l[0] + "/" + l[1], l[2], nil
+	}
+	return modelID, "", nil
 }
