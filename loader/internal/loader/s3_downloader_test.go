@@ -30,20 +30,46 @@ func TestS3Download(t *testing.T) {
 			"v1/base-models/google/gemma-2b/key2/key3": []byte("object2"),
 		},
 	}
-	ctx := context.Background()
-	d := NewS3Downloader(client, "v1/base-models", testr.New(t))
-	err = d.download(ctx, "google/gemma-2b", destDir)
-	assert.NoError(t, err)
 
-	want := map[string]string{
-		"key0":      "object0",
-		"key1":      "object1",
-		"key2/key3": "object2",
+	tcs := []struct {
+		name      string
+		modelName string
+		filename  string
+		want      map[string]string
+	}{
+		{
+			name:      "download all objects",
+			modelName: "google/gemma-2b",
+			filename:  "",
+			want: map[string]string{
+				"key0":      "object0",
+				"key1":      "object1",
+				"key2/key3": "object2",
+			},
+		},
+		{
+			name:      "download all objects",
+			modelName: "google/gemma-2b",
+			filename:  "key0",
+			want: map[string]string{
+				"key0": "object0",
+			},
+		},
 	}
-	for key, object := range want {
-		b, err := os.ReadFile(filepath.Join(destDir, key))
-		assert.NoError(t, err)
-		assert.Equal(t, object, string(b))
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := context.Background()
+			d := NewS3Downloader(client, "v1/base-models", testr.New(t))
+			err = d.download(ctx, tc.modelName, tc.filename, destDir)
+			assert.NoError(t, err)
+
+			for key, object := range tc.want {
+				b, err := os.ReadFile(filepath.Join(destDir, key))
+				assert.NoError(t, err)
+				assert.Equal(t, object, string(b))
+			}
+		})
 	}
 }
 

@@ -33,17 +33,23 @@ type S3Downloader struct {
 	pathPrefix string
 }
 
-func (d *S3Downloader) download(ctx context.Context, modelName, destDir string) error {
+func (d *S3Downloader) download(ctx context.Context, modelName, filename, destDir string) error {
 	d.log.Info("Downloading the model", "name", modelName)
 
 	var keys []string
+	prefix := filepath.Join(d.pathPrefix, modelName)
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, obj := range page.Contents {
+			if filename != "" && *obj.Key != filepath.Join(prefix, filename) {
+				// Exclude objects that do not match the specified filename.
+				continue
+			}
+
 			keys = append(keys, *obj.Key)
 		}
 		return lastPage
 	}
-	prefix := filepath.Join(d.pathPrefix, modelName)
+
 	// We need to append "/". Otherwise, we will download all objects with the same prefix
 	// (e.g., "google/gemma-2b" will download "google/gemma-2b" and "google/gemma-2b-it").
 	if err := d.s3Client.ListObjectsPages(ctx, prefix+"/", f); err != nil {
