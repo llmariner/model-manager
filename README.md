@@ -68,7 +68,7 @@ You can then hit the endpoint.
 ```bash
 curl http://localhost:8080/v1/models
 
-grpcurl -d '{"base_model": "base", "suffix": "suffix", "tenant_id": "fake-tenant-id"}' -plaintext localhost:8082 list llmoperator.models.server.v1.ModelsInternalService/CreateModel
+grpcurl -d '{"base_model": "base", "suffix": "suffix", "tenant_id": "fake-tenant-id"}' -plaintext localhost:8082 list llmariner.models.server.v1.ModelsInternalService/CreateModel
 ```
 
 # Uploading models to S3 bucket `llmariner-models`
