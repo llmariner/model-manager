@@ -55,6 +55,10 @@ func run(ctx context.Context, c *config.Config) error {
 	logger := stdr.New(log.Default())
 	ctx = logr.NewContext(ctx, logger)
 
+	if err := auth.ValidateClusterRegistrationKey(); err != nil {
+		return err
+	}
+
 	s3c := c.ObjectStore.S3
 	d, err := newModelDownloader(ctx, c)
 	if err != nil {
