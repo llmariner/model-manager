@@ -116,7 +116,7 @@ componentStatusSender:
 # The configration for downloading models.
 downloader:
   # The kind name indicating where the downloader gets models from.
-  # +docs:enum=s3,huggingFace
+  # +docs:enum=s3,huggingFace,ollama
   kind: s3
 
   # TODO(kenji): Switch to llmariner-models
@@ -132,10 +132,15 @@ downloader:
     # The path prefix of the model.
     pathPrefix: v1/base-models
 
-  # The configuration used when get models and base-models from huggingface..
+  # The configuration used when get models and base-models from huggingface.
   huggingFace:
     # The path to the cash directory for the huggingface hub.
     cacheDir: "/home/.cache/huggingface/hub"
+
+  # The configuration used when get models from ollama.
+  ollama:
+    # The port number for ollama server.
+    port: 11434
 
 # Optional Secret configration for the huggingface. If specified, the
 # Secret is loaded as a environment variable (`HUGGING_FACE_HUB_TOKEN`)

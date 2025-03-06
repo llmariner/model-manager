@@ -48,6 +48,10 @@ spec:
           readOnly: true
         - name: tmp
           mountPath: /tmp
+        {{- if eq .Values.downloader.kind "ollama" }}
+        - name: tmp
+          mountPath: /.ollama
+        {{- end }}
         {{- with .Values.volumeMounts }}
         {{- toYaml . | nindent 8 }}
         {{- end }}

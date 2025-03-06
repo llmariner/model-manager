@@ -395,10 +395,11 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		return nil, err
 	}
 
+	keyModelID := strings.ReplaceAll(modelID, ":", "-")
 	toKey := func(path string) string {
 		// Remove the tmpdir path from the path.
 		relativePath := strings.TrimPrefix(path, tmpDir)
-		return filepath.Join(l.toPathPrefix(isBaseModel), modelID, relativePath)
+		return filepath.Join(l.toPathPrefix(isBaseModel), keyModelID, relativePath)
 	}
 
 	var (
@@ -406,12 +407,17 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		ggufModelPaths           []string
 		hasHuggingFaceConfigJSON bool
 		hasTensorRTLLMConfig     bool
+		hasOllamaLayerDir        bool
 	)
 	if err := filepath.Walk(tmpDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
+
 		if info.IsDir() {
+			if info.Name() == "blobs" {
+				hasOllamaLayerDir = true
+			}
 			return nil
 		}
 
@@ -452,6 +458,16 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		if err := r.Close(); err != nil {
 			return nil, err
 		}
+	}
+
+	if hasOllamaLayerDir {
+		return []*modelInfo{
+			{
+				id:      modelID,
+				path:    filepath.Join(l.toPathPrefix(isBaseModel), keyModelID),
+				formats: []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA},
+			},
+		}, nil
 	}
 
 	var formats []v1.ModelFormat
@@ -519,7 +535,7 @@ func buildModelIDForGGUF(modelID, ggufModelFilePath string) string {
 func toLLMarinerModelID(id string) string {
 	// HuggingFace uses '/" as a separator, but Ollama does not accept. Use '-' instead for now.
 	// TODO(kenji): Revisit this.
-	return strings.ReplaceAll(id, "/", "-")
+	return strings.ReplaceAll(strings.ReplaceAll(id, "/", "-"), ":", "-")
 }
 
 // splitHFRepoAndFile returns the HuggingFace repo name and the filename to be downloaded.

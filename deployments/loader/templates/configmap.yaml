@@ -29,6 +29,8 @@ data:
         pathPrefix: {{ .Values.downloader.s3.pathPrefix }}
       huggingFace:
         cacheDir: {{ .Values.downloader.huggingFace.cacheDir }}
+      ollama:
+        port: {{ .Values.downloader.ollama.port }}
     {{- with .Values.baseModels }}
     baseModels:
     {{- toYaml . | nindent 4 }}

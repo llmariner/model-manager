@@ -1,3 +1,4 @@
+FROM --platform=$BUILDPLATFORM ollama/ollama AS ollama
 FROM --platform=$BUILDPLATFORM golang:1.23 AS builder
 ARG TARGETARCH
 
@@ -20,7 +21,7 @@ ARG TARGETARCH
 WORKDIR /run
 
 COPY --from=builder /workspace/bin/loader .
-
+COPY --from=ollama /usr/bin/ollama /usr/local/bin/
 RUN pip install -U "huggingface_hub[cli]"
 
 ENTRYPOINT ["./loader"]
