@@ -1,7 +1,12 @@
+SERVER_IMAGE ?= llmariner/model-manager-server
+LOADER_IMAGE ?= llmariner/model-manager-loader
+TAG ?= latest
+
 .PHONY: default
 default: test
 
 include common.mk
+include provision.mk
 
 .PHONY: test
 test: go-test-all
@@ -22,11 +27,11 @@ build-loader:
 
 .PHONY: build-docker-server
 build-docker-server:
-	docker build --build-arg TARGETARCH=amd64 -t llmariner/model-manager-server:latest -f build/server/Dockerfile .
+	docker build --build-arg TARGETARCH=amd64 -t $(SERVER_IMAGE):$(TAG) -f build/server/Dockerfile .
 
 .PHONY: build-docker-loader
 build-docker-loader:
-	docker build --build-arg TARGETARCH=amd64 -t llmariner/model-manager-loader:latest -f build/loader/Dockerfile .
+	docker build --build-arg TARGETARCH=amd64 -t $(LOADER_IMAGE):$(TAG) -f build/loader/Dockerfile .
 
 .PHONY: build-docker-convert-gguf
 build-docker-convert-gguf:
