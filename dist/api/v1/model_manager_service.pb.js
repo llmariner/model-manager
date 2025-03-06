@@ -10,6 +10,7 @@ export var ModelFormat;
     ModelFormat["MODEL_FORMAT_GGUF"] = "MODEL_FORMAT_GGUF";
     ModelFormat["MODEL_FORMAT_HUGGING_FACE"] = "MODEL_FORMAT_HUGGING_FACE";
     ModelFormat["MODEL_FORMAT_NVIDIA_TRITON"] = "MODEL_FORMAT_NVIDIA_TRITON";
+    ModelFormat["MODEL_FORMAT_OLLAMA"] = "MODEL_FORMAT_OLLAMA";
 })(ModelFormat || (ModelFormat = {}));
 export var AdapterType;
 (function (AdapterType) {

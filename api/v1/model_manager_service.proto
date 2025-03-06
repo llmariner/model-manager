@@ -16,6 +16,7 @@ enum ModelFormat {
   // of the original model, compiled model files for TensorRT-LLM backend, and configuration files for
   // Triton Inference Server.
   MODEL_FORMAT_NVIDIA_TRITON = 3;
+  MODEL_FORMAT_OLLAMA = 4;
 }
 
 // ModelFormats is a list of model formats. Used to store marshalled data into a store.
