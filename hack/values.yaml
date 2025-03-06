@@ -1,0 +1,36 @@
+tags:
+  tenant-control-plane: false
+  control-plane: false
+  worker: false
+
+global:
+  auth:
+    enable: false
+  usageSender:
+    enable: false
+
+prepare:
+  redis:
+    createSecret: false
+  workerRegistration:
+    createSecret: true
+    secret:
+      key: default-cluster-registration-key-secret
+
+model-manager-server:
+  enable: true
+  version: latest
+  image:
+    repository: llmariner/model-manager-server
+    pullPolicy: Never
+
+model-manager-loader:
+  enable: true
+  componentStatusSender:
+    enable: false
+  baseModels:
+  - google/gemma-2b-it-q4_0
+  version: latest
+  image:
+    repository: llmariner/model-manager-loader
+    pullPolicy: Never
