@@ -85,6 +85,11 @@ type S3DownloaderConfig struct {
 	PathPrefix  string `yaml:"pathPrefix"`
 }
 
+// OllamaDownloaderConfig is the Ollama downloader configuration.
+type OllamaDownloaderConfig struct {
+	Port int `yaml:"port"`
+}
+
 // DownloaderKind is the downloader kind.
 type DownloaderKind string
 
@@ -93,6 +98,8 @@ const (
 	DownloaderKindS3 DownloaderKind = "s3"
 	// DownloaderKindHuggingFace is the Hugging Face downloader kind.
 	DownloaderKindHuggingFace DownloaderKind = "huggingFace"
+	// DownloaderKindOllama is the Ollama downloader kind.
+	DownloaderKindOllama DownloaderKind = "ollama"
 )
 
 // DownloaderConfig is the downloader configuration.
@@ -101,6 +108,7 @@ type DownloaderConfig struct {
 
 	HuggingFace HuggingFaceDownloaderConfig `yaml:"huggingFace"`
 	S3          S3DownloaderConfig          `yaml:"s3"`
+	Ollama      OllamaDownloaderConfig      `yaml:"ollama"`
 }
 
 // validate validates the downloader configuration.
@@ -122,6 +130,10 @@ func (c *DownloaderConfig) validate() error {
 	case DownloaderKindHuggingFace:
 		if c.HuggingFace.CacheDir == "" {
 			return fmt.Errorf("cacheDir must be set")
+		}
+	case DownloaderKindOllama:
+		if c.Ollama.Port == 0 {
+			return fmt.Errorf("port must be set")
 		}
 	default:
 		return fmt.Errorf("unknown kind: %s", c.Kind)

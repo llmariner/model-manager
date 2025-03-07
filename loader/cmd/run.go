@@ -154,6 +154,8 @@ func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDown
 		return loader.NewS3Downloader(s3Client, c.Downloader.S3.PathPrefix, logger), nil
 	case config.DownloaderKindHuggingFace:
 		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir, logger), nil
+	case config.DownloaderKindOllama:
+		return loader.NewOllamaDownloader(c.Downloader.Ollama.Port, logger), nil
 	default:
 		return nil, fmt.Errorf("unknown downloader kind: %s", c.Downloader.Kind)
 	}

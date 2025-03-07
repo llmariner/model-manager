@@ -103,6 +103,52 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	assert.Empty(t, got.GgufModelPath)
 }
 
+func TestLoadBaseModel_Ollama(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{
+			"blobs",
+			"manifests/registry.ollama.ai/library/gemma",
+		},
+		files: []string{
+			"manifests/registry.ollama.ai/library/gemma/2b",
+			"blobs/sha256-1234",
+			"blobs/sha256-5678",
+			"blobs/sha256-abcd",
+		},
+	}
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		nil,
+		nil,
+		"models",
+		"base-models",
+		downloader,
+		false,
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	err := ld.loadBaseModel(context.Background(), "gemma:2b")
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/gemma-2b/blobs/sha256-1234",
+		"models/base-models/gemma-2b/blobs/sha256-5678",
+		"models/base-models/gemma-2b/blobs/sha256-abcd",
+		"models/base-models/gemma-2b/manifests/registry.ollama.ai/library/gemma/2b",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+		Id: "gemma-2b",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA}, got.Formats)
+	assert.Equal(t, "models/base-models/gemma-2b", got.Path)
+	assert.Empty(t, got.GgufModelPath)
+}
+
 func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	downloader := &fakeDownloader{
 		dirs: []string{

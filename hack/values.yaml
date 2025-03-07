@@ -28,8 +28,10 @@ model-manager-loader:
   enable: true
   componentStatusSender:
     enable: false
+  downloader:
+    kind: ollama
   baseModels:
-  - google/gemma-2b-it-q4_0
+  - gemma:2b
   version: latest
   image:
     repository: llmariner/model-manager-loader
