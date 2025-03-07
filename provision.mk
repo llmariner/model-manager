@@ -1,6 +1,11 @@
 LLMA_REPO ?= https://github.com/llmariner/llmariner.git
 CLONE_PATH ?= work
 
+.PHONY: reapply-model-server
+reapply-model-server: load-server-image helm-apply-llma rollout-model-server
+.PHONY: reapply-model-loader
+reapply-model-loader: load-loader-image helm-apply-llma rollout-model-loader
+
 # ------------------------------------------------------------------------------
 # chart repository
 # ------------------------------------------------------------------------------
