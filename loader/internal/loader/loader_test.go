@@ -445,14 +445,14 @@ type fakeDownloader struct {
 	files []string
 }
 
-func (d *fakeDownloader) download(ctx context.Context, modelName, filename string, desDir string) error {
+func (d *fakeDownloader) download(ctx context.Context, modelName, filename string, destDir string) error {
 	for _, d := range d.dirs {
-		if err := os.MkdirAll(filepath.Join(desDir, d), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Join(destDir, d), 0755); err != nil {
 			return err
 		}
 	}
 	for _, f := range d.files {
-		file, err := os.Create(filepath.Join(desDir, f))
+		file, err := os.Create(filepath.Join(destDir, f))
 		if err != nil {
 			return err
 		}
