@@ -43,7 +43,7 @@ func (h *HuggingFaceDownloader) download(ctx context.Context, modelName, filenam
 		"--quiet",
 	)
 	h.log.Info("Downloading the image with command", "cmd", cmdline)
-	cmd := exec.Command(cmdline[0], cmdline[1:]...)
+	cmd := exec.CommandContext(ctx, cmdline[0], cmdline[1:]...)
 	var errb bytes.Buffer
 	cmd.Stderr = &errb
 	if err := cmd.Run(); err != nil {
