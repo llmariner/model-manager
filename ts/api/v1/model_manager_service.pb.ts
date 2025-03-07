@@ -34,7 +34,7 @@ export type Model = {
   id?: string
   created?: string
   object?: string
-  ownedBy?: string
+  owned_by?: string
 }
 
 export type ListModelsRequest = {
@@ -74,11 +74,11 @@ export type ListBaseModelsResponse = {
 }
 
 export type StorageConfig = {
-  pathPrefix?: string
+  path_prefix?: string
 }
 
 export type CreateStorageConfigRequest = {
-  pathPrefix?: string
+  path_prefix?: string
 }
 
 export type GetStorageConfigRequest = {
@@ -86,10 +86,10 @@ export type GetStorageConfigRequest = {
 
 export type RegisterModelRequest = {
   id?: string
-  baseModel?: string
+  base_model?: string
   suffix?: string
-  organizationId?: string
-  projectId?: string
+  organization_id?: string
+  project_id?: string
   adapter?: AdapterType
   quantization?: QuantizationType
   path?: string
@@ -117,7 +117,7 @@ export type GetModelPathResponse = {
 
 export type ModelAttributes = {
   path?: string
-  baseModel?: string
+  base_model?: string
   adapter?: AdapterType
   quantization?: QuantizationType
 }
@@ -130,7 +130,7 @@ export type CreateBaseModelRequest = {
   id?: string
   path?: string
   formats?: ModelFormat[]
-  ggufModelPath?: string
+  gguf_model_path?: string
 }
 
 export type GetBaseModelPathRequest = {
@@ -140,7 +140,7 @@ export type GetBaseModelPathRequest = {
 export type GetBaseModelPathResponse = {
   formats?: ModelFormat[]
   path?: string
-  ggufModelPath?: string
+  gguf_model_path?: string
 }
 
 export type CreateHFModelRepoRequest = {
