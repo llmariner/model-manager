@@ -141,7 +141,7 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
 	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
-		Id: "gemma-2b",
+		Id: "gemma:2b",
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA}, got.Formats)
