@@ -534,9 +534,8 @@ func buildModelIDForGGUF(modelID, ggufModelFilePath string) string {
 
 func toLLMarinerModelID(id string) string {
 	// HuggingFace uses '/' as a separator, but Ollama does not accept. Use '-' instead for now.
-	// Ollama uses ':' as a separator, it cannot be used for bucket name. Use '-' instead.
 	// TODO(kenji): Revisit this.
-	return strings.ReplaceAll(strings.ReplaceAll(id, "/", "-"), ":", "-")
+	return strings.ReplaceAll(id, "/", "-")
 }
 
 // splitHFRepoAndFile returns the HuggingFace repo name and the filename to be downloaded.
