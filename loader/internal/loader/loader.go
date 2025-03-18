@@ -485,6 +485,10 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 			ggufModelPath = ggufModelPaths[0]
 		}
 
+		if len(formats) == 0 {
+			return nil, fmt.Errorf("no model format found")
+		}
+
 		id := modelID
 		if filename != "" {
 			id = modelID + "/" + filename

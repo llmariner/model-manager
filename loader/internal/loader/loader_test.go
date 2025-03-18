@@ -359,6 +359,31 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 	assert.Equal(t, "models/default-tenant-id/abc/lora1", ret.Path)
 }
 
+func TestLoadModel_InvalidFileFormat(t *testing.T) {
+	downloader := &fakeDownloader{
+		files: []string{
+			"file.txt",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		nil,
+		nil,
+		"models",
+		"base-models",
+		downloader,
+		false,
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
+	assert.Error(t, err)
+}
+
 func TestBuildModelIDForGGUF(t *testing.T) {
 	tcs := []struct {
 		modelID           string
