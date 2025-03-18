@@ -28,6 +28,13 @@ data:
         bucket: {{ .Values.downloader.s3.bucket }}
         pathPrefix: {{ .Values.downloader.s3.pathPrefix }}
         isPublic: {{ .Values.downloader.s3.isPublic }}
+        {{- with .Values.downloader.s3.assumeRole }}
+        {{- if .roleArn }}
+        assumeRole:
+          roleArn: {{ .roleArn }}
+          externalId: {{ .externalId }}
+        {{- end }}
+        {{- end }}
       huggingFace:
         cacheDir: {{ .Values.downloader.huggingFace.cacheDir }}
       ollama:

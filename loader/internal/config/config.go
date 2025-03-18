@@ -79,6 +79,8 @@ type S3DownloaderConfig struct {
 	Bucket      string `yaml:"bucket"`
 	PathPrefix  string `yaml:"pathPrefix"`
 	IsPublic    bool   `yaml:"isPublic"`
+
+	AssumeRole *AssumeRoleConfig `yaml:"assumeRole"`
 }
 
 // OllamaDownloaderConfig is the Ollama downloader configuration.
@@ -111,9 +113,6 @@ type DownloaderConfig struct {
 func (c *DownloaderConfig) validate() error {
 	switch c.Kind {
 	case DownloaderKindS3:
-		if c.S3.EndpointURL == "" {
-			return fmt.Errorf("endpointUrl must be set")
-		}
 		if c.S3.Region == "" {
 			return fmt.Errorf("region must be set")
 		}
@@ -122,6 +121,11 @@ func (c *DownloaderConfig) validate() error {
 		}
 		if c.S3.PathPrefix == "" {
 			return fmt.Errorf("pathPrefix must be set")
+		}
+		if ar := c.S3.AssumeRole; ar != nil {
+			if err := ar.validate(); err != nil {
+				return fmt.Errorf("assumeRole: %s", err)
+			}
 		}
 	case DownloaderKindHuggingFace:
 		if c.HuggingFace.CacheDir == "" {

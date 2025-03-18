@@ -123,7 +123,7 @@ downloader:
 
   # The configuration used when get models and base-models from s3.
   s3:
-    # The s3 endpoint URL.
+    # The s3 endpoint URL. Optional.
     endpointUrl: https://s3.us-west-2.amazonaws.com
     # The region name where the models are stored.
     region: us-west-2
@@ -134,6 +134,12 @@ downloader:
     # Set to true if the bucket is public and we don't want to
     # use the credential attached to the pod.
     isPublic: true
+    # Optional AssumeRole.
+    # For more information, see [AssumeRole](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
+    # +docs:property
+    # assumeRole:
+    #   roleArn: ""
+    #   externalId: ""
 
   # The configuration used when get models and base-models from huggingface.
   huggingFace:
