@@ -139,19 +139,20 @@ func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDown
 	logger := logr.FromContextOrDiscard(ctx)
 	switch c.Downloader.Kind {
 	case config.DownloaderKindS3:
+		s3c := c.Downloader.S3
 		s3Client, err := s3.NewClient(ctx, laws.NewS3ClientOptions{
-			EndpointURL: c.Downloader.S3.EndpointURL,
-			Region:      c.Downloader.S3.Region,
-			// Use anonymous credentials as the S3 bucket is public and we don't want to use the credential that is
+			EndpointURL: s3c.EndpointURL,
+			Region:      s3c.Region,
+			// Use anonymous credentials when the S3 bucket is public and we don't want to use the credential that is
 			// used to upload the model.
-			UseAnonymousCredentials: true,
+			UseAnonymousCredentials: s3c.IsPublic,
 		},
-			c.Downloader.S3.Bucket,
+			s3c.Bucket,
 		)
 		if err != nil {
 			return nil, err
 		}
-		return loader.NewS3Downloader(s3Client, c.Downloader.S3.PathPrefix, logger), nil
+		return loader.NewS3Downloader(s3Client, s3c.PathPrefix, logger), nil
 	case config.DownloaderKindHuggingFace:
 		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir, logger), nil
 	case config.DownloaderKindOllama:

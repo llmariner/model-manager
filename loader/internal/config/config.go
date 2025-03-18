@@ -78,6 +78,7 @@ type S3DownloaderConfig struct {
 	Region      string `yaml:"region"`
 	Bucket      string `yaml:"bucket"`
 	PathPrefix  string `yaml:"pathPrefix"`
+	IsPublic    bool   `yaml:"isPublic"`
 }
 
 // OllamaDownloaderConfig is the Ollama downloader configuration.

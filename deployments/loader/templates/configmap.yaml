@@ -27,6 +27,7 @@ data:
         region: {{ .Values.downloader.s3.region }}
         bucket: {{ .Values.downloader.s3.bucket }}
         pathPrefix: {{ .Values.downloader.s3.pathPrefix }}
+        isPublic: {{ .Values.downloader.s3.isPublic }}
       huggingFace:
         cacheDir: {{ .Values.downloader.huggingFace.cacheDir }}
       ollama:
