@@ -103,17 +103,34 @@ func (s *S) DeleteModel(
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
-		// Do nothing
-	} else {
-		return nil, status.Errorf(codes.InvalidArgument, "base model %q cannot be deleted", req.Id)
+
+		// The specified model is not a base-model or the base-model has already been deleted.
+		if err := s.store.DeleteModel(req.Id, userInfo.ProjectID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+			}
+			return nil, status.Errorf(codes.Internal, "delete model: %s", err)
+		}
+
+		return &v1.DeleteModelResponse{
+			Id:      req.Id,
+			Object:  "model",
+			Deleted: true,
+		}, nil
 	}
 
-	if err := s.store.DeleteModel(req.Id, userInfo.ProjectID); err != nil {
+	// The specified model is a base-model. Delete it.
+	//
+	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
+	// so we should have additional check here.
+	//
+	if err := s.store.DeleteBaseModel(req.Id, userInfo.TenantID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
 		return nil, status.Errorf(codes.Internal, "delete model: %s", err)
 	}
+
 	return &v1.DeleteModelResponse{
 		Id:      req.Id,
 		Object:  "model",

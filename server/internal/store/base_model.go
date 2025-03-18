@@ -60,6 +60,18 @@ func (s *S) CreateBaseModel(
 	return m, nil
 }
 
+// DeleteBaseModel deletes a base model by model ID and tenant ID.
+func (s *S) DeleteBaseModel(modelID, tenantID string) error {
+	res := s.db.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
+	if err := res.Error; err != nil {
+		return err
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
 // GetBaseModel returns a base model by model ID and tenant ID.
 func (s *S) GetBaseModel(modelID, tenantID string) (*BaseModel, error) {
 	var m BaseModel
