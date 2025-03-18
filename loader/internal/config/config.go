@@ -11,11 +11,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// baseModelsEnv is the environment variable for the base models.
-// If set, the environment variable is used instead of the value in the configuration file.
-// The value is a comma-separated list of base models.
-const baseModelsEnv = "BASE_MODELS"
-
 // AssumeRoleConfig is the assume role configuration.
 type AssumeRoleConfig struct {
 	RoleARN    string `yaml:"roleArn"`
@@ -264,10 +259,6 @@ func Parse(path string) (Config, error) {
 
 	if err = yaml.Unmarshal(b, &config); err != nil {
 		return config, fmt.Errorf("config: unmarshal: %s", err)
-	}
-
-	if val := os.Getenv(baseModelsEnv); val != "" {
-		config.BaseModels = strings.Split(val, ",")
 	}
 
 	return config, nil
