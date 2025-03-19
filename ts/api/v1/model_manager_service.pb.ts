@@ -56,6 +56,11 @@ export type Model = {
   loading_failure_reason?: string
 }
 
+export type CreateModelRequest = {
+  id?: string
+  source_repository?: SourceRepository
+}
+
 export type ListModelsRequest = {
   include_loading_models?: boolean
 }
@@ -186,6 +191,9 @@ export class ModelsService {
   }
   static DeleteModel(req: DeleteModelRequest, initReq?: fm.InitReq): Promise<DeleteModelResponse> {
     return fm.fetchReq<DeleteModelRequest, DeleteModelResponse>(`/v1/models/${req["id"]}`, {...initReq, method: "DELETE"})
+  }
+  static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model> {
+    return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static ListBaseModels(req: ListBaseModelsRequest, initReq?: fm.InitReq): Promise<ListBaseModelsResponse> {
     return fm.fetchReq<ListBaseModelsRequest, ListBaseModelsResponse>(`/v1/basemodels?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})

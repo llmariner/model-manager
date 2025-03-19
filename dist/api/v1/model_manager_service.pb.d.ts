@@ -42,6 +42,10 @@ export type Model = {
     source_repository?: SourceRepository;
     loading_failure_reason?: string;
 };
+export type CreateModelRequest = {
+    id?: string;
+    source_repository?: SourceRepository;
+};
 export type ListModelsRequest = {
     include_loading_models?: boolean;
 };
@@ -139,6 +143,7 @@ export declare class ModelsService {
     static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse>;
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
     static DeleteModel(req: DeleteModelRequest, initReq?: fm.InitReq): Promise<DeleteModelResponse>;
+    static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model>;
     static ListBaseModels(req: ListBaseModelsRequest, initReq?: fm.InitReq): Promise<ListBaseModelsResponse>;
 }
 export declare class ModelsWorkerService {

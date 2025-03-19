@@ -70,6 +70,37 @@
         "tags": [
           "ModelsService"
         ]
+      },
+      "post": {
+        "summary": "CreateModel creates a new base model. The model becomes available once\nits model file is loaded to an object store.",
+        "operationId": "ModelsService_CreateModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Model"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateModelRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ModelsService"
+        ]
       }
     },
     "/v1/models/{id}": {
@@ -187,6 +218,17 @@
         },
         "object": {
           "type": "string"
+        }
+      }
+    },
+    "v1CreateModelRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "sourceRepository": {
+          "$ref": "#/definitions/v1SourceRepository"
         }
       }
     },
