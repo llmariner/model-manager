@@ -64,5 +64,28 @@ func TestBaseModel_UniqueConstraint(t *testing.T) {
 
 	_, err = st.CreateBaseModel("m1", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", "t0")
 	assert.NoError(t, err)
+}
 
+func TestDeleteBaseModel(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID  = "m0"
+		tenantID = "t0"
+	)
+
+	_, err := st.CreateBaseModel(modelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", tenantID)
+	assert.NoError(t, err)
+
+	err = st.DeleteBaseModel(modelID, tenantID)
+	assert.NoError(t, err)
+
+	_, err = st.GetBaseModel(modelID, tenantID)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+
+	err = st.DeleteBaseModel(modelID, tenantID)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }

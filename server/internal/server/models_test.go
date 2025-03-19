@@ -72,8 +72,17 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
 	})
+	assert.NoError(t, err)
+
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: "m0",
+	})
 	assert.Error(t, err)
-	assert.Equal(t, codes.InvalidArgument, status.Code(err))
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	listResp, err := srv.ListModels(ctx, &v1.ListModelsRequest{})
+	assert.NoError(t, err)
+	assert.Len(t, listResp.Data, 0)
 }
 
 func TestGetAndListModels(t *testing.T) {
