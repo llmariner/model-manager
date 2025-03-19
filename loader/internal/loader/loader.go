@@ -163,8 +163,6 @@ func (c *FakeModelClient) GetHFModelRepo(ctx context.Context, in *mv1.GetHFModel
 
 // New creates a new loader.
 func New(
-	baseModels []string,
-	models []config.ModelConfig,
 	objectStorePathPrefix string,
 	baseModelPathPrefix string,
 	modelDownloader ModelDownloader,
@@ -174,8 +172,6 @@ func New(
 	log logr.Logger,
 ) *L {
 	return &L{
-		baseModels:                   baseModels,
-		models:                       models,
 		objectStorePathPrefix:        objectStorePathPrefix,
 		baseModelPathPrefix:          baseModelPathPrefix,
 		modelDownloader:              modelDownloader,
@@ -189,10 +185,6 @@ func New(
 
 // L is a loader.
 type L struct {
-	baseModels []string
-
-	models []config.ModelConfig
-
 	// objectStorePathPrefix is the prefix of the path to the base and non-base models in the object stoer.
 	objectStorePathPrefix string
 	baseModelPathPrefix   string
@@ -210,8 +202,13 @@ type L struct {
 }
 
 // Run runs the loader.
-func (l *L) Run(ctx context.Context, interval time.Duration) error {
-	if err := l.LoadModels(ctx); err != nil {
+func (l *L) Run(
+	ctx context.Context,
+	baseModels []string,
+	models []config.ModelConfig,
+	interval time.Duration,
+) error {
+	if err := l.LoadModels(ctx, baseModels, models); err != nil {
 		return err
 	}
 
@@ -221,7 +218,8 @@ func (l *L) Run(ctx context.Context, interval time.Duration) error {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			if err := l.LoadModels(ctx); err != nil {
+			// TODO(kenji): Change this to dynamic model loading.
+			if err := l.LoadModels(ctx, baseModels, models); err != nil {
 				return err
 			}
 		}
@@ -229,13 +227,17 @@ func (l *L) Run(ctx context.Context, interval time.Duration) error {
 }
 
 // LoadModels loads base and non-base models.
-func (l *L) LoadModels(ctx context.Context) error {
-	for _, baseModel := range l.baseModels {
+func (l *L) LoadModels(
+	ctx context.Context,
+	baseModels []string,
+	models []config.ModelConfig,
+) error {
+	for _, baseModel := range baseModels {
 		if err := l.loadBaseModel(ctx, baseModel); err != nil {
 			return err
 		}
 	}
-	for _, m := range l.models {
+	for _, m := range models {
 		if err := l.loadModel(ctx, m); err != nil {
 			return err
 		}

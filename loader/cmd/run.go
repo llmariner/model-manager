@@ -85,8 +85,6 @@ func run(ctx context.Context, c *config.Config) error {
 		return err
 	}
 	s := loader.New(
-		c.BaseModels,
-		c.Models,
 		s3c.PathPrefix,
 		s3c.BaseModelPathPrefix,
 		d,
@@ -97,7 +95,7 @@ func run(ctx context.Context, c *config.Config) error {
 	)
 
 	if c.RunOnce {
-		return s.LoadModels(ctx)
+		return s.LoadModels(ctx, c.BaseModels, c.Models)
 	}
 
 	ss, err := cmstatus.NewBeaconSender(c.ComponentStatusSender, grpcOption(c), logger)
@@ -106,7 +104,7 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error { return s.Run(ctx, c.ModelLoadInterval) })
+	eg.Go(func() error { return s.Run(ctx, c.BaseModels, c.Models, c.ModelLoadInterval) })
 	if c.ComponentStatusSender.Enable {
 		eg.Go(func() error {
 			ss.Run(ctx)

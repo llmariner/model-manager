@@ -33,8 +33,6 @@ func TestLoadBaseModel(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
@@ -75,8 +73,6 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
@@ -119,8 +115,6 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
@@ -164,8 +158,6 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
@@ -204,8 +196,6 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
@@ -257,8 +247,6 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
@@ -318,14 +306,6 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		[]config.ModelConfig{
-			{
-				Model:       "abc/lora1",
-				BaseModel:   "google/gemma-2b",
-				AdapterType: "lora",
-			},
-		},
 		"models",
 		"base-models",
 		downloader,
@@ -335,7 +315,11 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadModel(context.Background(), ld.models[0])
+	err := ld.loadModel(context.Background(), config.ModelConfig{
+		Model:       "abc/lora1",
+		BaseModel:   "google/gemma-2b",
+		AdapterType: "lora",
+	})
 	assert.NoError(t, err)
 
 	want := []string{
@@ -369,8 +353,6 @@ func TestLoadModel_InvalidFileFormat(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
-		nil,
-		nil,
 		"models",
 		"base-models",
 		downloader,
