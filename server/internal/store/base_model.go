@@ -62,7 +62,7 @@ func (s *S) CreateBaseModel(
 
 // DeleteBaseModel deletes a base model by model ID and tenant ID.
 func (s *S) DeleteBaseModel(modelID, tenantID string) error {
-	res := s.db.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
+	res := s.db.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
 	if err := res.Error; err != nil {
 		return err
 	}
