@@ -373,7 +373,9 @@ func (s *WS) CreateBaseModel(
 		}
 	}
 
-	m, err := s.store.CreateBaseModel(req.Id, req.Path, formats, req.GgufModelPath, clusterInfo.TenantID)
+	// Note: We skip the validation of source repository for backward compatibility.
+
+	m, err := s.store.CreateBaseModel(req.Id, req.Path, formats, req.GgufModelPath, req.SourceRepository, clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
 	}
@@ -442,19 +444,23 @@ func (s *WS) genenerateModelID(baseModel, suffix string) (string, error) {
 
 func toModelProto(m *store.Model) *v1.Model {
 	return &v1.Model{
-		Id:      m.ModelID,
-		Object:  "model",
-		Created: m.CreatedAt.UTC().Unix(),
-		OwnedBy: "user",
+		Id:               m.ModelID,
+		Object:           "model",
+		Created:          m.CreatedAt.UTC().Unix(),
+		OwnedBy:          "user",
+		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
 	}
 }
 
 func baseToModelProto(m *store.BaseModel) *v1.Model {
 	return &v1.Model{
-		Id:      m.ModelID,
-		Object:  "model",
-		Created: m.CreatedAt.UTC().Unix(),
-		OwnedBy: "system",
+		Id:               m.ModelID,
+		Object:           "model",
+		Created:          m.CreatedAt.UTC().Unix(),
+		OwnedBy:          "system",
+		LoadingStatus:    m.LoadingStatus,
+		SourceRepository: m.SourceRepository,
 	}
 }
 

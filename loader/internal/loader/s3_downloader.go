@@ -10,6 +10,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
 	"github.com/go-logr/logr"
+	v1 "github.com/llmariner/model-manager/api/v1"
 )
 
 type s3Client interface {
@@ -87,4 +88,8 @@ func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destD
 	}
 
 	return nil
+}
+
+func (d *S3Downloader) sourceRepository() v1.SourceRepository {
+	return v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
 }

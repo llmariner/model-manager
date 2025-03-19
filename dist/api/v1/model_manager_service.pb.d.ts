@@ -6,6 +6,20 @@ export declare enum ModelFormat {
     MODEL_FORMAT_NVIDIA_TRITON = "MODEL_FORMAT_NVIDIA_TRITON",
     MODEL_FORMAT_OLLAMA = "MODEL_FORMAT_OLLAMA"
 }
+export declare enum ModelLoadingStatus {
+    MODEL_LOADING_STATUS_UNSPECIFIED = "MODEL_LOADING_STATUS_UNSPECIFIED",
+    MODEL_LOADING_STATUS_REQUESTED = "MODEL_LOADING_STATUS_REQUESTED",
+    MODEL_LOADING_STATUS_LOADING = "MODEL_LOADING_STATUS_LOADING",
+    MODEL_LOADING_STATUS_SUCCEEDED = "MODEL_LOADING_STATUS_SUCCEEDED",
+    MODEL_LOADING_STATUS_FAILED = "MODEL_LOADING_STATUS_FAILED"
+}
+export declare enum SourceRepository {
+    SOURCE_REPOSITORY_UNSPECIFIED = "SOURCE_REPOSITORY_UNSPECIFIED",
+    SOURCE_REPOSITORY_OBJECT_STORE = "SOURCE_REPOSITORY_OBJECT_STORE",
+    SOURCE_REPOSITORY_HUGGING_FACE = "SOURCE_REPOSITORY_HUGGING_FACE",
+    SOURCE_REPOSITORY_OLLAMA = "SOURCE_REPOSITORY_OLLAMA",
+    SOURCE_REPOSITORY_FINE_TUNING = "SOURCE_REPOSITORY_FINE_TUNING"
+}
 export declare enum AdapterType {
     ADAPTER_TYPE_UNSPECIFIED = "ADAPTER_TYPE_UNSPECIFIED",
     ADAPTER_TYPE_LORA = "ADAPTER_TYPE_LORA",
@@ -24,6 +38,8 @@ export type Model = {
     created?: string;
     object?: string;
     owned_by?: string;
+    loading_status?: ModelLoadingStatus;
+    source_repository?: SourceRepository;
 };
 export type ListModelsRequest = {};
 export type ListModelsResponse = {
@@ -96,6 +112,7 @@ export type CreateBaseModelRequest = {
     path?: string;
     formats?: ModelFormat[];
     gguf_model_path?: string;
+    source_repository?: SourceRepository;
 };
 export type GetBaseModelPathRequest = {
     id?: string;

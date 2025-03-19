@@ -469,3 +469,7 @@ func (d *fakeDownloader) download(ctx context.Context, modelName, filename strin
 	}
 	return nil
 }
+
+func (d *fakeDownloader) sourceRepository() mv1.SourceRepository {
+	return mv1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
+}

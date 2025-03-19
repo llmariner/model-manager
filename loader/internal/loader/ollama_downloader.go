@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
+	v1 "github.com/llmariner/model-manager/api/v1"
 )
 
 // NewOllamaDownloader creates a new OllamaDownloader.
@@ -85,4 +86,8 @@ func (o *OllamaDownloader) runCommand(ctx context.Context, args ...string) error
 	}
 	o.log.Info("Ollama command completed", "args", args)
 	return nil
+}
+
+func (o *OllamaDownloader) sourceRepository() v1.SourceRepository {
+	return v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA
 }

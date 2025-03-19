@@ -22,6 +22,7 @@ import (
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
 	download(ctx context.Context, modelName, filename, destDir string) error
+	sourceRepository() v1.SourceRepository
 }
 
 // NoopModelDownloader is a no-op model downloader.
@@ -30,6 +31,10 @@ type NoopModelDownloader struct {
 
 func (d *NoopModelDownloader) download(ctx context.Context, modelName, destDir string) error {
 	return nil
+}
+
+func (d *NoopModelDownloader) sourceRepository() v1.SourceRepository {
+	return v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
 }
 
 // S3Client is an interface for uploading a file to S3.
@@ -296,10 +301,11 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		}
 
 		if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
-			Id:            modelID,
-			Path:          mi.path,
-			Formats:       mi.formats,
-			GgufModelPath: mi.ggufModelPath,
+			Id:               modelID,
+			Path:             mi.path,
+			Formats:          mi.formats,
+			GgufModelPath:    mi.ggufModelPath,
+			SourceRepository: mi.sourceRepository,
 		}); err != nil {
 			return err
 		}
@@ -365,9 +371,10 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 type modelInfo struct {
 	id string
 	// path is the base path of model files.
-	path          string
-	ggufModelPath string
-	formats       []v1.ModelFormat
+	path             string
+	ggufModelPath    string
+	formats          []v1.ModelFormat
+	sourceRepository v1.SourceRepository
 }
 
 func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string, isBaseModel bool) ([]*modelInfo, error) {
@@ -465,9 +472,10 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 	if hasOllamaLayerDir {
 		return []*modelInfo{
 			{
-				id:      modelID,
-				path:    filepath.Join(l.toPathPrefix(isBaseModel), keyModelID),
-				formats: []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA},
+				id:               modelID,
+				path:             filepath.Join(l.toPathPrefix(isBaseModel), keyModelID),
+				formats:          []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA},
+				sourceRepository: l.modelDownloader.sourceRepository(),
 			},
 		}, nil
 	}
@@ -497,10 +505,11 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		}
 		return []*modelInfo{
 			{
-				id:            id,
-				path:          filepath.Join(l.toPathPrefix(isBaseModel), modelID),
-				ggufModelPath: ggufModelPath,
-				formats:       formats,
+				id:               id,
+				path:             filepath.Join(l.toPathPrefix(isBaseModel), modelID),
+				ggufModelPath:    ggufModelPath,
+				formats:          formats,
+				sourceRepository: l.modelDownloader.sourceRepository(),
 			},
 		}, nil
 	}
@@ -515,10 +524,11 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		id := buildModelIDForGGUF(modelID, gpath)
 
 		minfos = append(minfos, &modelInfo{
-			id:            id,
-			path:          filepath.Join(l.toPathPrefix(isBaseModel), id),
-			ggufModelPath: gpath,
-			formats:       []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF},
+			id:               id,
+			path:             filepath.Join(l.toPathPrefix(isBaseModel), id),
+			ggufModelPath:    gpath,
+			formats:          []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF},
+			sourceRepository: l.modelDownloader.sourceRepository(),
 		})
 	}
 

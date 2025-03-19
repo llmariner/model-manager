@@ -20,6 +20,9 @@ type BaseModel struct {
 
 	// GGUFModelPath is the path to the GGUF model.
 	GGUFModelPath string
+
+	SourceRepository v1.SourceRepository
+	LoadingStatus    v1.ModelLoadingStatus
 }
 
 // UnmarshalModelFormats unmarshals model formats.
@@ -37,6 +40,7 @@ func (s *S) CreateBaseModel(
 	path string,
 	formats []v1.ModelFormat,
 	ggufModelPath string,
+	sourceRepository v1.SourceRepository,
 	tenantID string,
 ) (*BaseModel, error) {
 	p := v1.ModelFormats{
@@ -48,11 +52,13 @@ func (s *S) CreateBaseModel(
 	}
 
 	m := &BaseModel{
-		ModelID:       modelID,
-		Path:          path,
-		Formats:       b,
-		GGUFModelPath: ggufModelPath,
-		TenantID:      tenantID,
+		ModelID:          modelID,
+		Path:             path,
+		Formats:          b,
+		GGUFModelPath:    ggufModelPath,
+		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		SourceRepository: sourceRepository,
+		TenantID:         tenantID,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err

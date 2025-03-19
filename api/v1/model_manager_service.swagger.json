@@ -21,7 +21,6 @@
   "paths": {
     "/v1/basemodels": {
       "get": {
-        "summary": "The following API endpoints are not part of the OpenAPI API specification.",
         "operationId": "ModelsService_ListBaseModels",
         "responses": {
           "200": {
@@ -267,6 +266,14 @@
         },
         "ownedBy": {
           "type": "string"
+        },
+        "loadingStatus": {
+          "$ref": "#/definitions/v1ModelLoadingStatus",
+          "description": "loading_status is set when the model is being loaded.\nThis is not in the Open AI API specification."
+        },
+        "sourceRepository": {
+          "$ref": "#/definitions/v1SourceRepository",
+          "description": "source_repository is the source repository of the model. Set for base models created from the CreateModel API request.\nThis is not in the Open AI API specification."
         }
       }
     },
@@ -299,6 +306,18 @@
       "default": "MODEL_FORMAT_UNSPECIFIED",
       "description": " - MODEL_FORMAT_NVIDIA_TRITON: Model format for Nvidia Triton Inference Server. This model files include the tokenizer configuration\nof the original model, compiled model files for TensorRT-LLM backend, and configuration files for\nTriton Inference Server."
     },
+    "v1ModelLoadingStatus": {
+      "type": "string",
+      "enum": [
+        "MODEL_LOADING_STATUS_UNSPECIFIED",
+        "MODEL_LOADING_STATUS_REQUESTED",
+        "MODEL_LOADING_STATUS_LOADING",
+        "MODEL_LOADING_STATUS_SUCCEEDED",
+        "MODEL_LOADING_STATUS_FAILED"
+      ],
+      "default": "MODEL_LOADING_STATUS_UNSPECIFIED",
+      "description": " - MODEL_LOADING_STATUS_REQUESTED: Intial status when the model creation is requested.\n - MODEL_LOADING_STATUS_LOADING: Loading status when the model is being loaded.\n - MODEL_LOADING_STATUS_SUCCEEDED: Succeeded status when the model loading is succeeded.\n - MODEL_LOADING_STATUS_FAILED: Failed status when the model loading is failed."
+    },
     "v1PublishModelResponse": {
       "type": "object"
     },
@@ -322,6 +341,17 @@
           "description": "path is the path where the model is stored."
         }
       }
+    },
+    "v1SourceRepository": {
+      "type": "string",
+      "enum": [
+        "SOURCE_REPOSITORY_UNSPECIFIED",
+        "SOURCE_REPOSITORY_OBJECT_STORE",
+        "SOURCE_REPOSITORY_HUGGING_FACE",
+        "SOURCE_REPOSITORY_OLLAMA",
+        "SOURCE_REPOSITORY_FINE_TUNING"
+      ],
+      "default": "SOURCE_REPOSITORY_UNSPECIFIED"
     },
     "v1StorageConfig": {
       "type": "object",
