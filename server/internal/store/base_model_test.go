@@ -89,3 +89,88 @@ func TestDeleteBaseModel(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }
+
+func TestListUnloadedBaseModels(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	_, err := st.CreateBaseModelWithLoadingRequested("m0", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	assert.NoError(t, err)
+
+	_, err = st.CreateBaseModelWithLoadingRequested("m1", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t1")
+	assert.NoError(t, err)
+
+	_, err = st.CreateBaseModel("m2", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	assert.NoError(t, err)
+
+	ms, err := st.ListUnloadedBaseModels("t0")
+	assert.NoError(t, err)
+	assert.Len(t, ms, 1)
+	assert.Equal(t, "m0", ms[0].ModelID)
+
+	ms, err = st.ListUnloadedBaseModels("t1")
+	assert.NoError(t, err)
+	assert.Len(t, ms, 1)
+	assert.Equal(t, "m1", ms[0].ModelID)
+}
+
+func TestUpdateBaseModel(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID  = "m0"
+		tenantID = "t0"
+	)
+
+	_, err := st.CreateBaseModelWithLoadingRequested(modelID, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
+	assert.NoError(t, err)
+
+	m, err := st.GetBaseModel(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	err = st.UpdateBaseModelToLoadingStatus(modelID, tenantID)
+	assert.NoError(t, err)
+
+	m, err = st.GetBaseModel(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, m.LoadingStatus)
+
+	// Failed to update as the current state does not match.
+	err = st.UpdateBaseModelToLoadingStatus(modelID, tenantID)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, ErrConcurrentUpdate))
+
+	err = st.UpdateBaseModelToSucceededStatus(
+		modelID,
+		tenantID,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf_model_path",
+	)
+	assert.NoError(t, err)
+
+	m, err = st.GetBaseModel(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, m.LoadingStatus)
+	assert.Equal(t, "path", m.Path)
+	assert.Equal(t, "gguf_model_path", m.GGUFModelPath)
+
+	// Set the stateus back to Loading.
+	m.LoadingStatus = v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING
+	err = st.db.Save(m).Error
+	assert.NoError(t, err)
+
+	err = st.UpdateBaseModelToFailedStatus(
+		modelID,
+		tenantID,
+		"error",
+	)
+	assert.NoError(t, err)
+
+	m, err = st.GetBaseModel(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, m.LoadingStatus)
+	assert.Equal(t, "error", m.LoadingFailureReason)
+}

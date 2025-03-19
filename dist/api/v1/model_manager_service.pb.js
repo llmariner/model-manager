@@ -91,4 +91,10 @@ export class ModelsWorkerService {
     static GetHFModelRepo(req, initReq) {
         return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/GetHFModelRepo`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
+    static AcquireUnloadedBaseModel(req, initReq) {
+        return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedBaseModel`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
+    static UpdateBaseModelLoadingStatus(req, initReq) {
+        return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/UpdateBaseModelLoadingStatus`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
 }

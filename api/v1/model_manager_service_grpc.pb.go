@@ -276,6 +276,12 @@ type ModelsWorkerServiceClient interface {
 	CreateHFModelRepo(ctx context.Context, in *CreateHFModelRepoRequest, opts ...grpc.CallOption) (*HFModelRepo, error)
 	// GetHFModelRepo returns the HuggingFace model repo that has been downloaded. Used by model-manager-loader.
 	GetHFModelRepo(ctx context.Context, in *GetHFModelRepoRequest, opts ...grpc.CallOption) (*HFModelRepo, error)
+	// AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists, update the loading status to LOADED,
+	// and return it. Used by model-manager-loader.
+	AcquireUnloadedBaseModel(ctx context.Context, in *AcquireUnloadedBaseModelRequest, opts ...grpc.CallOption) (*AcquireUnloadedBaseModelResponse, error)
+	// UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
+	// updates the base model metadata. Used by model-manager-loader.
+	UpdateBaseModelLoadingStatus(ctx context.Context, in *UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*UpdateBaseModelLoadingStatusResponse, error)
 }
 
 type modelsWorkerServiceClient struct {
@@ -385,6 +391,24 @@ func (c *modelsWorkerServiceClient) GetHFModelRepo(ctx context.Context, in *GetH
 	return out, nil
 }
 
+func (c *modelsWorkerServiceClient) AcquireUnloadedBaseModel(ctx context.Context, in *AcquireUnloadedBaseModelRequest, opts ...grpc.CallOption) (*AcquireUnloadedBaseModelResponse, error) {
+	out := new(AcquireUnloadedBaseModelResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedBaseModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsWorkerServiceClient) UpdateBaseModelLoadingStatus(ctx context.Context, in *UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*UpdateBaseModelLoadingStatusResponse, error) {
+	out := new(UpdateBaseModelLoadingStatusResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/UpdateBaseModelLoadingStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ModelsWorkerServiceServer is the server API for ModelsWorkerService service.
 // All implementations must embed UnimplementedModelsWorkerServiceServer
 // for forward compatibility
@@ -413,6 +437,12 @@ type ModelsWorkerServiceServer interface {
 	CreateHFModelRepo(context.Context, *CreateHFModelRepoRequest) (*HFModelRepo, error)
 	// GetHFModelRepo returns the HuggingFace model repo that has been downloaded. Used by model-manager-loader.
 	GetHFModelRepo(context.Context, *GetHFModelRepoRequest) (*HFModelRepo, error)
+	// AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists, update the loading status to LOADED,
+	// and return it. Used by model-manager-loader.
+	AcquireUnloadedBaseModel(context.Context, *AcquireUnloadedBaseModelRequest) (*AcquireUnloadedBaseModelResponse, error)
+	// UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
+	// updates the base model metadata. Used by model-manager-loader.
+	UpdateBaseModelLoadingStatus(context.Context, *UpdateBaseModelLoadingStatusRequest) (*UpdateBaseModelLoadingStatusResponse, error)
 	mustEmbedUnimplementedModelsWorkerServiceServer()
 }
 
@@ -452,6 +482,12 @@ func (UnimplementedModelsWorkerServiceServer) CreateHFModelRepo(context.Context,
 }
 func (UnimplementedModelsWorkerServiceServer) GetHFModelRepo(context.Context, *GetHFModelRepoRequest) (*HFModelRepo, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetHFModelRepo not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) AcquireUnloadedBaseModel(context.Context, *AcquireUnloadedBaseModelRequest) (*AcquireUnloadedBaseModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcquireUnloadedBaseModel not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) UpdateBaseModelLoadingStatus(context.Context, *UpdateBaseModelLoadingStatusRequest) (*UpdateBaseModelLoadingStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateBaseModelLoadingStatus not implemented")
 }
 func (UnimplementedModelsWorkerServiceServer) mustEmbedUnimplementedModelsWorkerServiceServer() {}
 
@@ -664,6 +700,42 @@ func _ModelsWorkerService_GetHFModelRepo_Handler(srv interface{}, ctx context.Co
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsWorkerService_AcquireUnloadedBaseModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcquireUnloadedBaseModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).AcquireUnloadedBaseModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedBaseModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).AcquireUnloadedBaseModel(ctx, req.(*AcquireUnloadedBaseModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsWorkerService_UpdateBaseModelLoadingStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateBaseModelLoadingStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).UpdateBaseModelLoadingStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/UpdateBaseModelLoadingStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).UpdateBaseModelLoadingStatus(ctx, req.(*UpdateBaseModelLoadingStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ModelsWorkerService_ServiceDesc is the grpc.ServiceDesc for ModelsWorkerService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -714,6 +786,14 @@ var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetHFModelRepo",
 			Handler:    _ModelsWorkerService_GetHFModelRepo_Handler,
+		},
+		{
+			MethodName: "AcquireUnloadedBaseModel",
+			Handler:    _ModelsWorkerService_AcquireUnloadedBaseModel_Handler,
+		},
+		{
+			MethodName: "UpdateBaseModelLoadingStatus",
+			Handler:    _ModelsWorkerService_UpdateBaseModelLoadingStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

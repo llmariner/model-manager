@@ -52,6 +52,9 @@ type ModelClient interface {
 
 	CreateHFModelRepo(ctx context.Context, in *v1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*v1.HFModelRepo, error)
 	GetHFModelRepo(ctx context.Context, in *v1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*v1.HFModelRepo, error)
+
+	AcquireUnloadedBaseModel(ctx context.Context, in *v1.AcquireUnloadedBaseModelRequest, opts ...grpc.CallOption) (*v1.AcquireUnloadedBaseModelResponse, error)
+	UpdateBaseModelLoadingStatus(ctx context.Context, in *v1.UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*v1.UpdateBaseModelLoadingStatusResponse, error)
 }
 
 // New creates a new loader.
@@ -109,8 +112,7 @@ func (l *L) Run(
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			// TODO(kenji): Change this to dynamic model loading.
-			if err := l.LoadModels(ctx, baseModels, models, sourceRepository); err != nil {
+			if err := l.pullAndLoadBaseModels(ctx); err != nil {
 				return err
 			}
 		}
@@ -135,6 +137,48 @@ func (l *L) LoadModels(
 		}
 	}
 	return nil
+}
+
+func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
+	actx := auth.AppendWorkerAuthorization(ctx)
+	for {
+		resp, err := l.modelClient.AcquireUnloadedBaseModel(actx, &v1.AcquireUnloadedBaseModelRequest{})
+		if err != nil {
+			if status.Code(err) == codes.FailedPrecondition {
+				l.log.Error(err, "Failed to acquire an unloaded base model")
+				continue
+			}
+			return err
+		}
+
+		if resp.BaseModelId == "" {
+			l.log.Info("No unloaded base model")
+			return nil
+		}
+
+		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.SourceRepository); err != nil {
+			l.log.Error(err, "Failed to load base model", "modelID", resp.BaseModelId)
+			if _, err := l.modelClient.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+				Id: resp.BaseModelId,
+				LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Failure_{
+					Failure: &v1.UpdateBaseModelLoadingStatusRequest_Failure{
+						Reason: err.Error(),
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			return err
+		}
+
+		l.log.Error(err, "Successfully loaded base model", "modelID", resp.BaseModelId)
+		if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
+			Id:            resp.BaseModelId,
+			LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{},
+		}); err != nil {
+			return err
+		}
+	}
 }
 
 func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository v1.SourceRepository) error {

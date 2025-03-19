@@ -430,6 +430,65 @@ func TestSplitHFRepoAndFile(t *testing.T) {
 	}
 }
 
+func TestPullAndLoadBaseModels(t *testing.T) {
+	downloader := &fakeDownloader{
+		files: []string{
+			"file0.gguf",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+
+	mc := NewFakeModelClient()
+	mc.requestedBaseModelID = "google/gemma-2b"
+
+	ld := New(
+		"models",
+		"base-models",
+		&fakeDownloaderFactory{d: downloader},
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.pullAndLoadBaseModels(context.Background())
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/google/gemma-2b/file0.gguf",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
+		Id: "google-gemma-2b",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+}
+
+func TestPullAndLoadBaseModels_NoRequestedModel(t *testing.T) {
+	downloader := &fakeDownloader{}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		"models",
+		"base-models",
+		&fakeDownloaderFactory{d: downloader},
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+
+	ld.tmpDir = "/tmp"
+	err := ld.pullAndLoadBaseModels(context.Background())
+	assert.NoError(t, err)
+
+	// No model is created when no model is requested.
+	assert.Empty(t, mc.pathsByID)
+}
+
 type mockS3Client struct {
 	uploadedKeys []string
 }

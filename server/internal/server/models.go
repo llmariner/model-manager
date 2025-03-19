@@ -432,12 +432,36 @@ func (s *WS) CreateBaseModel(
 
 	// Note: We skip the validation of source repository for backward compatibility.
 
-	m, err := s.store.CreateBaseModel(req.Id, req.Path, formats, req.GgufModelPath, req.SourceRepository, clusterInfo.TenantID)
+	existing, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+		}
+
+		// Create a new base model.
+
+		m, err := s.store.CreateBaseModel(req.Id, req.Path, formats, req.GgufModelPath, req.SourceRepository, clusterInfo.TenantID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "create base model: %s", err)
+		}
+		return toBaseModelProto(m), nil
 	}
 
-	return toBaseModelProto(m), nil
+	if isBaseModelLoaded(existing) {
+		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", req.Id)
+	}
+
+	// Update the existing model.
+	if err := s.store.UpdateBaseModelToSucceededStatus(
+		req.Id,
+		clusterInfo.TenantID,
+		req.Path,
+		formats,
+		req.GgufModelPath,
+	); err != nil {
+		return nil, status.Errorf(codes.Internal, "update base model: %s", err)
+	}
+	return toBaseModelProto(existing), nil
 }
 
 // GetBaseModelPath gets a model path.
@@ -481,6 +505,108 @@ func (s *WS) GetBaseModelPath(
 		Formats:       formats,
 		GgufModelPath: m.GGUFModelPath,
 	}, nil
+}
+
+// AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists,
+// update the loading status to LOADED and return it.
+func (s *WS) AcquireUnloadedBaseModel(
+	ctx context.Context,
+	req *v1.AcquireUnloadedBaseModelRequest,
+) (*v1.AcquireUnloadedBaseModelResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ms, err := s.store.ListUnloadedBaseModels(clusterInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list unloaded base models: %s", err)
+	}
+
+	if len(ms) == 0 {
+		return &v1.AcquireUnloadedBaseModelResponse{}, nil
+	}
+
+	m := ms[0]
+	if err := s.store.UpdateBaseModelToLoadingStatus(m.ModelID, clusterInfo.TenantID); err != nil {
+		if errors.Is(err, store.ErrConcurrentUpdate) {
+			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
+		}
+
+		return nil, status.Errorf(codes.Internal, "update base model loading status: %s", err)
+	}
+
+	return &v1.AcquireUnloadedBaseModelResponse{
+		BaseModelId:      m.ModelID,
+		SourceRepository: m.SourceRepository,
+	}, nil
+}
+
+// UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
+// updates the base model metadata.
+func (s *WS) UpdateBaseModelLoadingStatus(
+	ctx context.Context,
+	req *v1.UpdateBaseModelLoadingStatusRequest,
+) (*v1.UpdateBaseModelLoadingStatusResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if req.LoadingResult == nil {
+		return nil, status.Error(codes.InvalidArgument, "loading_result is required")
+	}
+
+	bm, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+	}
+
+	switch req.LoadingResult.(type) {
+	case *v1.UpdateBaseModelLoadingStatusRequest_Success_:
+		// model-manager-loader calls this RPC after making the CreateBaseModel RPC request.
+		//
+		// If the model's loading status is still Loading, this indicates either
+		// model ID mismatch due to our internal conversion (e.g., "/" to "-") or
+		// a Hugging Face repo contains multiple models.
+		//
+		// In this case, we should delete delete the requested model ID.
+		if bm.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING {
+			s.log.Info("Delete the model %q as base models have been successfully created", "modelID", req.Id)
+			if err := s.store.DeleteBaseModel(req.Id, clusterInfo.TenantID); err != nil {
+				return nil, status.Errorf(codes.Internal, "delete base model: %s", err)
+			}
+		}
+	case *v1.UpdateBaseModelLoadingStatusRequest_Failure_:
+		failure := req.GetFailure()
+		if failure.Reason == "" {
+			return nil, status.Error(codes.InvalidArgument, "reason is required")
+		}
+		err = s.store.UpdateBaseModelToFailedStatus(
+			req.Id,
+			clusterInfo.TenantID,
+			failure.Reason,
+		)
+	default:
+		return nil, status.Error(codes.InvalidArgument, "invalid loading_result")
+	}
+
+	if err != nil {
+		if errors.Is(err, store.ErrConcurrentUpdate) {
+			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
+		}
+
+		return nil, status.Errorf(codes.Internal, "update base model loading status: %s", err)
+	}
+
+	return &v1.UpdateBaseModelLoadingStatusResponse{}, nil
 }
 
 func (s *WS) genenerateModelID(baseModel, suffix string) (string, error) {

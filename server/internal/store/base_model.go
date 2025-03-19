@@ -118,6 +118,90 @@ func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
+// ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
+func (s *S) ListUnloadedBaseModels(tenantID string) ([]*BaseModel, error) {
+	var ms []*BaseModel
+	if err := s.db.Where("tenant_id = ? AND loading_status = ?", tenantID, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED).
+		Order("id ASC").Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
+// updateBaseModel updates the model if the current status matches with the given one.
+func (s *S) updateBaseModel(
+	modelID string,
+	tenantID string,
+	curr v1.ModelLoadingStatus,
+	updates map[string]interface{},
+) error {
+	res := s.db.Model(&BaseModel{}).
+		Where("model_id = ? AND tenant_id = ? AND loading_status = ?", modelID, tenantID, curr).
+		Updates(updates)
+	if err := res.Error; err != nil {
+		return err
+	}
+	if res.RowsAffected == 0 {
+		return ErrConcurrentUpdate
+	}
+	return nil
+}
+
+// UpdateBaseModelToLoadingStatus updates the loading status to LOADING.
+func (s *S) UpdateBaseModelToLoadingStatus(modelID string, tenantID string) error {
+	return s.updateBaseModel(
+		modelID,
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+		map[string]interface{}{
+			"loading_status": v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		},
+	)
+}
+
+// UpdateBaseModelToSucceededStatus updates the loading status to SUCCEEDED and updates other relevant information.
+func (s *S) UpdateBaseModelToSucceededStatus(
+	modelID string,
+	tenantID string,
+	path string,
+	formats []v1.ModelFormat,
+	ggufModelPath string,
+) error {
+	b, err := marshalFormats(formats)
+	if err != nil {
+		return err
+	}
+
+	return s.updateBaseModel(
+		modelID,
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		map[string]interface{}{
+			"path":            path,
+			"formats":         b,
+			"gguf_model_path": ggufModelPath,
+			"loading_status":  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		},
+	)
+}
+
+// UpdateBaseModelToFailedStatus updates the loading status to FAILED and updates other relevant information.
+func (s *S) UpdateBaseModelToFailedStatus(
+	modelID string,
+	tenantID string,
+	failureReason string,
+) error {
+	return s.updateBaseModel(
+		modelID,
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		map[string]interface{}{
+			"loading_failure_reason": failureReason,
+			"loading_status":         v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED,
+		},
+	)
+}
+
 func marshalFormats(formats []v1.ModelFormat) ([]byte, error) {
 	p := v1.ModelFormats{
 		Formats: formats,

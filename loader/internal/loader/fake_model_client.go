@@ -27,6 +27,9 @@ type FakeModelClient struct {
 	formatsByID map[string][]v1.ModelFormat
 
 	hfModelRepos map[string]bool
+
+	requestedBaseModelID string
+	sourceRepository     v1.SourceRepository
 }
 
 // CreateBaseModel creates a base model.
@@ -110,4 +113,21 @@ func (c *FakeModelClient) GetHFModelRepo(ctx context.Context, in *v1.GetHFModelR
 		return nil, status.Errorf(codes.NotFound, "hugging-face model repo %q not found", in.Name)
 	}
 	return &v1.HFModelRepo{Name: in.Name}, nil
+}
+
+// AcquireUnloadedBaseModel acquires an unloaded base model.
+func (c *FakeModelClient) AcquireUnloadedBaseModel(ctx context.Context, in *v1.AcquireUnloadedBaseModelRequest, opts ...grpc.CallOption) (*v1.AcquireUnloadedBaseModelResponse, error) {
+	resp := &v1.AcquireUnloadedBaseModelResponse{
+		BaseModelId:      c.requestedBaseModelID,
+		SourceRepository: c.sourceRepository,
+	}
+	// Clear the requested base model ID so that the next call to this function will return an empty response.
+	c.requestedBaseModelID = ""
+	c.sourceRepository = v1.SourceRepository_SOURCE_REPOSITORY_UNSPECIFIED
+	return resp, nil
+}
+
+// UpdateBaseModelLoadingStatus updates the loading status of a base model.
+func (c *FakeModelClient) UpdateBaseModelLoadingStatus(ctx context.Context, in *v1.UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*v1.UpdateBaseModelLoadingStatusResponse, error) {
+	return &v1.UpdateBaseModelLoadingStatusResponse{}, nil
 }

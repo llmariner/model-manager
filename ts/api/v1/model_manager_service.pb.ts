@@ -6,6 +6,15 @@
 
 import * as fm from "../../fetch.pb"
 
+type Absent<T, K extends keyof T> = { [k in Exclude<keyof T, K>]?: undefined };
+type OneOf<T> =
+  | { [k in keyof T]?: undefined }
+  | (
+    keyof T extends infer K ?
+      (K extends string & keyof T ? { [k in K]: T[K] } & Absent<T, K>
+        : never)
+    : never);
+
 export enum ModelFormat {
   MODEL_FORMAT_UNSPECIFIED = "MODEL_FORMAT_UNSPECIFIED",
   MODEL_FORMAT_GGUF = "MODEL_FORMAT_GGUF",
@@ -182,6 +191,32 @@ export type GetHFModelRepoRequest = {
   name?: string
 }
 
+export type AcquireUnloadedBaseModelRequest = {
+}
+
+export type AcquireUnloadedBaseModelResponse = {
+  base_model_id?: string
+  source_repository?: SourceRepository
+}
+
+export type UpdateBaseModelLoadingStatusRequestSuccess = {
+}
+
+export type UpdateBaseModelLoadingStatusRequestFailure = {
+  reason?: string
+}
+
+
+type BaseUpdateBaseModelLoadingStatusRequest = {
+  id?: string
+}
+
+export type UpdateBaseModelLoadingStatusRequest = BaseUpdateBaseModelLoadingStatusRequest
+  & OneOf<{ success: UpdateBaseModelLoadingStatusRequestSuccess; failure: UpdateBaseModelLoadingStatusRequestFailure }>
+
+export type UpdateBaseModelLoadingStatusResponse = {
+}
+
 export class ModelsService {
   static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse> {
     return fm.fetchReq<ListModelsRequest, ListModelsResponse>(`/v1/models?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
@@ -232,5 +267,11 @@ export class ModelsWorkerService {
   }
   static GetHFModelRepo(req: GetHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo> {
     return fm.fetchReq<GetHFModelRepoRequest, HFModelRepo>(`/llmariner.models.server.v1.ModelsWorkerService/GetHFModelRepo`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static AcquireUnloadedBaseModel(req: AcquireUnloadedBaseModelRequest, initReq?: fm.InitReq): Promise<AcquireUnloadedBaseModelResponse> {
+    return fm.fetchReq<AcquireUnloadedBaseModelRequest, AcquireUnloadedBaseModelResponse>(`/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedBaseModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static UpdateBaseModelLoadingStatus(req: UpdateBaseModelLoadingStatusRequest, initReq?: fm.InitReq): Promise<UpdateBaseModelLoadingStatusResponse> {
+    return fm.fetchReq<UpdateBaseModelLoadingStatusRequest, UpdateBaseModelLoadingStatusResponse>(`/llmariner.models.server.v1.ModelsWorkerService/UpdateBaseModelLoadingStatus`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
 }
