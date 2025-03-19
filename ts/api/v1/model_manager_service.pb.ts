@@ -56,6 +56,7 @@ export type Model = {
 }
 
 export type ListModelsRequest = {
+  include_loading_models?: boolean
 }
 
 export type ListModelsResponse = {
@@ -65,6 +66,7 @@ export type ListModelsResponse = {
 
 export type GetModelRequest = {
   id?: string
+  include_loading_model?: boolean
 }
 
 export type DeleteModelRequest = {

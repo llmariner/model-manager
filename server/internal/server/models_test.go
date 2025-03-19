@@ -130,6 +130,77 @@ func TestGetAndListModels(t *testing.T) {
 	assert.ElementsMatch(t, []string{modelID, baseModelID}, ids)
 }
 
+func TestIncludeLoadingModels(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	_, err := st.CreateBaseModel(
+		"bm0",
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf-path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	_, err = st.CreateBaseModelWithLoadingRequested(
+		"bm1",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	tcs0 := []struct {
+		id      string
+		wantErr bool
+	}{
+		{"bm0", false},
+		{"bm1", true},
+	}
+
+	for _, tc := range tcs0 {
+		_, err := srv.GetModel(ctx, &v1.GetModelRequest{
+			Id: tc.id,
+		})
+		if tc.wantErr {
+			assert.Error(t, err)
+			assert.Equal(t, codes.NotFound, status.Code(err))
+			return
+		}
+		assert.NoError(t, err)
+
+		// The RPC always succeeds if the loading model is included.
+		_, err = srv.GetModel(ctx, &v1.GetModelRequest{
+			Id:                  tc.id,
+			IncludeLoadingModel: true,
+		})
+		assert.NoError(t, err)
+
+	}
+
+	tcs1 := []struct {
+		includeLoadingModels bool
+		wantIDs              []string
+	}{
+		{includeLoadingModels: false, wantIDs: []string{"bm0"}},
+		{includeLoadingModels: true, wantIDs: []string{"bm0", "bm1"}},
+	}
+
+	for _, tc := range tcs1 {
+		resp, err := srv.ListModels(ctx, &v1.ListModelsRequest{IncludeLoadingModels: tc.includeLoadingModels})
+		assert.NoError(t, err)
+		var ids []string
+		for _, m := range resp.Data {
+			ids = append(ids, m.Id)
+		}
+		assert.ElementsMatch(t, tc.wantIDs, ids)
+	}
+}
+
 func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()

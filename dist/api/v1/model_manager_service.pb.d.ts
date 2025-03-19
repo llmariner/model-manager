@@ -41,13 +41,16 @@ export type Model = {
     loading_status?: ModelLoadingStatus;
     source_repository?: SourceRepository;
 };
-export type ListModelsRequest = {};
+export type ListModelsRequest = {
+    include_loading_models?: boolean;
+};
 export type ListModelsResponse = {
     object?: string;
     data?: Model[];
 };
 export type GetModelRequest = {
     id?: string;
+    include_loading_model?: boolean;
 };
 export type DeleteModelRequest = {
     id?: string;

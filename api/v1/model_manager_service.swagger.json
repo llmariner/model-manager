@@ -58,6 +58,15 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "includeLoadingModels",
+            "description": "include_loading_models is a flag to include loading models in the response.\n\nThis is not in the Open AI API specification.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
+          }
+        ],
         "tags": [
           "ModelsService"
         ]
@@ -86,6 +95,13 @@
             "in": "path",
             "required": true,
             "type": "string"
+          },
+          {
+            "name": "includeLoadingModel",
+            "description": "include_loading_model is a flag to include an loading model in the response.\n\nThis is not in the Open AI API specification.",
+            "in": "query",
+            "required": false,
+            "type": "boolean"
           }
         ],
         "tags": [

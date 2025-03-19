@@ -59,6 +59,10 @@ message Model {
 }
 
 message ListModelsRequest {
+  // include_loading_models is a flag to include loading models in the response.
+  //
+  // This is not in the Open AI API specification.
+  bool include_loading_models = 1;
 }
 
 message ListModelsResponse {
@@ -68,6 +72,11 @@ message ListModelsResponse {
 
 message GetModelRequest {
   string id = 1;
+
+  // include_loading_model is a flag to include an loading model in the response.
+  //
+  // This is not in the Open AI API specification.
+  bool include_loading_model = 2;
 }
 
 message DeleteModelRequest {
