@@ -47,3 +47,15 @@ func (s *S) ListHFModelRepos(tenantID string) ([]*HFModelRepo, error) {
 	}
 	return rs, nil
 }
+
+// DeleteHFModelRepoInTransaction deletes a model repo.
+func DeleteHFModelRepoInTransaction(tx *gorm.DB, name, tenantID string) error {
+	res := tx.Where("name = ? AND tenant_id = ?", name, tenantID).Delete(&HFModelRepo{})
+	if err := res.Error; err != nil {
+		return err
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}

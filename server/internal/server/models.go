@@ -131,12 +131,30 @@ func (s *S) DeleteModel(
 	//
 	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
 	// so we should have additional check here.
-	//
-	if err := s.store.DeleteBaseModel(req.Id, userInfo.TenantID); err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		if err := store.DeleteBaseModelInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return status.Errorf(codes.Internal, "delete model: %s", err)
+			}
+			return status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-		return nil, status.Errorf(codes.Internal, "delete model: %s", err)
+
+		// Delete the HFModelRepo if the model is from Hugging Face. Otherwise the same
+		// model cannot be reloaded again.
+		//
+		// TODO(kenji): Handle a case where a single Hugging Face repo has multiple models. In that case,
+		// the Hugging Face repo name and the model ID does not match.
+		//
+		// Also, deleting a HFModelRepo can trigger downloading the remaining undeleted models again, which is not ideal.
+		if err := store.DeleteHFModelRepoInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return status.Errorf(codes.Internal, "delete hf model repo: %s", err)
+			}
+			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
+		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return &v1.DeleteModelResponse{
