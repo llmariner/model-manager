@@ -21,7 +21,6 @@ type ModelsServiceClient interface {
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
-	// The following API endpoints are not part of the OpenAPI API specification.
 	ListBaseModels(ctx context.Context, in *ListBaseModelsRequest, opts ...grpc.CallOption) (*ListBaseModelsResponse, error)
 }
 
@@ -76,7 +75,6 @@ type ModelsServiceServer interface {
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
-	// The following API endpoints are not part of the OpenAPI API specification.
 	ListBaseModels(context.Context, *ListBaseModelsRequest) (*ListBaseModelsResponse, error)
 	mustEmbedUnimplementedModelsServiceServer()
 }

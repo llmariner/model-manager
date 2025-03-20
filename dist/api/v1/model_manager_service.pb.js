@@ -12,6 +12,22 @@ export var ModelFormat;
     ModelFormat["MODEL_FORMAT_NVIDIA_TRITON"] = "MODEL_FORMAT_NVIDIA_TRITON";
     ModelFormat["MODEL_FORMAT_OLLAMA"] = "MODEL_FORMAT_OLLAMA";
 })(ModelFormat || (ModelFormat = {}));
+export var ModelLoadingStatus;
+(function (ModelLoadingStatus) {
+    ModelLoadingStatus["MODEL_LOADING_STATUS_UNSPECIFIED"] = "MODEL_LOADING_STATUS_UNSPECIFIED";
+    ModelLoadingStatus["MODEL_LOADING_STATUS_REQUESTED"] = "MODEL_LOADING_STATUS_REQUESTED";
+    ModelLoadingStatus["MODEL_LOADING_STATUS_LOADING"] = "MODEL_LOADING_STATUS_LOADING";
+    ModelLoadingStatus["MODEL_LOADING_STATUS_SUCCEEDED"] = "MODEL_LOADING_STATUS_SUCCEEDED";
+    ModelLoadingStatus["MODEL_LOADING_STATUS_FAILED"] = "MODEL_LOADING_STATUS_FAILED";
+})(ModelLoadingStatus || (ModelLoadingStatus = {}));
+export var SourceRepository;
+(function (SourceRepository) {
+    SourceRepository["SOURCE_REPOSITORY_UNSPECIFIED"] = "SOURCE_REPOSITORY_UNSPECIFIED";
+    SourceRepository["SOURCE_REPOSITORY_OBJECT_STORE"] = "SOURCE_REPOSITORY_OBJECT_STORE";
+    SourceRepository["SOURCE_REPOSITORY_HUGGING_FACE"] = "SOURCE_REPOSITORY_HUGGING_FACE";
+    SourceRepository["SOURCE_REPOSITORY_OLLAMA"] = "SOURCE_REPOSITORY_OLLAMA";
+    SourceRepository["SOURCE_REPOSITORY_FINE_TUNING"] = "SOURCE_REPOSITORY_FINE_TUNING";
+})(SourceRepository || (SourceRepository = {}));
 export var AdapterType;
 (function (AdapterType) {
     AdapterType["ADAPTER_TYPE_UNSPECIFIED"] = "ADAPTER_TYPE_UNSPECIFIED";

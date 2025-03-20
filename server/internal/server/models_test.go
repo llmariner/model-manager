@@ -64,7 +64,7 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", defaultTenantID)
+	_, err := st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
@@ -104,7 +104,7 @@ func TestGetAndListModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel(baseModelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", defaultTenantID)
+	_, err = st.CreateBaseModel(baseModelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
@@ -134,7 +134,7 @@ func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("model0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", defaultTenantID)
+	_, err := st.CreateBaseModel("model0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{
