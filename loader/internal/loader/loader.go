@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/go-logr/logr"
-	mv1 "github.com/llmariner/model-manager/api/v1"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/llmariner/rbac-manager/pkg/auth"
@@ -41,14 +40,14 @@ func (c *NoopS3Client) Upload(ctx context.Context, r io.Reader, key string) erro
 
 // ModelClient is an interface for the model client.
 type ModelClient interface {
-	CreateBaseModel(ctx context.Context, in *mv1.CreateBaseModelRequest, opts ...grpc.CallOption) (*mv1.BaseModel, error)
-	GetBaseModelPath(ctx context.Context, in *mv1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*mv1.GetBaseModelPathResponse, error)
-	GetModelPath(ctx context.Context, in *mv1.GetModelPathRequest, opts ...grpc.CallOption) (*mv1.GetModelPathResponse, error)
-	RegisterModel(ctx context.Context, in *mv1.RegisterModelRequest, opts ...grpc.CallOption) (*mv1.RegisterModelResponse, error)
-	PublishModel(ctx context.Context, in *mv1.PublishModelRequest, opts ...grpc.CallOption) (*mv1.PublishModelResponse, error)
+	CreateBaseModel(ctx context.Context, in *v1.CreateBaseModelRequest, opts ...grpc.CallOption) (*v1.BaseModel, error)
+	GetBaseModelPath(ctx context.Context, in *v1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*v1.GetBaseModelPathResponse, error)
+	GetModelPath(ctx context.Context, in *v1.GetModelPathRequest, opts ...grpc.CallOption) (*v1.GetModelPathResponse, error)
+	RegisterModel(ctx context.Context, in *v1.RegisterModelRequest, opts ...grpc.CallOption) (*v1.RegisterModelResponse, error)
+	PublishModel(ctx context.Context, in *v1.PublishModelRequest, opts ...grpc.CallOption) (*v1.PublishModelResponse, error)
 
-	CreateHFModelRepo(ctx context.Context, in *mv1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error)
-	GetHFModelRepo(ctx context.Context, in *mv1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error)
+	CreateHFModelRepo(ctx context.Context, in *v1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*v1.HFModelRepo, error)
+	GetHFModelRepo(ctx context.Context, in *v1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*v1.HFModelRepo, error)
 }
 
 // NewFakeModelClient creates a fake model client.
@@ -56,7 +55,7 @@ func NewFakeModelClient() *FakeModelClient {
 	return &FakeModelClient{
 		pathsByID:   map[string]string{},
 		ggufsByID:   map[string]string{},
-		formatsByID: map[string][]mv1.ModelFormat{},
+		formatsByID: map[string][]v1.ModelFormat{},
 
 		hfModelRepos: map[string]bool{},
 	}
@@ -66,13 +65,13 @@ func NewFakeModelClient() *FakeModelClient {
 type FakeModelClient struct {
 	pathsByID   map[string]string
 	ggufsByID   map[string]string
-	formatsByID map[string][]mv1.ModelFormat
+	formatsByID map[string][]v1.ModelFormat
 
 	hfModelRepos map[string]bool
 }
 
 // CreateBaseModel creates a base model.
-func (c *FakeModelClient) CreateBaseModel(ctx context.Context, in *mv1.CreateBaseModelRequest, opts ...grpc.CallOption) (*mv1.BaseModel, error) {
+func (c *FakeModelClient) CreateBaseModel(ctx context.Context, in *v1.CreateBaseModelRequest, opts ...grpc.CallOption) (*v1.BaseModel, error) {
 	if _, ok := c.pathsByID[in.Id]; ok {
 		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", in.Id)
 	}
@@ -80,13 +79,13 @@ func (c *FakeModelClient) CreateBaseModel(ctx context.Context, in *mv1.CreateBas
 	c.ggufsByID[in.Id] = in.GgufModelPath
 	c.formatsByID[in.Id] = in.Formats
 
-	return &mv1.BaseModel{
+	return &v1.BaseModel{
 		Id: in.Id,
 	}, nil
 }
 
 // GetBaseModelPath gets the path of a base model.
-func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*mv1.GetBaseModelPathResponse, error) {
+func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *v1.GetBaseModelPathRequest, opts ...grpc.CallOption) (*v1.GetBaseModelPathResponse, error) {
 	path, ok := c.pathsByID[in.Id]
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "model %q not found", in.Id)
@@ -100,7 +99,7 @@ func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseM
 		return nil, status.Errorf(codes.NotFound, "formats for model %q not found", in.Id)
 	}
 
-	return &mv1.GetBaseModelPathResponse{
+	return &v1.GetBaseModelPathResponse{
 		Path:          path,
 		Formats:       formats,
 		GgufModelPath: ggufPath,
@@ -108,50 +107,50 @@ func (c *FakeModelClient) GetBaseModelPath(ctx context.Context, in *mv1.GetBaseM
 }
 
 // GetModelPath gets the path of a model.
-func (c *FakeModelClient) GetModelPath(ctx context.Context, in *mv1.GetModelPathRequest, opts ...grpc.CallOption) (*mv1.GetModelPathResponse, error) {
+func (c *FakeModelClient) GetModelPath(ctx context.Context, in *v1.GetModelPathRequest, opts ...grpc.CallOption) (*v1.GetModelPathResponse, error) {
 	path, ok := c.pathsByID[in.Id]
 	if !ok {
 		return nil, status.Errorf(codes.NotFound, "model %q not found", in.Id)
 	}
-	return &mv1.GetModelPathResponse{
+	return &v1.GetModelPathResponse{
 		Path: path,
 	}, nil
 }
 
 // RegisterModel register a model.
-func (c *FakeModelClient) RegisterModel(ctx context.Context, in *mv1.RegisterModelRequest, opts ...grpc.CallOption) (*mv1.RegisterModelResponse, error) {
+func (c *FakeModelClient) RegisterModel(ctx context.Context, in *v1.RegisterModelRequest, opts ...grpc.CallOption) (*v1.RegisterModelResponse, error) {
 	if _, ok := c.pathsByID[in.Id]; ok {
 		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", in.Id)
 	}
 	// path := "models/default-tenant-id/" + in.Id
 	c.pathsByID[in.Id] = in.Path
-	return &mv1.RegisterModelResponse{
+	return &v1.RegisterModelResponse{
 		Id:   in.Id,
 		Path: in.Path,
 	}, nil
 }
 
 // PublishModel publishes a model.
-func (c *FakeModelClient) PublishModel(ctx context.Context, in *mv1.PublishModelRequest, opts ...grpc.CallOption) (*mv1.PublishModelResponse, error) {
-	return &mv1.PublishModelResponse{}, nil
+func (c *FakeModelClient) PublishModel(ctx context.Context, in *v1.PublishModelRequest, opts ...grpc.CallOption) (*v1.PublishModelResponse, error) {
+	return &v1.PublishModelResponse{}, nil
 }
 
 // CreateHFModelRepo creates a new HuggingFace model repo.
-func (c *FakeModelClient) CreateHFModelRepo(ctx context.Context, in *mv1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error) {
+func (c *FakeModelClient) CreateHFModelRepo(ctx context.Context, in *v1.CreateHFModelRepoRequest, opts ...grpc.CallOption) (*v1.HFModelRepo, error) {
 	if _, ok := c.hfModelRepos[in.Name]; ok {
 		return nil, status.Errorf(codes.AlreadyExists, "hugging-face model repo %q already exists", in.Name)
 	}
 	c.hfModelRepos[in.Name] = true
-	return &mv1.HFModelRepo{Name: in.Name}, nil
+	return &v1.HFModelRepo{Name: in.Name}, nil
 
 }
 
 // GetHFModelRepo returns a HuggingFace model repo.
-func (c *FakeModelClient) GetHFModelRepo(ctx context.Context, in *mv1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*mv1.HFModelRepo, error) {
+func (c *FakeModelClient) GetHFModelRepo(ctx context.Context, in *v1.GetHFModelRepoRequest, opts ...grpc.CallOption) (*v1.HFModelRepo, error) {
 	if _, ok := c.hfModelRepos[in.Name]; !ok {
 		return nil, status.Errorf(codes.NotFound, "hugging-face model repo %q not found", in.Name)
 	}
-	return &mv1.HFModelRepo{Name: in.Name}, nil
+	return &v1.HFModelRepo{Name: in.Name}, nil
 }
 
 // New creates a new loader.
@@ -243,7 +242,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
-	_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: convertedModelID})
+	_, err := l.modelClient.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{Id: convertedModelID})
 	if err == nil {
 		l.log.Info("Already model exists", "modelID", convertedModelID)
 		return nil
@@ -279,7 +278,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 
 	for _, mi := range modelInfos {
 		modelID := toLLMarinerModelID(mi.id)
-		_, err := l.modelClient.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{Id: modelID})
+		_, err := l.modelClient.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{Id: modelID})
 		if err == nil {
 			l.log.Info("Already model exists", "modelID", modelID)
 			continue
@@ -288,7 +287,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 			return err
 		}
 
-		if _, err := l.modelClient.CreateBaseModel(ctx, &mv1.CreateBaseModelRequest{
+		if _, err := l.modelClient.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
 			Id:               modelID,
 			Path:             mi.path,
 			Formats:          mi.formats,
@@ -319,7 +318,7 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
-	_, err := l.modelClient.GetModelPath(ctx, &mv1.GetModelPathRequest{Id: convertedModelID})
+	_, err := l.modelClient.GetModelPath(ctx, &v1.GetModelPathRequest{Id: convertedModelID})
 	if err == nil {
 		l.log.Info("Already model exists", "modelID", convertedModelID)
 		return nil
@@ -337,7 +336,7 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 	}
 	mi := modelInfos[0]
 
-	if _, err := l.modelClient.RegisterModel(ctx, &mv1.RegisterModelRequest{
+	if _, err := l.modelClient.RegisterModel(ctx, &v1.RegisterModelRequest{
 		Id:           convertedModelID,
 		BaseModel:    toLLMarinerModelID(model.BaseModel),
 		Adapter:      config.ToAdapterType(model.AdapterType),
@@ -462,7 +461,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 			{
 				id:               modelID,
 				path:             filepath.Join(l.toPathPrefix(isBaseModel), keyModelID),
-				formats:          []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA},
+				formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_OLLAMA},
 				sourceRepository: l.modelDownloader.sourceRepository(),
 			},
 		}, nil
@@ -470,16 +469,16 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 
 	var formats []v1.ModelFormat
 	if hasHuggingFaceConfigJSON {
-		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE)
+		formats = append(formats, v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE)
 	}
 	if hasTensorRTLLMConfig {
-		formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON)
+		formats = append(formats, v1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON)
 	}
 
 	if len(ggufModelPaths) <= 1 {
 		var ggufModelPath string
 		if len(ggufModelPaths) == 1 {
-			formats = append(formats, mv1.ModelFormat_MODEL_FORMAT_GGUF)
+			formats = append(formats, v1.ModelFormat_MODEL_FORMAT_GGUF)
 			ggufModelPath = ggufModelPaths[0]
 		}
 
@@ -515,7 +514,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 			id:               id,
 			path:             filepath.Join(l.toPathPrefix(isBaseModel), id),
 			ggufModelPath:    gpath,
-			formats:          []v1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF},
+			formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 			sourceRepository: l.modelDownloader.sourceRepository(),
 		})
 	}
