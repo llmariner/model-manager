@@ -23,6 +23,8 @@ type BaseModel struct {
 
 	SourceRepository v1.SourceRepository
 	LoadingStatus    v1.ModelLoadingStatus
+
+	LoadingFailureReason string
 }
 
 // UnmarshalModelFormats unmarshals model formats.

@@ -485,12 +485,13 @@ func toModelProto(m *store.Model) *v1.Model {
 
 func baseToModelProto(m *store.BaseModel) *v1.Model {
 	return &v1.Model{
-		Id:               m.ModelID,
-		Object:           "model",
-		Created:          m.CreatedAt.UTC().Unix(),
-		OwnedBy:          "system",
-		LoadingStatus:    m.LoadingStatus,
-		SourceRepository: m.SourceRepository,
+		Id:                   m.ModelID,
+		Object:               "model",
+		Created:              m.CreatedAt.UTC().Unix(),
+		OwnedBy:              "system",
+		LoadingStatus:        m.LoadingStatus,
+		SourceRepository:     m.SourceRepository,
+		LoadingFailureReason: m.LoadingFailureReason,
 	}
 }
 

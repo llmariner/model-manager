@@ -290,6 +290,10 @@
         "sourceRepository": {
           "$ref": "#/definitions/v1SourceRepository",
           "description": "source_repository is the source repository of the model. Set for base models created from the CreateModel API request.\nThis is not in the Open AI API specification."
+        },
+        "loadingFailureReason": {
+          "type": "string",
+          "description": "loading_failure_reason is set when the model loading is failed to show the failure reason."
         }
       }
     },
