@@ -32,6 +32,10 @@ func (s *S) ListModels(
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
 	for _, m := range bms {
+		if !isBaseModelLoaded(m) && !req.IncludeLoadingModels {
+			continue
+		}
+
 		modelProtos = append(modelProtos, baseToModelProto(m))
 	}
 
@@ -68,6 +72,10 @@ func (s *S) GetModel(
 	// First check if it's a base model.
 	bm, err := s.store.GetBaseModel(req.Id, userInfo.TenantID)
 	if err == nil {
+		if !isBaseModelLoaded(bm) && !req.IncludeLoadingModel {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+
 		return baseToModelProto(bm), nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -470,4 +478,9 @@ func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {
 		Object:  "basemodel",
 		Created: m.CreatedAt.UTC().Unix(),
 	}
+}
+
+func isBaseModelLoaded(m *store.BaseModel) bool {
+	// The UNSPECIFIED status is considered as loaded for backward compatibility.
+	return m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_UNSPECIFIED
 }

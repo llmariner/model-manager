@@ -66,6 +66,24 @@ func (s *S) CreateBaseModel(
 	return m, nil
 }
 
+// CreateBaseModelWithLoadingRequested creates a model with the requested loading status.
+func (s *S) CreateBaseModelWithLoadingRequested(
+	modelID string,
+	sourceRepository v1.SourceRepository,
+	tenantID string,
+) (*BaseModel, error) {
+	m := &BaseModel{
+		ModelID:          modelID,
+		SourceRepository: sourceRepository,
+		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+		TenantID:         tenantID,
+	}
+	if err := s.db.Create(m).Error; err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DeleteBaseModel deletes a base model by model ID and tenant ID.
 func (s *S) DeleteBaseModel(modelID, tenantID string) error {
 	res := s.db.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
