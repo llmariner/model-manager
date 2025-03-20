@@ -431,6 +431,10 @@ func (s *WS) GetBaseModelPath(
 		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 	}
 
+	if !isBaseModelLoaded(m) {
+		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	}
+
 	formats, err := store.UnmarshalModelFormats(m.Formats)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "unmarshal model formats: %s", err)
