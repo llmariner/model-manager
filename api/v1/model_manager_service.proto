@@ -61,6 +61,11 @@ message Model {
   string loading_failure_reason = 7;
 }
 
+message CreateModelRequest {
+  string id = 1;
+  SourceRepository source_repository = 2;
+}
+
 message ListModelsRequest {
   // include_loading_models is a flag to include loading models in the response.
   //
@@ -127,6 +132,15 @@ service ModelsService {
   }
 
   // The following API endpoints are not part of the OpenAPI API specification.
+
+  // CreateModel creates a new base model. The model becomes available once
+  // its model file is loaded to an object store.
+  rpc CreateModel(CreateModelRequest) returns (Model) {
+    option (google.api.http) = {
+      post: "/v1/models"
+      body: "*"
+    };
+  }
 
   rpc ListBaseModels(ListBaseModelsRequest) returns (ListBaseModelsResponse) {
     option (google.api.http) = {

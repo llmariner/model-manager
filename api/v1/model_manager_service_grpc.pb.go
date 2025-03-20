@@ -21,6 +21,9 @@ type ModelsServiceClient interface {
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
+	// CreateModel creates a new base model. The model becomes available once
+	// its model file is loaded to an object store.
+	CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error)
 	ListBaseModels(ctx context.Context, in *ListBaseModelsRequest, opts ...grpc.CallOption) (*ListBaseModelsResponse, error)
 }
 
@@ -59,6 +62,15 @@ func (c *modelsServiceClient) DeleteModel(ctx context.Context, in *DeleteModelRe
 	return out, nil
 }
 
+func (c *modelsServiceClient) CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error) {
+	out := new(Model)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/CreateModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *modelsServiceClient) ListBaseModels(ctx context.Context, in *ListBaseModelsRequest, opts ...grpc.CallOption) (*ListBaseModelsResponse, error) {
 	out := new(ListBaseModelsResponse)
 	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ListBaseModels", in, out, opts...)
@@ -75,6 +87,9 @@ type ModelsServiceServer interface {
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
+	// CreateModel creates a new base model. The model becomes available once
+	// its model file is loaded to an object store.
+	CreateModel(context.Context, *CreateModelRequest) (*Model, error)
 	ListBaseModels(context.Context, *ListBaseModelsRequest) (*ListBaseModelsResponse, error)
 	mustEmbedUnimplementedModelsServiceServer()
 }
@@ -91,6 +106,9 @@ func (UnimplementedModelsServiceServer) GetModel(context.Context, *GetModelReque
 }
 func (UnimplementedModelsServiceServer) DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteModel not implemented")
+}
+func (UnimplementedModelsServiceServer) CreateModel(context.Context, *CreateModelRequest) (*Model, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method CreateModel not implemented")
 }
 func (UnimplementedModelsServiceServer) ListBaseModels(context.Context, *ListBaseModelsRequest) (*ListBaseModelsResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ListBaseModels not implemented")
@@ -162,6 +180,24 @@ func _ModelsService_DeleteModel_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsService_CreateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(CreateModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsServiceServer).CreateModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsService/CreateModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsServiceServer).CreateModel(ctx, req.(*CreateModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ModelsService_ListBaseModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ListBaseModelsRequest)
 	if err := dec(in); err != nil {
@@ -198,6 +234,10 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "DeleteModel",
 			Handler:    _ModelsService_DeleteModel_Handler,
+		},
+		{
+			MethodName: "CreateModel",
+			Handler:    _ModelsService_CreateModel_Handler,
 		},
 		{
 			MethodName: "ListBaseModels",

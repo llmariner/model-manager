@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"strings"
 
+	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
 	"github.com/llmariner/common/pkg/id"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/server/internal/store"
@@ -14,6 +15,36 @@ import (
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
 )
+
+// CreateModel creates a base model.
+func (s *S) CreateModel(
+	ctx context.Context,
+	req *v1.CreateModelRequest,
+) (*v1.Model, error) {
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
+	}
+
+	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+	if req.SourceRepository == v1.SourceRepository_SOURCE_REPOSITORY_UNSPECIFIED {
+		return nil, status.Error(codes.InvalidArgument, "source_repository is required")
+	}
+
+	m, err := s.store.CreateBaseModelWithLoadingRequested(req.Id, req.SourceRepository, userInfo.TenantID)
+	if err != nil {
+		if gerrors.IsUniqueConstraintViolation(err) {
+			return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
+	}
+
+	return baseToModelProto(m), nil
+}
 
 // ListModels lists models.
 func (s *S) ListModels(
