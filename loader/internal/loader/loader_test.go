@@ -35,14 +35,13 @@ func TestLoadBaseModel(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		false,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -75,14 +74,13 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		false,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -117,13 +115,12 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		false,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
-	err := ld.loadBaseModel(context.Background(), "gemma:2b")
+	err := ld.loadBaseModel(context.Background(), "gemma:2b", v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -160,14 +157,13 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		false,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton")
+	err := ld.loadBaseModel(context.Background(), "meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -198,14 +194,13 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		true,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF")
+	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -249,14 +244,13 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		true,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf")
+	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -278,7 +272,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 		"phi-4-Q3_K_L.gguf",
 	}
 	s3Client.uploadedKeys = []string{}
-	err = ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf")
+	err = ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	want = []string{
@@ -308,8 +302,7 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		false,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
@@ -319,7 +312,7 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 		Model:       "abc/lora1",
 		BaseModel:   "google/gemma-2b",
 		AdapterType: "lora",
-	})
+	}, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -355,14 +348,13 @@ func TestLoadModel_InvalidFileFormat(t *testing.T) {
 	ld := New(
 		"models",
 		"base-models",
-		downloader,
-		false,
+		&fakeDownloaderFactory{d: downloader},
 		s3Client,
 		mc,
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "google/gemma-2b")
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.Error(t, err)
 }
 
@@ -470,6 +462,10 @@ func (d *fakeDownloader) download(ctx context.Context, modelName, filename strin
 	return nil
 }
 
-func (d *fakeDownloader) sourceRepository() v1.SourceRepository {
-	return v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
+type fakeDownloaderFactory struct {
+	d *fakeDownloader
+}
+
+func (f *fakeDownloaderFactory) Create(context.Context, v1.SourceRepository) (ModelDownloader, error) {
+	return f.d, nil
 }
