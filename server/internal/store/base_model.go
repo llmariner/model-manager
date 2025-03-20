@@ -43,10 +43,7 @@ func (s *S) CreateBaseModel(
 	sourceRepository v1.SourceRepository,
 	tenantID string,
 ) (*BaseModel, error) {
-	p := v1.ModelFormats{
-		Formats: formats,
-	}
-	b, err := proto.Marshal(&p)
+	b, err := marshalFormats(formats)
 	if err != nil {
 		return nil, err
 	}
@@ -112,4 +109,11 @@ func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 		return nil, err
 	}
 	return ms, nil
+}
+
+func marshalFormats(formats []v1.ModelFormat) ([]byte, error) {
+	p := v1.ModelFormats{
+		Formats: formats,
+	}
+	return proto.Marshal(&p)
 }
