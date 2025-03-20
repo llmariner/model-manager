@@ -53,6 +53,7 @@ export type Model = {
   owned_by?: string
   loading_status?: ModelLoadingStatus
   source_repository?: SourceRepository
+  loading_failure_reason?: string
 }
 
 export type ListModelsRequest = {

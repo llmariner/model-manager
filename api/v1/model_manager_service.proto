@@ -56,6 +56,9 @@ message Model {
   // source_repository is the source repository of the model. Set for base models created from the CreateModel API request.
   // This is not in the Open AI API specification.
   SourceRepository source_repository = 6;
+
+  // loading_failure_reason is set when the model loading is failed to show the failure reason.
+  string loading_failure_reason = 7;
 }
 
 message ListModelsRequest {
