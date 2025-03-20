@@ -35,6 +35,16 @@ func (s *S) CreateModel(
 		return nil, status.Error(codes.InvalidArgument, "source_repository is required")
 	}
 
+	if req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE &&
+		req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE &&
+		req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA {
+		return nil, status.Errorf(codes.InvalidArgument, "source_repository must be one of %v", []v1.SourceRepository{
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+			v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
+		})
+	}
+
 	m, err := s.store.CreateBaseModelWithLoadingRequested(req.Id, req.SourceRepository, userInfo.TenantID)
 	if err != nil {
 		if gerrors.IsUniqueConstraintViolation(err) {
