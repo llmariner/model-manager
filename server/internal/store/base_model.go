@@ -86,7 +86,12 @@ func (s *S) CreateBaseModelWithLoadingRequested(
 
 // DeleteBaseModel deletes a base model by model ID and tenant ID.
 func (s *S) DeleteBaseModel(modelID, tenantID string) error {
-	res := s.db.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
+	return DeleteBaseModelInTransaction(s.db, modelID, tenantID)
+}
+
+// DeleteBaseModelInTransaction deletes a base model by model ID and tenant ID.
+func DeleteBaseModelInTransaction(tx *gorm.DB, modelID, tenantID string) error {
+	res := tx.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
 	if err := res.Error; err != nil {
 		return err
 	}

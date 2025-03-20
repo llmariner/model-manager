@@ -85,6 +85,34 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	assert.Len(t, listResp.Data, 0)
 }
 
+func TestDeleteModel_BaseModelAndHFModelRepo(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	_, err := st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+	assert.NoError(t, err)
+
+	_, err = st.CreateHFModelRepo("m0", defaultTenantID)
+	assert.NoError(t, err)
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
+		Id: "m0",
+	})
+	assert.NoError(t, err)
+
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: "m0",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.NotFound, status.Code(err))
+
+	hfs, err := st.ListHFModelRepos(defaultTenantID)
+	assert.NoError(t, err)
+	assert.Empty(t, hfs)
+}
+
 func TestGetAndListModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
