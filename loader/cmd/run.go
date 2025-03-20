@@ -60,10 +60,6 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	s3c := c.ObjectStore.S3
-	d, err := newModelDownloader(ctx, c)
-	if err != nil {
-		return err
-	}
 
 	var mclient loader.ModelClient
 	if c.Debug.Standalone {
@@ -84,18 +80,22 @@ func run(ctx context.Context, c *config.Config) error {
 	if err != nil {
 		return err
 	}
+	sourceRepository := kindToSourceRepository(c.Downloader.Kind)
+	if sourceRepository == v1.SourceRepository_SOURCE_REPOSITORY_UNSPECIFIED {
+		return fmt.Errorf("invalid kind: %s", c.Downloader.Kind)
+	}
+
 	s := loader.New(
 		s3c.PathPrefix,
 		s3c.BaseModelPathPrefix,
-		d,
-		c.Downloader.Kind == config.DownloaderKindHuggingFace,
+		&mdFactory{c: c},
 		s3client,
 		mclient,
 		logger,
 	)
 
 	if c.RunOnce {
-		return s.LoadModels(ctx, c.BaseModels, c.Models)
+		return s.LoadModels(ctx, c.BaseModels, c.Models, sourceRepository)
 	}
 
 	ss, err := cmstatus.NewBeaconSender(c.ComponentStatusSender, grpcOption(c), logger)
@@ -104,7 +104,7 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	eg, ctx := errgroup.WithContext(ctx)
-	eg.Go(func() error { return s.Run(ctx, c.BaseModels, c.Models, c.ModelLoadInterval) })
+	eg.Go(func() error { return s.Run(ctx, c.BaseModels, c.Models, sourceRepository, c.ModelLoadInterval) })
 	if c.ComponentStatusSender.Enable {
 		eg.Go(func() error {
 			ss.Run(ctx)
@@ -133,11 +133,29 @@ func createStorageClass(ctx context.Context, mclient v1.ModelsWorkerServiceClien
 	return err
 }
 
-func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDownloader, error) {
-	logger := logr.FromContextOrDiscard(ctx)
-	switch c.Downloader.Kind {
+func kindToSourceRepository(kind config.DownloaderKind) v1.SourceRepository {
+	switch kind {
 	case config.DownloaderKindS3:
-		s3c := c.Downloader.S3
+		return v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
+	case config.DownloaderKindHuggingFace:
+		return v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE
+	case config.DownloaderKindOllama:
+		return v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA
+	default:
+		return v1.SourceRepository_SOURCE_REPOSITORY_UNSPECIFIED
+	}
+}
+
+type mdFactory struct {
+	c *config.Config
+}
+
+// Create creates a ModelDownloader.
+func (f *mdFactory) Create(ctx context.Context, sourceRepository v1.SourceRepository) (loader.ModelDownloader, error) {
+	logger := logr.FromContextOrDiscard(ctx)
+	switch sourceRepository {
+	case v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE:
+		s3c := f.c.Downloader.S3
 		opts := laws.NewS3ClientOptions{
 			EndpointURL: s3c.EndpointURL,
 			Region:      s3c.Region,
@@ -156,12 +174,12 @@ func newModelDownloader(ctx context.Context, c *config.Config) (loader.ModelDown
 			return nil, err
 		}
 		return loader.NewS3Downloader(s3Client, s3c.PathPrefix, logger), nil
-	case config.DownloaderKindHuggingFace:
-		return loader.NewHuggingFaceDownloader(c.Downloader.HuggingFace.CacheDir, logger), nil
-	case config.DownloaderKindOllama:
-		return loader.NewOllamaDownloader(c.Downloader.Ollama.Port, logger), nil
+	case v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE:
+		return loader.NewHuggingFaceDownloader(f.c.Downloader.HuggingFace.CacheDir, logger), nil
+	case v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA:
+		return loader.NewOllamaDownloader(f.c.Downloader.Ollama.Port, logger), nil
 	default:
-		return nil, fmt.Errorf("unknown downloader kind: %s", c.Downloader.Kind)
+		return nil, fmt.Errorf("unknown downloader source repository: %s", sourceRepository)
 	}
 }
 

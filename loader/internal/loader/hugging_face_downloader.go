@@ -8,7 +8,6 @@ import (
 	"os/exec"
 
 	"github.com/go-logr/logr"
-	v1 "github.com/llmariner/model-manager/api/v1"
 )
 
 // NewHuggingFaceDownloader creates a new HuggingFaceDownloader.
@@ -52,8 +51,4 @@ func (h *HuggingFaceDownloader) download(ctx context.Context, modelName, filenam
 		return fmt.Errorf("download: %s", err)
 	}
 	return nil
-}
-
-func (h *HuggingFaceDownloader) sourceRepository() v1.SourceRepository {
-	return v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE
 }

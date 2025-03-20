@@ -21,7 +21,11 @@ import (
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
 	download(ctx context.Context, modelName, filename, destDir string) error
-	sourceRepository() v1.SourceRepository
+}
+
+// modelDownloaderFactory is the factory for ModelDownloader.
+type modelDownloaderFactory interface {
+	Create(context.Context, v1.SourceRepository) (ModelDownloader, error)
 }
 
 // S3Client is an interface for uploading a file to S3.
@@ -157,21 +161,19 @@ func (c *FakeModelClient) GetHFModelRepo(ctx context.Context, in *v1.GetHFModelR
 func New(
 	objectStorePathPrefix string,
 	baseModelPathPrefix string,
-	modelDownloader ModelDownloader,
-	isDownloadingFromHuggingFace bool,
+	modelDownloaderFactory modelDownloaderFactory,
 	s3Client S3Client,
 	modelClient ModelClient,
 	log logr.Logger,
 ) *L {
 	return &L{
-		objectStorePathPrefix:        objectStorePathPrefix,
-		baseModelPathPrefix:          baseModelPathPrefix,
-		modelDownloader:              modelDownloader,
-		isDownloadingFromHuggingFace: isDownloadingFromHuggingFace,
-		s3Client:                     s3Client,
-		modelClient:                  modelClient,
-		log:                          log.WithName("loader"),
-		tmpDir:                       "/tmp",
+		objectStorePathPrefix:  objectStorePathPrefix,
+		baseModelPathPrefix:    baseModelPathPrefix,
+		modelDownloaderFactory: modelDownloaderFactory,
+		s3Client:               s3Client,
+		modelClient:            modelClient,
+		log:                    log.WithName("loader"),
+		tmpDir:                 "/tmp",
 	}
 }
 
@@ -181,8 +183,7 @@ type L struct {
 	objectStorePathPrefix string
 	baseModelPathPrefix   string
 
-	modelDownloader              ModelDownloader
-	isDownloadingFromHuggingFace bool
+	modelDownloaderFactory modelDownloaderFactory
 
 	s3Client S3Client
 
@@ -198,9 +199,10 @@ func (l *L) Run(
 	ctx context.Context,
 	baseModels []string,
 	models []config.ModelConfig,
+	sourceRepository v1.SourceRepository,
 	interval time.Duration,
 ) error {
-	if err := l.LoadModels(ctx, baseModels, models); err != nil {
+	if err := l.LoadModels(ctx, baseModels, models, sourceRepository); err != nil {
 		return err
 	}
 
@@ -211,7 +213,7 @@ func (l *L) Run(
 			return ctx.Err()
 		case <-ticker.C:
 			// TODO(kenji): Change this to dynamic model loading.
-			if err := l.LoadModels(ctx, baseModels, models); err != nil {
+			if err := l.LoadModels(ctx, baseModels, models, sourceRepository); err != nil {
 				return err
 			}
 		}
@@ -223,21 +225,22 @@ func (l *L) LoadModels(
 	ctx context.Context,
 	baseModels []string,
 	models []config.ModelConfig,
+	sourceRepository v1.SourceRepository,
 ) error {
 	for _, baseModel := range baseModels {
-		if err := l.loadBaseModel(ctx, baseModel); err != nil {
+		if err := l.loadBaseModel(ctx, baseModel, sourceRepository); err != nil {
 			return err
 		}
 	}
 	for _, m := range models {
-		if err := l.loadModel(ctx, m); err != nil {
+		if err := l.loadModel(ctx, m, sourceRepository); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
+func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository v1.SourceRepository) error {
 	convertedModelID := toLLMarinerModelID(modelID)
 
 	// First check if the model exists in the database.
@@ -259,7 +262,8 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	// Check if the HF repo has already been downloaded. We need to check if when
 	// a repo contains multiple GGUF files as there is no one-to-one mapping between the repo and
 	// base models.
-	if l.isDownloadingFromHuggingFace && filename == "" {
+	isDownloadingFromHuggingFace := sourceRepository == v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE
+	if isDownloadingFromHuggingFace && filename == "" {
 		// Check if the corresponding HuggingFace repo has already been downloaded.
 		_, err := l.modelClient.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: modelID})
 		if err == nil {
@@ -271,7 +275,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		}
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, true)
+	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, true, sourceRepository)
 	if err != nil {
 		return err
 	}
@@ -300,7 +304,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 		l.log.Info("Successfully loaded base model", "model", modelID)
 	}
 
-	if l.isDownloadingFromHuggingFace && filename == "" {
+	if isDownloadingFromHuggingFace && filename == "" {
 		if _, err := l.modelClient.CreateHFModelRepo(ctx, &v1.CreateHFModelRepoRequest{Name: modelID}); err != nil {
 			return err
 		}
@@ -309,8 +313,8 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string) error {
 	return nil
 }
 
-func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
-	if err := l.loadBaseModel(ctx, model.BaseModel); err != nil {
+func (l *L) loadModel(ctx context.Context, model config.ModelConfig, sourceRepository v1.SourceRepository) error {
+	if err := l.loadBaseModel(ctx, model.BaseModel, sourceRepository); err != nil {
 		return err
 	}
 
@@ -327,7 +331,7 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig) error {
 		return err
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", false)
+	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", false, sourceRepository)
 	if err != nil {
 		return err
 	}
@@ -364,7 +368,7 @@ type modelInfo struct {
 	sourceRepository v1.SourceRepository
 }
 
-func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string, isBaseModel bool) ([]*modelInfo, error) {
+func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string, isBaseModel bool, sourceRepository v1.SourceRepository) ([]*modelInfo, error) {
 	log := l.log.WithValues("modelID", modelID)
 	log.Info("Started loading model")
 
@@ -387,7 +391,11 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 	}()
 
 	log.Info("Downloading model")
-	if err := l.modelDownloader.download(ctx, modelID, filename, tmpDir); err != nil {
+	downloader, err := l.modelDownloaderFactory.Create(ctx, sourceRepository)
+	if err != nil {
+		return nil, err
+	}
+	if err := downloader.download(ctx, modelID, filename, tmpDir); err != nil {
 		return nil, err
 	}
 
@@ -462,7 +470,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 				id:               modelID,
 				path:             filepath.Join(l.toPathPrefix(isBaseModel), keyModelID),
 				formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_OLLAMA},
-				sourceRepository: l.modelDownloader.sourceRepository(),
+				sourceRepository: sourceRepository,
 			},
 		}, nil
 	}
@@ -496,7 +504,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 				path:             filepath.Join(l.toPathPrefix(isBaseModel), modelID),
 				ggufModelPath:    ggufModelPath,
 				formats:          formats,
-				sourceRepository: l.modelDownloader.sourceRepository(),
+				sourceRepository: sourceRepository,
 			},
 		}, nil
 	}
@@ -515,7 +523,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 			path:             filepath.Join(l.toPathPrefix(isBaseModel), id),
 			ggufModelPath:    gpath,
 			formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
-			sourceRepository: l.modelDownloader.sourceRepository(),
+			sourceRepository: sourceRepository,
 		})
 	}
 
