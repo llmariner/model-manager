@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr/testr"
-	mv1 "github.com/llmariner/model-manager/api/v1"
+	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -53,11 +53,11 @@ func TestLoadBaseModel(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "google-gemma-2b",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
 	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
 	assert.Equal(t, "models/base-models/google/gemma-2b/dir0/file1.gguf", got.GgufModelPath)
 }
@@ -90,11 +90,11 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "google-gemma-2b",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
 	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 }
@@ -134,11 +134,11 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "gemma:2b",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_OLLAMA}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_OLLAMA}, got.Formats)
 	assert.Equal(t, "models/base-models/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 }
@@ -175,11 +175,11 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "meta-llama-Meta-Llama-3.1-70B-Instruct-awq-triton",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON}, got.Formats)
 	assert.Equal(t, "models/base-models/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 }
@@ -216,23 +216,23 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 
 	// No model created for the HuggingFace repo name.
 	ctx := context.Background()
-	_, err = mc.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{
+	_, err = mc.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
 		Id: "lmstudio-community-phi-4-GGUF",
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
 
 	for _, q := range []string{"K_L", "K_M"} {
-		got, err := mc.GetBaseModelPath(ctx, &mv1.GetBaseModelPathRequest{
+		got, err := mc.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{
 			Id: "lmstudio-community-phi-4-GGUF-phi-4-Q3_" + q,
 		})
 		assert.NoError(t, err)
-		assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+		assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
 		assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q, got.Path)
 		assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q+".gguf", got.GgufModelPath)
 	}
 
-	_, err = mc.GetHFModelRepo(ctx, &mv1.GetHFModelRepoRequest{Name: "lmstudio-community/phi-4-GGUF"})
+	_, err = mc.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: "lmstudio-community/phi-4-GGUF"})
 	assert.NoError(t, err)
 }
 
@@ -264,11 +264,11 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "lmstudio-community-phi-4-GGUF-phi-4-Q3_K_M.gguf",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
 	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF", got.Path)
 	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", got.GgufModelPath)
 
@@ -286,11 +286,11 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err = mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err = mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "lmstudio-community-phi-4-GGUF-phi-4-Q3_K_L.gguf",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
 	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF", got.Path)
 	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", got.GgufModelPath)
 }
@@ -328,15 +328,15 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
-	got, err := mc.GetBaseModelPath(context.Background(), &mv1.GetBaseModelPathRequest{
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
 		Id: "google-gemma-2b",
 	})
 	assert.NoError(t, err)
-	assert.ElementsMatch(t, []mv1.ModelFormat{mv1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
 	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 
-	ret, err := mc.GetModelPath(context.Background(), &mv1.GetModelPathRequest{
+	ret, err := mc.GetModelPath(context.Background(), &v1.GetModelPathRequest{
 		Id: "abc-lora1",
 	})
 	assert.NoError(t, err)
@@ -470,6 +470,6 @@ func (d *fakeDownloader) download(ctx context.Context, modelName, filename strin
 	return nil
 }
 
-func (d *fakeDownloader) sourceRepository() mv1.SourceRepository {
-	return mv1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
+func (d *fakeDownloader) sourceRepository() v1.SourceRepository {
+	return v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
 }

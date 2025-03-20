@@ -10,7 +10,7 @@ import (
 	"github.com/go-logr/stdr"
 	cmstatus "github.com/llmariner/cluster-manager/pkg/status"
 	laws "github.com/llmariner/common/pkg/aws"
-	mv1 "github.com/llmariner/model-manager/api/v1"
+	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/llmariner/model-manager/loader/internal/loader"
 	"github.com/llmariner/model-manager/loader/internal/s3"
@@ -73,7 +73,7 @@ func run(ctx context.Context, c *config.Config) error {
 		if err != nil {
 			return err
 		}
-		mc := mv1.NewModelsWorkerServiceClient(conn)
+		mc := v1.NewModelsWorkerServiceClient(conn)
 		if err := createStorageClass(ctx, mc, s3c.PathPrefix); err != nil {
 			return err
 		}
@@ -114,10 +114,10 @@ func run(ctx context.Context, c *config.Config) error {
 	return eg.Wait()
 }
 
-func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClient, pathPrefix string) error {
+func createStorageClass(ctx context.Context, mclient v1.ModelsWorkerServiceClient, pathPrefix string) error {
 	ctx = auth.AppendWorkerAuthorization(ctx)
 
-	_, err := mclient.GetStorageConfig(ctx, &mv1.GetStorageConfigRequest{})
+	_, err := mclient.GetStorageConfig(ctx, &v1.GetStorageConfigRequest{})
 	if err == nil {
 		return nil
 	}
@@ -127,7 +127,7 @@ func createStorageClass(ctx context.Context, mclient mv1.ModelsWorkerServiceClie
 	}
 
 	logr.FromContextOrDiscard(ctx).WithName("boot").Info("Creating a storage class", "pathPrefix", pathPrefix)
-	_, err = mclient.CreateStorageConfig(ctx, &mv1.CreateStorageConfigRequest{
+	_, err = mclient.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
 		PathPrefix: pathPrefix,
 	})
 	return err
