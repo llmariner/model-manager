@@ -25,18 +25,6 @@ type ModelDownloader interface {
 	sourceRepository() v1.SourceRepository
 }
 
-// NoopModelDownloader is a no-op model downloader.
-type NoopModelDownloader struct {
-}
-
-func (d *NoopModelDownloader) download(ctx context.Context, modelName, destDir string) error {
-	return nil
-}
-
-func (d *NoopModelDownloader) sourceRepository() v1.SourceRepository {
-	return v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE
-}
-
 // S3Client is an interface for uploading a file to S3.
 type S3Client interface {
 	Upload(ctx context.Context, r io.Reader, key string) error
