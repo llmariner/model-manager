@@ -48,7 +48,7 @@ func TestS3Download(t *testing.T) {
 			},
 		},
 		{
-			name:      "download all objects",
+			name:      "download specific file",
 			modelName: "google/gemma-2b",
 			filename:  "key0",
 			want: map[string]string{
@@ -71,6 +71,33 @@ func TestS3Download(t *testing.T) {
 			}
 		})
 	}
+}
+
+// TestS3Download_IgnoreExactMatch verifies that an object whose key is
+// exactly the same as the model path is not downloaded.
+func TestS3Download_IgnoreExactMatch(t *testing.T) {
+	destDir, err := os.MkdirTemp("", "test")
+	assert.NoError(t, err)
+	defer func() {
+		err := os.RemoveAll(destDir)
+		assert.NoError(t, err)
+	}()
+
+	client := &fakeS3Client{
+		objs: map[string][]byte{
+			"v1/base-models/google/gemma-2b":      []byte("object0"),
+			"v1/base-models/google/gemma-2b/key0": []byte("object1"),
+		},
+	}
+
+	ctx := context.Background()
+	d := NewS3Downloader(client, "v1/base-models", testr.New(t))
+	err = d.download(ctx, "google/gemma-2b", "", destDir)
+	assert.NoError(t, err)
+
+	b, err := os.ReadFile(filepath.Join(destDir, "key0"))
+	assert.NoError(t, err)
+	assert.Equal(t, "object1", string(b))
 }
 
 type fakeS3Client struct {
