@@ -1,4 +1,12 @@
 import * as fm from "../../fetch.pb";
+type Absent<T, K extends keyof T> = {
+    [k in Exclude<keyof T, K>]?: undefined;
+};
+type OneOf<T> = {
+    [k in keyof T]?: undefined;
+} | (keyof T extends infer K ? (K extends string & keyof T ? {
+    [k in K]: T[K];
+} & Absent<T, K> : never) : never);
 export declare enum ModelFormat {
     MODEL_FORMAT_UNSPECIFIED = "MODEL_FORMAT_UNSPECIFIED",
     MODEL_FORMAT_GGUF = "MODEL_FORMAT_GGUF",
@@ -139,6 +147,23 @@ export type HFModelRepo = {
 export type GetHFModelRepoRequest = {
     name?: string;
 };
+export type AcquireUnloadedBaseModelRequest = {};
+export type AcquireUnloadedBaseModelResponse = {
+    base_model_id?: string;
+    source_repository?: SourceRepository;
+};
+export type UpdateBaseModelLoadingStatusRequestSuccess = {};
+export type UpdateBaseModelLoadingStatusRequestFailure = {
+    reason?: string;
+};
+type BaseUpdateBaseModelLoadingStatusRequest = {
+    id?: string;
+};
+export type UpdateBaseModelLoadingStatusRequest = BaseUpdateBaseModelLoadingStatusRequest & OneOf<{
+    success: UpdateBaseModelLoadingStatusRequestSuccess;
+    failure: UpdateBaseModelLoadingStatusRequestFailure;
+}>;
+export type UpdateBaseModelLoadingStatusResponse = {};
 export declare class ModelsService {
     static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse>;
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
@@ -158,4 +183,7 @@ export declare class ModelsWorkerService {
     static GetBaseModelPath(req: GetBaseModelPathRequest, initReq?: fm.InitReq): Promise<GetBaseModelPathResponse>;
     static CreateHFModelRepo(req: CreateHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo>;
     static GetHFModelRepo(req: GetHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo>;
+    static AcquireUnloadedBaseModel(req: AcquireUnloadedBaseModelRequest, initReq?: fm.InitReq): Promise<AcquireUnloadedBaseModelResponse>;
+    static UpdateBaseModelLoadingStatus(req: UpdateBaseModelLoadingStatusRequest, initReq?: fm.InitReq): Promise<UpdateBaseModelLoadingStatusResponse>;
 }
+export {};

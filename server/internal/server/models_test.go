@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"strings"
 	"testing"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"gorm.io/gorm"
 )
 
 func TestModels(t *testing.T) {
@@ -463,6 +465,13 @@ func TestBaseModelCreation(t *testing.T) {
 	srv := New(st, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	// No model to be acquired.
+	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
 	const modelID = "m0"
 
 	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
@@ -471,4 +480,139 @@ func TestBaseModelCreation(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, resp.BaseModelId)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
+
+	got, err := st.GetBaseModel(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	// No model to be acquired as the model has already been acquired.
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
+	// Create a base model.
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            modelID,
+		Path:          "path",
+		GgufModelPath: "gguf-path",
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id: modelID,
+		LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{
+			Success: &v1.UpdateBaseModelLoadingStatusRequest_Success{},
+		},
+	})
+	assert.NoError(t, err)
+
+	got, err = st.GetBaseModel(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, got.LoadingStatus)
+	assert.Equal(t, "path", got.Path)
+	assert.Equal(t, "gguf-path", got.GGUFModelPath)
+}
+
+func TestBaseModelCreation_CreateModelOfDifferentID(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	const modelID = "m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, resp.BaseModelId)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
+
+	got, err := st.GetBaseModel(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	// Create base models.
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            modelID + "-model0.gguf",
+		Path:          "path0",
+		GgufModelPath: "gguf-path0",
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            modelID + "-model1.gguf",
+		Path:          "path0",
+		GgufModelPath: "gguf-path0",
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id: modelID,
+		LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{
+			Success: &v1.UpdateBaseModelLoadingStatusRequest_Success{},
+		},
+	})
+	assert.NoError(t, err)
+
+	// The requested model has been deleted.
+	_, err = st.GetBaseModel(modelID, defaultTenantID)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+}
+
+func TestBaseModelCreation_Failure(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	const modelID = "m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, resp.BaseModelId)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
+
+	got, err := st.GetBaseModel(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id: modelID,
+		LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Failure_{
+			Failure: &v1.UpdateBaseModelLoadingStatusRequest_Failure{
+				Reason: "error",
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	got, err = st.GetBaseModel(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, got.LoadingStatus)
+	assert.Equal(t, "error", got.LoadingFailureReason)
 }

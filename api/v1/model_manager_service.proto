@@ -265,6 +265,35 @@ message GetHFModelRepoRequest {
   string name = 1;
 }
 
+message AcquireUnloadedBaseModelRequest {
+}
+
+message AcquireUnloadedBaseModelResponse {
+  // base_model_id is ID of the acquired base model. Empty if there is no unloaded base model.
+  string base_model_id = 1;
+  SourceRepository source_repository = 2;
+}
+
+message UpdateBaseModelLoadingStatusRequest {
+  string id = 1;
+
+  message Success {
+  }
+
+  message Failure {
+    string reason = 1;
+  }
+
+  oneof loading_result {
+    Success success = 2;
+    Failure failure = 3;
+  }
+
+}
+
+message UpdateBaseModelLoadingStatusResponse {
+}
+
 service ModelsWorkerService {
   // CreateStorageConfig creates a new storage config. Used by model-manager-loader.
   rpc CreateStorageConfig(CreateStorageConfigRequest) returns (StorageConfig) {
@@ -310,6 +339,16 @@ service ModelsWorkerService {
 
   // GetHFModelRepo returns the HuggingFace model repo that has been downloaded. Used by model-manager-loader.
   rpc GetHFModelRepo(GetHFModelRepoRequest) returns (HFModelRepo) {
+  }
+
+  // AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists, update the loading status to LOADED,
+  // and return it. Used by model-manager-loader.
+  rpc AcquireUnloadedBaseModel(AcquireUnloadedBaseModelRequest) returns (AcquireUnloadedBaseModelResponse) {
+  }
+
+  // UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
+  // updates the base model metadata. Used by model-manager-loader.
+  rpc UpdateBaseModelLoadingStatus(UpdateBaseModelLoadingStatusRequest) returns (UpdateBaseModelLoadingStatusResponse) {
   }
 
 }

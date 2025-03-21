@@ -170,6 +170,17 @@
     }
   },
   "definitions": {
+    "UpdateBaseModelLoadingStatusRequestFailure": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "UpdateBaseModelLoadingStatusRequestSuccess": {
+      "type": "object"
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -194,6 +205,18 @@
           "items": {
             "$ref": "#/definitions/protobufAny"
           }
+        }
+      }
+    },
+    "v1AcquireUnloadedBaseModelResponse": {
+      "type": "object",
+      "properties": {
+        "baseModelId": {
+          "type": "string",
+          "description": "base_model_id is ID of the acquired base model. Empty if there is no unloaded base model."
+        },
+        "sourceRepository": {
+          "$ref": "#/definitions/v1SourceRepository"
         }
       }
     },
@@ -422,6 +445,9 @@
           "type": "string"
         }
       }
+    },
+    "v1UpdateBaseModelLoadingStatusResponse": {
+      "type": "object"
     }
   }
 }
