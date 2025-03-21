@@ -69,13 +69,21 @@ func (d *S3Downloader) download(ctx context.Context, modelName, filename, destDi
 }
 
 func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destDir string) error {
-	filePath := filepath.Join(destDir, strings.TrimPrefix(key, prefix))
+	p := strings.TrimPrefix(key, prefix)
+	if p == "" {
+		// Do nothing if there is an object whose key exactly matches with the model path. We don't need to copy that one.
+		// For example, if the model path is 'google/gemma-2b', we would like to copy object under 'google/gemme-2b', but
+		// not the object at 'google/gemma-2b'.
+		return nil
+	}
+
+	filePath := filepath.Join(destDir, p)
 	if err := os.MkdirAll(filepath.Dir(filePath), 0755); err != nil {
-		return err
+		return fmt.Errorf("mkdirall for key %q: %s", key, err)
 	}
 	f, err := os.Create(filePath)
 	if err != nil {
-		return err
+		return fmt.Errorf("create for key %q: %s", key, err)
 	}
 	defer func() {
 		_ = f.Close()
@@ -83,7 +91,7 @@ func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destD
 
 	d.log.Info("Downloading S3 object", "key", key, "filePath", filePath)
 	if err := d.s3Client.Download(ctx, f, key); err != nil {
-		return err
+		return fmt.Errorf("download key %q: %s", key, err)
 	}
 
 	return nil
