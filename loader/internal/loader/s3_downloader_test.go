@@ -86,7 +86,8 @@ func TestS3Download_IgnoreExactMatch(t *testing.T) {
 	client := &fakeS3Client{
 		objs: map[string][]byte{
 			"v1/base-models/google/gemma-2b":      []byte("object0"),
-			"v1/base-models/google/gemma-2b/key0": []byte("object1"),
+			"v1/base-models/google/gemma-2b/":     []byte("object1"),
+			"v1/base-models/google/gemma-2b/key0": []byte("object2"),
 		},
 	}
 
@@ -97,7 +98,7 @@ func TestS3Download_IgnoreExactMatch(t *testing.T) {
 
 	b, err := os.ReadFile(filepath.Join(destDir, "key0"))
 	assert.NoError(t, err)
-	assert.Equal(t, "object1", string(b))
+	assert.Equal(t, "object2", string(b))
 }
 
 type fakeS3Client struct {

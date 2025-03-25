@@ -70,7 +70,7 @@ func (d *S3Downloader) download(ctx context.Context, modelName, filename, destDi
 
 func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destDir string) error {
 	p := strings.TrimPrefix(key, prefix)
-	if p == "" {
+	if p == "" || p == "/" {
 		// Do nothing if there is an object whose key exactly matches with the model path. We don't need to copy that one.
 		// For example, if the model path is 'google/gemma-2b', we would like to copy object under 'google/gemme-2b', but
 		// not the object at 'google/gemma-2b'.
