@@ -45,10 +45,10 @@ export class ModelsService {
         return fm.fetchReq(`/v1/models?${fm.renderURLSearchParams(req, [])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
     }
     static GetModel(req, initReq) {
-        return fm.fetchReq(`/v1/models/${req["id"]}?${fm.renderURLSearchParams(req, ["id"])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
+        return fm.fetchReq(`/v1/models/${req["id==**"]}?${fm.renderURLSearchParams(req, ["id==**"])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
     }
     static DeleteModel(req, initReq) {
-        return fm.fetchReq(`/v1/models/${req["id"]}`, Object.assign(Object.assign({}, initReq), { method: "DELETE" }));
+        return fm.fetchReq(`/v1/models/${req["id=**"]}`, Object.assign(Object.assign({}, initReq), { method: "DELETE" }));
     }
     static CreateModel(req, initReq) {
         return fm.fetchReq(`/v1/models`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));

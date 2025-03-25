@@ -222,10 +222,10 @@ export class ModelsService {
     return fm.fetchReq<ListModelsRequest, ListModelsResponse>(`/v1/models?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
   static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model> {
-    return fm.fetchReq<GetModelRequest, Model>(`/v1/models/${req["id"]}?${fm.renderURLSearchParams(req, ["id"])}`, {...initReq, method: "GET"})
+    return fm.fetchReq<GetModelRequest, Model>(`/v1/models/${req["id==**"]}?${fm.renderURLSearchParams(req, ["id==**"])}`, {...initReq, method: "GET"})
   }
   static DeleteModel(req: DeleteModelRequest, initReq?: fm.InitReq): Promise<DeleteModelResponse> {
-    return fm.fetchReq<DeleteModelRequest, DeleteModelResponse>(`/v1/models/${req["id"]}`, {...initReq, method: "DELETE"})
+    return fm.fetchReq<DeleteModelRequest, DeleteModelResponse>(`/v1/models/${req["id=**"]}`, {...initReq, method: "DELETE"})
   }
   static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model> {
     return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})

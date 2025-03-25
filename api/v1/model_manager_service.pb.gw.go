@@ -276,7 +276,7 @@ func RegisterModelsServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/GetModel", runtime.WithHTTPPathPattern("/v1/models/{id}"))
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/GetModel", runtime.WithHTTPPathPattern("/v1/models/{id==**}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -299,7 +299,7 @@ func RegisterModelsServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeleteModel", runtime.WithHTTPPathPattern("/v1/models/{id}"))
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeleteModel", runtime.WithHTTPPathPattern("/v1/models/{id=**}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -427,7 +427,7 @@ func RegisterModelsServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/GetModel", runtime.WithHTTPPathPattern("/v1/models/{id}"))
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/GetModel", runtime.WithHTTPPathPattern("/v1/models/{id==**}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -447,7 +447,7 @@ func RegisterModelsServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeleteModel", runtime.WithHTTPPathPattern("/v1/models/{id}"))
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeleteModel", runtime.WithHTTPPathPattern("/v1/models/{id=**}"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -509,9 +509,9 @@ func RegisterModelsServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 var (
 	pattern_ModelsService_ListModels_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "models"}, ""))
 
-	pattern_ModelsService_GetModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, ""))
+	pattern_ModelsService_GetModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 4, 1, 5, 3}, []string{"v1", "models", "=**", "id"}, ""))
 
-	pattern_ModelsService_DeleteModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, ""))
+	pattern_ModelsService_DeleteModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 3, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, ""))
 
 	pattern_ModelsService_CreateModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "models"}, ""))
 
