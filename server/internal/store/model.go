@@ -1,7 +1,7 @@
 package store
 
 import (
-	"github.com/llmariner/model-manager/api/v1"
+	v1 "github.com/llmariner/model-manager/api/v1"
 	"gorm.io/gorm"
 )
 
@@ -89,7 +89,7 @@ func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Mode
 	if onlyPublished {
 		q = q.Where("is_published = true")
 	}
-	q = q.Order("id DESC")
+	q = q.Order("model_id DESC")
 
 	var ms []*Model
 	if err := q.Find(&ms).Error; err != nil {
