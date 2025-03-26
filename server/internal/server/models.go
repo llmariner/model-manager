@@ -589,7 +589,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		//
 		// In this case, we should delete delete the requested model ID.
 		if bm.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING {
-			s.log.Info("Delete the model %q as base models have been successfully created", "modelID", req.Id)
+			s.log.Info("Delete the model as base models have been successfully created", "modelID", req.Id)
 			if err := s.store.DeleteBaseModel(req.Id, clusterInfo.TenantID); err != nil {
 				return nil, status.Errorf(codes.Internal, "delete base model: %s", err)
 			}
