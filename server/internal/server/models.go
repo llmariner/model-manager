@@ -187,9 +187,12 @@ func (s *S) DeleteModel(
 		// the Hugging Face repo name and the model ID does not match.
 		//
 		// Also, deleting a HFModelRepo can trigger downloading the remaining undeleted models again, which is not ideal.
-		if err := store.DeleteHFModelRepoInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+
+		// Replace the first "-" with "-" to have the original repo name.
+		hfRepoName := strings.Replace(req.Id, "-", "/", 1)
+		if err := store.DeleteHFModelRepoInTransaction(tx, hfRepoName, userInfo.TenantID); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.Internal, "delete hf model repo: %s", err)
+				return status.Errorf(codes.Internal, "delete hf model repo (id: %q, repo name: %q): %s", req.Id, hfRepoName, err)
 			}
 			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
 		}
