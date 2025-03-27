@@ -31,18 +31,9 @@ func (s *S) CreateModel(
 	if req.Id == "" {
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
-	if req.SourceRepository == v1.SourceRepository_SOURCE_REPOSITORY_UNSPECIFIED {
-		return nil, status.Error(codes.InvalidArgument, "source_repository is required")
-	}
 
-	if req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE &&
-		req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE &&
-		req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA {
-		return nil, status.Errorf(codes.InvalidArgument, "source_repository must be one of %v", []v1.SourceRepository{
-			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-			v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
-			v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
-		})
+	if err := validateIDAndSourceRepository(req.Id, req.SourceRepository); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
 	m, err := s.store.CreateBaseModelWithLoadingRequested(req.Id, req.SourceRepository, userInfo.TenantID)
@@ -676,4 +667,38 @@ func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {
 func isBaseModelLoaded(m *store.BaseModel) bool {
 	// The UNSPECIFIED status is considered as loaded for backward compatibility.
 	return m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_UNSPECIFIED
+}
+
+func validateIDAndSourceRepository(id string, sourceRepository v1.SourceRepository) error {
+	switch sourceRepository {
+	case v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE:
+		if strings.HasPrefix("s3://", id) {
+			// TODO(kenji): This is not very intuitive. Model manager loader instead should be able to
+			// download from any bucket that a user specifies.
+			return fmt.Errorf("id must not include s3://<bucket>")
+		}
+	case v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE:
+		l := strings.Split(id, "/")
+		if len(l) <= 1 || len(l) > 3 {
+			return fmt.Errorf("unexpected model ID format: %s. The format should be <org>/<repo> or <org>/<repo>/<file>", id)
+		}
+		if l[0] == "" || l[1] == "" {
+			return fmt.Errorf("unexpected model ID format: %s. The format should be <org>/<repo> or <org>/<repo>/<file>", id)
+		}
+	case v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA:
+		l := strings.Split(id, ":")
+		if len(l) != 2 {
+			return fmt.Errorf("unexpected model ID format: %s. The format should be <model>:<tag>", id)
+		}
+		if l[0] == "" || l[1] == "" {
+			return fmt.Errorf("unexpected model ID format: %s. The format should be <model>:<tag>", id)
+		}
+	default:
+		return fmt.Errorf("source_repository must be one of %v", []v1.SourceRepository{
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+			v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
+		})
+	}
+	return nil
 }
