@@ -478,7 +478,7 @@ func TestBaseModelCreation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Empty(t, resp.BaseModelId)
 
-	const modelID = "m0"
+	const modelID = "r/m0"
 
 	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
 		Id:               modelID,
@@ -533,7 +533,7 @@ func TestBaseModelCreation_CreateModelOfDifferentID(t *testing.T) {
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
-	const modelID = "m0"
+	const modelID = "r/m0"
 
 	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
 		Id:               modelID,
@@ -589,7 +589,7 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
-	const modelID = "m0"
+	const modelID = "r/m0"
 
 	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
 		Id:               modelID,
@@ -621,4 +621,79 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, got.LoadingStatus)
 	assert.Equal(t, "error", got.LoadingFailureReason)
+}
+
+func TestValidateIdAndSourceRepository(t *testing.T) {
+	tcs := []struct {
+		name             string
+		id               string
+		sourceRepository v1.SourceRepository
+		wantErr          bool
+	}{
+		{
+			name:             "valid object store",
+			id:               "r/m0",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			wantErr:          false,
+		},
+		{
+			name:             "invalid object store",
+			id:               "s3://a/b",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			wantErr:          false,
+		},
+		{
+			name:             "valid hugging face model id",
+			id:               "r/m0",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+			wantErr:          false,
+		},
+		{
+			name:             "valid hugging face model id with file",
+			id:               "r/m0/file",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+			wantErr:          false,
+		},
+		{
+			name:             "invalid hugging face model id without org",
+			id:               "m0",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+			wantErr:          true,
+		},
+		{
+			name:             "invalid hugging face model id with empty repo",
+			id:               "r/",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+			wantErr:          true,
+		},
+		{
+			name:             "valid ollama id",
+			id:               "m0:tag",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
+			wantErr:          false,
+		},
+		{
+			name:             "invalid ollama id",
+			id:               "m0",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
+			wantErr:          true,
+		},
+		{
+			name:             "invalid ollama id with empty tag",
+			id:               "m0:",
+			sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
+			wantErr:          true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateIDAndSourceRepository(tc.id, tc.sourceRepository)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
 }
