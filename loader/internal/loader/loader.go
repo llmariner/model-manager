@@ -158,7 +158,7 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 
 		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.SourceRepository); err != nil {
 			l.log.Error(err, "Failed to load base model", "modelID", resp.BaseModelId)
-			if _, err := l.modelClient.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+			if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
 				Id: resp.BaseModelId,
 				LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Failure_{
 					Failure: &v1.UpdateBaseModelLoadingStatusRequest_Failure{
