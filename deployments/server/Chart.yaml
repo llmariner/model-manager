@@ -4,8 +4,8 @@ description: The model-manager-server manages model status and exposes model API
 home: https://llmariner.ai/
 icon: https://raw.githubusercontent.com/llmariner/llmariner.github.io/refs/heads/main/assets/icons/logo.svg
 type: application
-version: 1.10.3
-appVersion: 1.10.3
+version: 1.10.4
+appVersion: 1.10.4
 sources:
   - https://github.com/llmariner/model-manager
 keywords:
