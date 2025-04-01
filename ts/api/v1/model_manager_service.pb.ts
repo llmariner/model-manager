@@ -72,11 +72,15 @@ export type CreateModelRequest = {
 
 export type ListModelsRequest = {
   include_loading_models?: boolean
+  after?: string
+  limit?: number
 }
 
 export type ListModelsResponse = {
   object?: string
   data?: Model[]
+  has_more?: boolean
+  total_items?: number
 }
 
 export type GetModelRequest = {

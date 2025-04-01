@@ -65,6 +65,21 @@
             "in": "query",
             "required": false,
             "type": "boolean"
+          },
+          {
+            "name": "after",
+            "description": "after is the identifier for the last non-base model from the previous pagination request.\nThis is not in the Open AI API specification.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "name": "limit",
+            "description": "limit is the number of non-base models to retrieve. Defaults to 100.\nThis is not in the Open AI API specification.",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
           }
         ],
         "tags": [
@@ -329,6 +344,15 @@
           "items": {
             "$ref": "#/definitions/v1Model"
           }
+        },
+        "hasMore": {
+          "type": "boolean",
+          "description": "This is not in the Open AI API specification."
+        },
+        "totalItems": {
+          "type": "integer",
+          "format": "int32",
+          "description": "total_items is the total number of non-base models. This is not defined in the\nOpenAI API spec, but we include here for better UX in the frontend."
         }
       }
     },

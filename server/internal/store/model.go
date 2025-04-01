@@ -83,19 +83,26 @@ func (s *S) GetPublishedModelByModelIDAndTenantID(modelID, tenantID string) (*Mo
 	return &m, nil
 }
 
-// ListModelsByProjectID finds models.
-func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Model, error) {
+// ListModelsByProjectIDWithPagination finds models with pagination. Models are returned with a descending order of ID.
+func (s *S) ListModelsByProjectIDWithPagination(projectID string, onlyPublished bool, afterID uint, limit int) ([]*Model, bool, error) {
+	var ms []*Model
 	q := s.db.Where("project_id = ?", projectID)
 	if onlyPublished {
 		q = q.Where("is_published = true")
 	}
-	q = q.Order("model_id DESC")
-
-	var ms []*Model
-	if err := q.Find(&ms).Error; err != nil {
-		return nil, err
+	if afterID > 0 {
+		q = q.Where("id < ?", afterID)
 	}
-	return ms, nil
+	if err := q.Order("id DESC").Limit(limit + 1).Find(&ms).Error; err != nil {
+		return nil, false, err
+	}
+
+	var hasMore bool
+	if len(ms) > limit {
+		ms = ms[:limit]
+		hasMore = true
+	}
+	return ms, hasMore, nil
 }
 
 // DeleteModel deletes a model by model ID and tenant ID.
@@ -120,4 +127,13 @@ func (s *S) UpdateModel(modelID string, tenantID string, isPublished bool) error
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+// CountModelsByProjectID counts the total number of models by project ID.
+func (s *S) CountModelsByProjectID(projectID string, onlyPublished bool) (int64, error) {
+	var count int64
+	if err := s.db.Model(&Model{}).Where("project_id = ? AND is_published = ?", projectID, onlyPublished).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
 }

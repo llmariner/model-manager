@@ -20,6 +20,9 @@ import (
 const (
 	defaultProjectID = "default"
 	defaultTenantID  = "default-tenant-id"
+
+	defaultPageSize = 100
+	maxPageSize     = 500
 )
 
 // New creates a server.
