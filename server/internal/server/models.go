@@ -57,22 +57,48 @@ func (s *S) ListModels(
 		return nil, fmt.Errorf("failed to extract user info from context")
 	}
 
-	var modelProtos []*v1.Model
-	// First include base models.
-	bms, err := s.store.ListBaseModels(userInfo.TenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+	if req.Limit < 0 {
+		return nil, status.Errorf(codes.InvalidArgument, "limit must be non-negative")
 	}
-	for _, m := range bms {
-		if !isBaseModelLoaded(m) && !req.IncludeLoadingModels {
-			continue
-		}
+	limit := req.Limit
+	if limit == 0 {
+		limit = defaultPageSize
+	}
+	if limit > maxPageSize {
+		limit = maxPageSize
+	}
 
-		modelProtos = append(modelProtos, baseToModelProto(m))
+	var modelProtos []*v1.Model
+	// First include base models. Base models is not paginated.
+	// TODO(guangrui): Consider pagination for base models.
+	if req.After == "" {
+		bms, err := s.store.ListBaseModels(userInfo.TenantID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
+		}
+		for _, m := range bms {
+			if !isBaseModelLoaded(m) && !req.IncludeLoadingModels {
+				continue
+			}
+
+			modelProtos = append(modelProtos, baseToModelProto(m))
+		}
+	}
+
+	var afterID uint
+	if req.After != "" {
+		m, err := s.store.GetModelByModelID(req.After)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
+			}
+			return nil, status.Errorf(codes.Internal, "get model: %s", err)
+		}
+		afterID = m.ID
 	}
 
 	// Then add generated models owned by the project
-	ms, err := s.store.ListModelsByProjectID(userInfo.ProjectID, true)
+	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterID, int(limit))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
@@ -81,9 +107,21 @@ func (s *S) ListModels(
 		modelProtos = append(modelProtos, toModelProto(m))
 	}
 
+	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "count models: %s", err)
+	}
+
+	totalBaseModels, err := s.store.CountBaseModels(userInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "count base models: %s", err)
+	}
+
 	return &v1.ListModelsResponse{
-		Object: "list",
-		Data:   modelProtos,
+		Object:     "list",
+		Data:       modelProtos,
+		HasMore:    hasMore,
+		TotalItems: int32(totalModels + totalBaseModels),
 	}, nil
 }
 

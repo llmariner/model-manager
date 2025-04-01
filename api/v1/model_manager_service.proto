@@ -71,11 +71,25 @@ message ListModelsRequest {
   //
   // This is not in the Open AI API specification.
   bool include_loading_models = 1;
+
+  // after is the identifier for the last non-base model from the previous pagination request.
+  // This is not in the Open AI API specification.
+  string after = 2;
+  // limit is the number of non-base models to retrieve. Defaults to 100.
+  // This is not in the Open AI API specification.
+  int32 limit = 3;
 }
 
 message ListModelsResponse {
   string object = 1;
   repeated Model data = 2;
+
+  // This is not in the Open AI API specification.
+  bool has_more = 3;
+
+  // total_items is the total number of non-base models. This is not defined in the
+  // OpenAI API spec, but we include here for better UX in the frontend.
+  int32 total_items = 4;
 }
 
 message GetModelRequest {

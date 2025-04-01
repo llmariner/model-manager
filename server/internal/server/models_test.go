@@ -33,6 +33,15 @@ func TestModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
+	m1, err := st.CreateModel(store.ModelSpec{
+		ModelID:        "m1",
+		OrganizationID: orgID,
+		ProjectID:      defaultProjectID,
+		TenantID:       defaultTenantID,
+		IsPublished:    true,
+	})
+	assert.NoError(t, err)
+
 	srv := New(st, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
@@ -41,10 +50,14 @@ func TestModels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, modelID, getResp.Id)
 
-	listResp, err := srv.ListModels(ctx, &v1.ListModelsRequest{})
+	listResp, err := srv.ListModels(ctx, &v1.ListModelsRequest{
+		Limit: 1,
+	})
 	assert.NoError(t, err)
 	assert.Len(t, listResp.Data, 1)
-	assert.Equal(t, modelID, listResp.Data[0].Id)
+	assert.Equal(t, m1.ModelID, listResp.Data[0].Id)
+	assert.Equal(t, int32(2), listResp.TotalItems)
+	assert.True(t, listResp.HasMore)
 
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: modelID,
@@ -59,7 +72,7 @@ func TestModels(t *testing.T) {
 
 	listResp, err = srv.ListModels(ctx, &v1.ListModelsRequest{})
 	assert.NoError(t, err)
-	assert.Len(t, listResp.Data, 0)
+	assert.Len(t, listResp.Data, 1)
 }
 
 func TestDeleteModel_BaseModel(t *testing.T) {

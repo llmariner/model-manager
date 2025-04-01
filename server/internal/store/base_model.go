@@ -202,6 +202,15 @@ func (s *S) UpdateBaseModelToFailedStatus(
 	)
 }
 
+// CountBaseModels counts the total number of base models.
+func (s *S) CountBaseModels(tenantID string) (int64, error) {
+	var count int64
+	if err := s.db.Model(&BaseModel{}).Where("tenant_id = ? ", tenantID).Count(&count).Error; err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func marshalFormats(formats []v1.ModelFormat) ([]byte, error) {
 	p := v1.ModelFormats{
 		Formats: formats,
