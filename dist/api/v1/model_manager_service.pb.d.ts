@@ -49,6 +49,7 @@ export type Model = {
     loading_status?: ModelLoadingStatus;
     source_repository?: SourceRepository;
     loading_failure_reason?: string;
+    formats?: ModelFormat[];
 };
 export type CreateModelRequest = {
     id?: string;

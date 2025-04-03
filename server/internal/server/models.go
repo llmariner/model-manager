@@ -44,7 +44,11 @@ func (s *S) CreateModel(
 		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
 	}
 
-	return baseToModelProto(m), nil
+	mp, err := baseToModelProto(m)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
+	}
+	return mp, nil
 }
 
 // ListModels lists models.
@@ -81,7 +85,11 @@ func (s *S) ListModels(
 				continue
 			}
 
-			modelProtos = append(modelProtos, baseToModelProto(m))
+			mp, err := baseToModelProto(m)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+			}
+			modelProtos = append(modelProtos, mp)
 		}
 	}
 
@@ -145,8 +153,11 @@ func (s *S) GetModel(
 		if !isBaseModelLoaded(bm) && !req.IncludeLoadingModel {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
-
-		return baseToModelProto(bm), nil
+		mp, err := baseToModelProto(bm)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+		}
+		return mp, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
@@ -278,7 +289,11 @@ func (s *WS) GetModel(
 	// First check if it's a base model.
 	bm, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
 	if err == nil {
-		return baseToModelProto(bm), nil
+		mp, err := baseToModelProto(bm)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+		}
+		return mp, nil
 	}
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
@@ -679,10 +694,21 @@ func toModelProto(m *store.Model) *v1.Model {
 		OwnedBy:          "user",
 		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
+		// Fine-tuned models always have the GGUF format.
+		Formats: []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 	}
 }
 
-func baseToModelProto(m *store.BaseModel) *v1.Model {
+func baseToModelProto(m *store.BaseModel) (*v1.Model, error) {
+	formats, err := store.UnmarshalModelFormats(m.Formats)
+	if err != nil {
+		return nil, err
+	}
+	if len(formats) == 0 {
+		// For backward compatibility.
+		formats = []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}
+	}
+
 	return &v1.Model{
 		Id:                   m.ModelID,
 		Object:               "model",
@@ -691,7 +717,8 @@ func baseToModelProto(m *store.BaseModel) *v1.Model {
 		LoadingStatus:        m.LoadingStatus,
 		SourceRepository:     m.SourceRepository,
 		LoadingFailureReason: m.LoadingFailureReason,
-	}
+		Formats:              formats,
+	}, nil
 }
 
 func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {

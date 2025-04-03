@@ -382,7 +382,14 @@
         },
         "loadingFailureReason": {
           "type": "string",
-          "description": "loading_failure_reason is set when the model loading is failed to show the failure reason."
+          "description": "loading_failure_reason is set when the model loading is failed to show the failure reason.\nThis is not in the Open AI API specification."
+        },
+        "formats": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1ModelFormat"
+          },
+          "description": "formats is the supported formats of the model.\nThis is not in the Open AI API specification."
         }
       }
     },
