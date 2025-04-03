@@ -58,7 +58,12 @@ message Model {
   SourceRepository source_repository = 6;
 
   // loading_failure_reason is set when the model loading is failed to show the failure reason.
+  // This is not in the Open AI API specification.
   string loading_failure_reason = 7;
+
+  // formats is the supported formats of the model.
+  // This is not in the Open AI API specification.
+  repeated ModelFormat formats = 8;
 }
 
 message CreateModelRequest {
