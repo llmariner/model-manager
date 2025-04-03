@@ -118,6 +118,25 @@ func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
+// ListBaseModelsWithPagination finds base models with pagination. Models are returned with a descending order of ID.
+func (s *S) ListBaseModelsWithPagination(tenantID string, afterID uint, limit int) ([]*BaseModel, bool, error) {
+	var ms []*BaseModel
+	q := s.db.Where("tenant_id = ?", tenantID)
+	if afterID > 0 {
+		q = q.Where("id < ?", afterID)
+	}
+	if err := q.Order("id DESC").Limit(limit + 1).Find(&ms).Error; err != nil {
+		return nil, false, err
+	}
+
+	var hasMore bool
+	if len(ms) > limit {
+		ms = ms[:limit]
+		hasMore = true
+	}
+	return ms, hasMore, nil
+}
+
 // ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
 func (s *S) ListUnloadedBaseModels(tenantID string) ([]*BaseModel, error) {
 	var ms []*BaseModel

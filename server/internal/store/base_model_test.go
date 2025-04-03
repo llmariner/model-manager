@@ -55,6 +55,84 @@ func TestBaseModel(t *testing.T) {
 	assert.Empty(t, gotMs)
 }
 
+func TestListBaseModelsWithPagination(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const tenantID = "t0"
+
+	modelIDs := []string{"m0", "m1", "m2"}
+
+	for _, modelID := range modelIDs {
+		_, err := st.CreateBaseModel(
+			modelID,
+			"path",
+			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+			"gguf_model_path",
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			tenantID,
+		)
+		assert.NoError(t, err)
+	}
+
+	// Test without pagination.
+	gotMs, err := st.ListBaseModels(tenantID)
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, len(modelIDs))
+	for i, got := range gotMs {
+		assert.Equal(t, modelIDs[2-i], got.ModelID)
+	}
+
+	// Test with pagination.
+	tcs := []struct {
+		name         string
+		afterID      uint
+		limit        int
+		wantModelIDs []string
+		wantHaMore   bool
+	}{
+		{
+			name:         "page 1",
+			afterID:      0,
+			limit:        2,
+			wantModelIDs: []string{"m2", "m1"},
+			wantHaMore:   true,
+		},
+		{
+			name:         "page 2",
+			afterID:      2,
+			limit:        2,
+			wantModelIDs: []string{"m0"},
+			wantHaMore:   false,
+		},
+		{
+			name:         "page 1 with limit 1",
+			afterID:      0,
+			limit:        1,
+			wantModelIDs: []string{"m2"},
+			wantHaMore:   true,
+		},
+		{
+			name:         "page 1 with limit 10",
+			afterID:      0,
+			limit:        10,
+			wantModelIDs: []string{"m2", "m1", "m0"},
+			wantHaMore:   false,
+		},
+	}
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			gotMs, gotHasMore, err := st.ListBaseModelsWithPagination(tenantID, tc.afterID, tc.limit)
+			assert.NoError(t, err)
+			assert.Len(t, gotMs, len(tc.wantModelIDs))
+			for i, got := range gotMs {
+				assert.Equal(t, tc.wantModelIDs[i], got.ModelID)
+			}
+			assert.Equal(t, tc.wantHaMore, gotHasMore)
+		})
+	}
+}
+
 func TestBaseModel_UniqueConstraint(t *testing.T) {
 	st, tearDown := NewTest(t)
 	defer tearDown()

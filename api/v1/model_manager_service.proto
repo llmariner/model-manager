@@ -77,7 +77,7 @@ message ListModelsRequest {
   // This is not in the Open AI API specification.
   bool include_loading_models = 1;
 
-  // after is the identifier for the last non-base model from the previous pagination request.
+  // after is the identifier for the last model from the previous pagination request.
   // This is not in the Open AI API specification.
   string after = 2;
   // limit is the number of non-base models to retrieve. Defaults to 100.

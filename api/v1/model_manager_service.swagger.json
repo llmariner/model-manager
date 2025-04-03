@@ -68,7 +68,7 @@
           },
           {
             "name": "after",
-            "description": "after is the identifier for the last non-base model from the previous pagination request.\nThis is not in the Open AI API specification.",
+            "description": "after is the identifier for the last model from the previous pagination request.\nThis is not in the Open AI API specification.",
             "in": "query",
             "required": false,
             "type": "string"
