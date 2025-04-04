@@ -75,6 +75,103 @@ func TestModels(t *testing.T) {
 	assert.Len(t, listResp.Data, 1)
 }
 
+func TestModels_Pagination(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	baseModelIDs := []string{"bm0", "bm1"}
+	for _, id := range baseModelIDs {
+		_, err := st.CreateBaseModel(
+			id,
+			"path",
+			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+			"gguf-path",
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			defaultTenantID,
+		)
+		assert.NoError(t, err)
+	}
+
+	const orgID = "o0"
+	modelIDs := []string{"m0", "m1", "m2"}
+	for _, id := range modelIDs {
+		_, err := st.CreateModel(store.ModelSpec{
+			ModelID:        id,
+			OrganizationID: orgID,
+			ProjectID:      defaultProjectID,
+			TenantID:       defaultTenantID,
+			IsPublished:    true,
+		})
+		assert.NoError(t, err)
+	}
+
+	tcs := []struct {
+		name         string
+		req          *v1.ListModelsRequest
+		wantModelIDs []string
+		wantHasMore  bool
+	}{
+		{
+			name: "page 0 with limit 2",
+			req: &v1.ListModelsRequest{
+				Limit: 2,
+			},
+			wantModelIDs: []string{
+				"bm1", "bm0",
+			},
+			wantHasMore: true,
+		},
+		{
+			name: "page 1 with limit 2",
+			req: &v1.ListModelsRequest{
+				Limit: 2,
+				After: "bm0",
+			},
+			wantModelIDs: []string{
+				"m2", "m1",
+			},
+			wantHasMore: true,
+		},
+		{
+			name: "page 2 with limit 2",
+			req: &v1.ListModelsRequest{
+				Limit: 2,
+				After: "m1",
+			},
+			wantModelIDs: []string{
+				"m0",
+			},
+			wantHasMore: false,
+		},
+		{
+			name: "page 0 with limit 3",
+			req: &v1.ListModelsRequest{
+				Limit: 3,
+			},
+			wantModelIDs: []string{
+				"bm1", "bm0", "m2",
+			},
+			wantHasMore: true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := New(st, testr.New(t))
+			ctx := fakeAuthInto(context.Background())
+
+			got, err := srv.ListModels(ctx, tc.req)
+			assert.NoError(t, err)
+			assert.Len(t, got.Data, len(tc.wantModelIDs))
+			for i, g := range got.Data {
+				assert.Equal(t, tc.wantModelIDs[i], g.Id)
+			}
+			assert.Equal(t, tc.wantHasMore, got.HasMore)
+			assert.Equal(t, int32(5), got.TotalItems)
+		})
+	}
+}
+
 func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()

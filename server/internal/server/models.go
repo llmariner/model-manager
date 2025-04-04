@@ -72,11 +72,34 @@ func (s *S) ListModels(
 		limit = maxPageSize
 	}
 
+	var (
+		afterBaseModel *store.BaseModel
+		afterModel     *store.Model
+	)
+	if req.After != "" {
+		// Find a corresponding base model or a fine-tuned model
+		var err error
+		afterBaseModel, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	totalItems, err := s.getTotalItems(userInfo)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
+	}
+
 	var modelProtos []*v1.Model
-	// First include base models. Base models is not paginated.
-	// TODO(guangrui): Consider pagination for base models.
-	if req.After == "" {
-		bms, err := s.store.ListBaseModels(userInfo.TenantID)
+
+	if req.After == "" || afterBaseModel != nil {
+		// First include base models.
+		var afterID uint
+		if afterBaseModel != nil {
+			afterID = afterBaseModel.ID
+		}
+
+		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterID, int(limit))
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 		}
@@ -91,22 +114,41 @@ func (s *S) ListModels(
 			}
 			modelProtos = append(modelProtos, mp)
 		}
+
+		if hasMore {
+			// No need to query fine-tuned models.
+			return &v1.ListModelsResponse{
+				Object:     "list",
+				Data:       modelProtos,
+				HasMore:    hasMore,
+				TotalItems: totalItems,
+			}, nil
+		}
+
+		if len(modelProtos) == int(limit) {
+			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model.
+			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, 0, 1)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "list models: %s", err)
+			}
+			return &v1.ListModelsResponse{
+				Object:     "list",
+				Data:       modelProtos,
+				HasMore:    len(ms) > 0,
+				TotalItems: totalItems,
+			}, nil
+		}
 	}
 
+	// Next include fine-tuned models.
+
 	var afterID uint
-	if req.After != "" {
-		m, err := s.store.GetModelByModelID(req.After)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
-			}
-			return nil, status.Errorf(codes.Internal, "get model: %s", err)
-		}
-		afterID = m.ID
+	if afterModel != nil {
+		afterID = afterModel.ID
 	}
 
 	// Then add generated models owned by the project
-	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterID, int(limit))
+	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterID, int(limit)-len(modelProtos))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
@@ -115,22 +157,49 @@ func (s *S) ListModels(
 		modelProtos = append(modelProtos, toModelProto(m))
 	}
 
-	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "count models: %s", err)
-	}
-
-	totalBaseModels, err := s.store.CountBaseModels(userInfo.TenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "count base models: %s", err)
-	}
-
 	return &v1.ListModelsResponse{
 		Object:     "list",
 		Data:       modelProtos,
 		HasMore:    hasMore,
-		TotalItems: int32(totalModels + totalBaseModels),
+		TotalItems: totalItems,
 	}, nil
+}
+
+func (s *S) findBaseModelOrModel(modelID, tenantID string) (*store.BaseModel, *store.Model, error) {
+	// Find a corresponding base model or a fine-tuned model
+	var err error
+	bm, err := s.store.GetBaseModel(modelID, tenantID)
+	if err == nil {
+		return bm, nil, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, status.Errorf(codes.Internal, "get base model: %s", err)
+	}
+
+	// Try a fine-tuned model next.
+	m, err := s.store.GetModelByModelID(modelID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, status.Errorf(codes.Internal, "get model: %s", err)
+		}
+
+		return nil, nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
+	}
+	return nil, m, nil
+}
+
+func (s *S) getTotalItems(userInfo *auth.UserInfo) (int32, error) {
+	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
+	if err != nil {
+		return 0, err
+	}
+
+	totalBaseModels, err := s.store.CountBaseModels(userInfo.TenantID)
+	if err != nil {
+		return 0, err
+	}
+	return int32(totalModels + totalBaseModels), nil
 }
 
 // GetModel gets a model.

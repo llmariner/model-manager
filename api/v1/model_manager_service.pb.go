@@ -514,7 +514,7 @@ type ListModelsRequest struct {
 	//
 	// This is not in the Open AI API specification.
 	IncludeLoadingModels bool `protobuf:"varint,1,opt,name=include_loading_models,json=includeLoadingModels,proto3" json:"include_loading_models,omitempty"`
-	// after is the identifier for the last non-base model from the previous pagination request.
+	// after is the identifier for the last model from the previous pagination request.
 	// This is not in the Open AI API specification.
 	After string `protobuf:"bytes,2,opt,name=after,proto3" json:"after,omitempty"`
 	// limit is the number of non-base models to retrieve. Defaults to 100.
