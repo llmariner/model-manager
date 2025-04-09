@@ -64,6 +64,9 @@ message Model {
   // formats is the supported formats of the model.
   // This is not in the Open AI API specification.
   repeated ModelFormat formats = 8;
+
+  // This is not in the Open AI API specification.
+  bool is_base_model = 9;
 }
 
 message CreateModelRequest {

@@ -50,6 +50,7 @@ export type Model = {
     source_repository?: SourceRepository;
     loading_failure_reason?: string;
     formats?: ModelFormat[];
+    is_base_model?: boolean;
 };
 export type CreateModelRequest = {
     id?: string;

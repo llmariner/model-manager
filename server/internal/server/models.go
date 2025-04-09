@@ -764,7 +764,8 @@ func toModelProto(m *store.Model) *v1.Model {
 		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
 		// Fine-tuned models always have the Hugging Face format.
-		Formats: []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
+		Formats:     []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
+		IsBaseModel: false,
 	}
 }
 
@@ -787,6 +788,7 @@ func baseToModelProto(m *store.BaseModel) (*v1.Model, error) {
 		SourceRepository:     m.SourceRepository,
 		LoadingFailureReason: m.LoadingFailureReason,
 		Formats:              formats,
+		IsBaseModel:          true,
 	}, nil
 }
 
