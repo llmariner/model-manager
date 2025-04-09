@@ -390,6 +390,10 @@
             "$ref": "#/definitions/v1ModelFormat"
           },
           "description": "formats is the supported formats of the model.\nThis is not in the Open AI API specification."
+        },
+        "isBaseModel": {
+          "type": "boolean",
+          "description": "This is not in the Open AI API specification."
         }
       }
     },
