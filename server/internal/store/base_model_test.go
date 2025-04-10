@@ -86,43 +86,43 @@ func TestListBaseModelsWithPagination(t *testing.T) {
 	// Test with pagination.
 	tcs := []struct {
 		name         string
-		afterID      uint
+		afterModelID string
 		limit        int
 		wantModelIDs []string
 		wantHaMore   bool
 	}{
 		{
 			name:         "page 1",
-			afterID:      0,
+			afterModelID: "",
 			limit:        2,
-			wantModelIDs: []string{"m2", "m1"},
+			wantModelIDs: []string{"m0", "m1"},
 			wantHaMore:   true,
 		},
 		{
 			name:         "page 2",
-			afterID:      2,
+			afterModelID: "m1",
 			limit:        2,
-			wantModelIDs: []string{"m0"},
+			wantModelIDs: []string{"m2"},
 			wantHaMore:   false,
 		},
 		{
 			name:         "page 1 with limit 1",
-			afterID:      0,
+			afterModelID: "",
 			limit:        1,
-			wantModelIDs: []string{"m2"},
+			wantModelIDs: []string{"m0"},
 			wantHaMore:   true,
 		},
 		{
 			name:         "page 1 with limit 10",
-			afterID:      0,
+			afterModelID: "",
 			limit:        10,
-			wantModelIDs: []string{"m2", "m1", "m0"},
+			wantModelIDs: []string{"m0", "m1", "m2"},
 			wantHaMore:   false,
 		},
 	}
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			gotMs, gotHasMore, err := st.ListBaseModelsWithPagination(tenantID, tc.afterID, tc.limit)
+			gotMs, gotHasMore, err := st.ListBaseModelsWithPagination(tenantID, tc.afterModelID, tc.limit)
 			assert.NoError(t, err)
 			assert.Len(t, gotMs, len(tc.wantModelIDs))
 			for i, got := range gotMs {

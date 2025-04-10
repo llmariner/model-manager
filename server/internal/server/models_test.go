@@ -24,7 +24,7 @@ func TestModels(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	_, err := st.CreateModel(store.ModelSpec{
+	m0, err := st.CreateModel(store.ModelSpec{
 		ModelID:        modelID,
 		OrganizationID: orgID,
 		ProjectID:      defaultProjectID,
@@ -33,7 +33,7 @@ func TestModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	m1, err := st.CreateModel(store.ModelSpec{
+	_, err = st.CreateModel(store.ModelSpec{
 		ModelID:        "m1",
 		OrganizationID: orgID,
 		ProjectID:      defaultProjectID,
@@ -55,7 +55,7 @@ func TestModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Len(t, listResp.Data, 1)
-	assert.Equal(t, m1.ModelID, listResp.Data[0].Id)
+	assert.Equal(t, m0.ModelID, listResp.Data[0].Id)
 	assert.Equal(t, int32(2), listResp.TotalItems)
 	assert.True(t, listResp.HasMore)
 
@@ -117,7 +117,7 @@ func TestModels_Pagination(t *testing.T) {
 				Limit: 2,
 			},
 			wantModelIDs: []string{
-				"bm1", "bm0",
+				"bm0", "bm1",
 			},
 			wantHasMore: true,
 		},
@@ -125,10 +125,10 @@ func TestModels_Pagination(t *testing.T) {
 			name: "page 1 with limit 2",
 			req: &v1.ListModelsRequest{
 				Limit: 2,
-				After: "bm0",
+				After: "bm1",
 			},
 			wantModelIDs: []string{
-				"m2", "m1",
+				"m0", "m1",
 			},
 			wantHasMore: true,
 		},
@@ -139,7 +139,7 @@ func TestModels_Pagination(t *testing.T) {
 				After: "m1",
 			},
 			wantModelIDs: []string{
-				"m0",
+				"m2",
 			},
 			wantHasMore: false,
 		},
@@ -149,7 +149,7 @@ func TestModels_Pagination(t *testing.T) {
 				Limit: 3,
 			},
 			wantModelIDs: []string{
-				"bm1", "bm0", "m2",
+				"bm0", "bm1", "m0",
 			},
 			wantHasMore: true,
 		},

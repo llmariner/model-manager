@@ -83,17 +83,17 @@ func (s *S) GetPublishedModelByModelIDAndTenantID(modelID, tenantID string) (*Mo
 	return &m, nil
 }
 
-// ListModelsByProjectIDWithPagination finds models with pagination. Models are returned with a descending order of ID.
-func (s *S) ListModelsByProjectIDWithPagination(projectID string, onlyPublished bool, afterID uint, limit int) ([]*Model, bool, error) {
+// ListModelsByProjectIDWithPagination finds models with pagination. Models are returned with an ascending order of ID.
+func (s *S) ListModelsByProjectIDWithPagination(projectID string, onlyPublished bool, afterModelID string, limit int) ([]*Model, bool, error) {
 	var ms []*Model
 	q := s.db.Where("project_id = ?", projectID)
 	if onlyPublished {
 		q = q.Where("is_published = true")
 	}
-	if afterID > 0 {
-		q = q.Where("id < ?", afterID)
+	if afterModelID != "" {
+		q = q.Where("model_id > ?", afterModelID)
 	}
-	if err := q.Order("id DESC").Limit(limit + 1).Find(&ms).Error; err != nil {
+	if err := q.Order("model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
 		return nil, false, err
 	}
 
