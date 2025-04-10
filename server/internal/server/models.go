@@ -94,12 +94,12 @@ func (s *S) ListModels(
 
 	if req.After == "" || afterBaseModel != nil {
 		// First include base models.
-		var afterID uint
+		var afterModelID string
 		if afterBaseModel != nil {
-			afterID = afterBaseModel.ID
+			afterModelID = afterBaseModel.ModelID
 		}
 
-		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterID, int(limit))
+		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterModelID, int(limit))
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 		}
@@ -127,7 +127,7 @@ func (s *S) ListModels(
 
 		if len(modelProtos) == int(limit) {
 			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model.
-			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, 0, 1)
+			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", 1)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "list models: %s", err)
 			}
@@ -142,13 +142,13 @@ func (s *S) ListModels(
 
 	// Next include fine-tuned models.
 
-	var afterID uint
+	var afterModelID string
 	if afterModel != nil {
-		afterID = afterModel.ID
+		afterModelID = afterModel.ModelID
 	}
 
 	// Then add generated models owned by the project
-	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterID, int(limit)-len(modelProtos))
+	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterModelID, int(limit)-len(modelProtos))
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}

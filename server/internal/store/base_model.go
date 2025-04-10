@@ -118,14 +118,14 @@ func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
-// ListBaseModelsWithPagination finds base models with pagination. Models are returned with a descending order of ID.
-func (s *S) ListBaseModelsWithPagination(tenantID string, afterID uint, limit int) ([]*BaseModel, bool, error) {
+// ListBaseModelsWithPagination finds base models with pagination. Models are returned with an ascending order of model IDs.
+func (s *S) ListBaseModelsWithPagination(tenantID string, afterModelID string, limit int) ([]*BaseModel, bool, error) {
 	var ms []*BaseModel
 	q := s.db.Where("tenant_id = ?", tenantID)
-	if afterID > 0 {
-		q = q.Where("id < ?", afterID)
+	if afterModelID != "" {
+		q = q.Where("model_id > ?", afterModelID)
 	}
-	if err := q.Order("id DESC").Limit(limit + 1).Find(&ms).Error; err != nil {
+	if err := q.Order("model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
 		return nil, false, err
 	}
 

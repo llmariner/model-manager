@@ -40,7 +40,7 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, tenantID, gotM.TenantID)
 
-	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, true, 0, defaultPageSize)
+	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
@@ -55,7 +55,7 @@ func TestModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, 0, defaultPageSize)
+	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
@@ -70,7 +70,7 @@ func TestModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, 0, 1)
+	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", 1)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.True(t, hasMore)
@@ -80,7 +80,7 @@ func TestModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), c)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, a1.ID, 1)
+	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, a1.ModelID, 1)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
@@ -89,7 +89,7 @@ func TestModel(t *testing.T) {
 	err = st.DeleteModel(modelID, projectID)
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, 0, defaultPageSize)
+	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
@@ -124,12 +124,12 @@ func TestModel_Unpublished(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, false, 0, defaultPageSize)
+	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, false, "", defaultPageSize)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, 0, defaultPageSize)
+	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 0)
 	assert.False(t, hasMore)
