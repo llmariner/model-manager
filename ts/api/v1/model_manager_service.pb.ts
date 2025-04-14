@@ -65,6 +65,7 @@ export type Model = {
   loading_failure_reason?: string
   formats?: ModelFormat[]
   is_base_model?: boolean
+  base_model_id?: string
 }
 
 export type CreateModelRequest = {

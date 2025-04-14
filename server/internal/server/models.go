@@ -766,6 +766,7 @@ func toModelProto(m *store.Model) *v1.Model {
 		// Fine-tuned models always have the Hugging Face format.
 		Formats:     []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		IsBaseModel: false,
+		BaseModelId: m.BaseModelID,
 	}
 }
 
@@ -789,6 +790,7 @@ func baseToModelProto(m *store.BaseModel) (*v1.Model, error) {
 		LoadingFailureReason: m.LoadingFailureReason,
 		Formats:              formats,
 		IsBaseModel:          true,
+		BaseModelId:          "",
 	}, nil
 }
 

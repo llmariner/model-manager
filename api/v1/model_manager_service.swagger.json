@@ -394,6 +394,10 @@
         "isBaseModel": {
           "type": "boolean",
           "description": "This is not in the Open AI API specification."
+        },
+        "baseModelId": {
+          "type": "string",
+          "description": "base_model_id is the ID of the base model. Only set if the model is a fine-tuned model.\nThis is not in the Open AI API specification."
         }
       }
     },

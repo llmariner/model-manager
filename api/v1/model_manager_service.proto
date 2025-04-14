@@ -67,6 +67,10 @@ message Model {
 
   // This is not in the Open AI API specification.
   bool is_base_model = 9;
+
+  // base_model_id is the ID of the base model. Only set if the model is a fine-tuned model.
+  // This is not in the Open AI API specification.
+  string base_model_id = 10;
 }
 
 message CreateModelRequest {
