@@ -243,9 +243,15 @@ type ModelsWorkerServiceClient interface {
 	// AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists, update the loading status to LOADED,
 	// and return it. Used by model-manager-loader.
 	AcquireUnloadedBaseModel(ctx context.Context, in *AcquireUnloadedBaseModelRequest, opts ...grpc.CallOption) (*AcquireUnloadedBaseModelResponse, error)
+	// AcquireUnloadedModel checks if there is any unloaded model. If exists, update the loading status to LOADED,
+	// and return it. Used by model-manager-loader.
+	AcquireUnloadedModel(ctx context.Context, in *AcquireUnloadedModelRequest, opts ...grpc.CallOption) (*AcquireUnloadedModelResponse, error)
 	// UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
 	// updates the base model metadata. Used by model-manager-loader.
 	UpdateBaseModelLoadingStatus(ctx context.Context, in *UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*UpdateBaseModelLoadingStatusResponse, error)
+	// UpdateModelLoadingStatus updates the loading status. When the loading succeeded, it also
+	// updates the model metadata. Used by model-manager-loader.
+	UpdateModelLoadingStatus(ctx context.Context, in *UpdateModelLoadingStatusRequest, opts ...grpc.CallOption) (*UpdateModelLoadingStatusResponse, error)
 }
 
 type modelsWorkerServiceClient struct {
@@ -364,9 +370,27 @@ func (c *modelsWorkerServiceClient) AcquireUnloadedBaseModel(ctx context.Context
 	return out, nil
 }
 
+func (c *modelsWorkerServiceClient) AcquireUnloadedModel(ctx context.Context, in *AcquireUnloadedModelRequest, opts ...grpc.CallOption) (*AcquireUnloadedModelResponse, error) {
+	out := new(AcquireUnloadedModelResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *modelsWorkerServiceClient) UpdateBaseModelLoadingStatus(ctx context.Context, in *UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*UpdateBaseModelLoadingStatusResponse, error) {
 	out := new(UpdateBaseModelLoadingStatusResponse)
 	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/UpdateBaseModelLoadingStatus", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsWorkerServiceClient) UpdateModelLoadingStatus(ctx context.Context, in *UpdateModelLoadingStatusRequest, opts ...grpc.CallOption) (*UpdateModelLoadingStatusResponse, error) {
+	out := new(UpdateModelLoadingStatusResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/UpdateModelLoadingStatus", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -404,9 +428,15 @@ type ModelsWorkerServiceServer interface {
 	// AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists, update the loading status to LOADED,
 	// and return it. Used by model-manager-loader.
 	AcquireUnloadedBaseModel(context.Context, *AcquireUnloadedBaseModelRequest) (*AcquireUnloadedBaseModelResponse, error)
+	// AcquireUnloadedModel checks if there is any unloaded model. If exists, update the loading status to LOADED,
+	// and return it. Used by model-manager-loader.
+	AcquireUnloadedModel(context.Context, *AcquireUnloadedModelRequest) (*AcquireUnloadedModelResponse, error)
 	// UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
 	// updates the base model metadata. Used by model-manager-loader.
 	UpdateBaseModelLoadingStatus(context.Context, *UpdateBaseModelLoadingStatusRequest) (*UpdateBaseModelLoadingStatusResponse, error)
+	// UpdateModelLoadingStatus updates the loading status. When the loading succeeded, it also
+	// updates the model metadata. Used by model-manager-loader.
+	UpdateModelLoadingStatus(context.Context, *UpdateModelLoadingStatusRequest) (*UpdateModelLoadingStatusResponse, error)
 	mustEmbedUnimplementedModelsWorkerServiceServer()
 }
 
@@ -450,8 +480,14 @@ func (UnimplementedModelsWorkerServiceServer) GetHFModelRepo(context.Context, *G
 func (UnimplementedModelsWorkerServiceServer) AcquireUnloadedBaseModel(context.Context, *AcquireUnloadedBaseModelRequest) (*AcquireUnloadedBaseModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method AcquireUnloadedBaseModel not implemented")
 }
+func (UnimplementedModelsWorkerServiceServer) AcquireUnloadedModel(context.Context, *AcquireUnloadedModelRequest) (*AcquireUnloadedModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method AcquireUnloadedModel not implemented")
+}
 func (UnimplementedModelsWorkerServiceServer) UpdateBaseModelLoadingStatus(context.Context, *UpdateBaseModelLoadingStatusRequest) (*UpdateBaseModelLoadingStatusResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method UpdateBaseModelLoadingStatus not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) UpdateModelLoadingStatus(context.Context, *UpdateModelLoadingStatusRequest) (*UpdateModelLoadingStatusResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateModelLoadingStatus not implemented")
 }
 func (UnimplementedModelsWorkerServiceServer) mustEmbedUnimplementedModelsWorkerServiceServer() {}
 
@@ -682,6 +718,24 @@ func _ModelsWorkerService_AcquireUnloadedBaseModel_Handler(srv interface{}, ctx 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsWorkerService_AcquireUnloadedModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(AcquireUnloadedModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).AcquireUnloadedModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).AcquireUnloadedModel(ctx, req.(*AcquireUnloadedModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ModelsWorkerService_UpdateBaseModelLoadingStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(UpdateBaseModelLoadingStatusRequest)
 	if err := dec(in); err != nil {
@@ -696,6 +750,24 @@ func _ModelsWorkerService_UpdateBaseModelLoadingStatus_Handler(srv interface{}, 
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).UpdateBaseModelLoadingStatus(ctx, req.(*UpdateBaseModelLoadingStatusRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsWorkerService_UpdateModelLoadingStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateModelLoadingStatusRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).UpdateModelLoadingStatus(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/UpdateModelLoadingStatus",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).UpdateModelLoadingStatus(ctx, req.(*UpdateModelLoadingStatusRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -756,8 +828,16 @@ var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
 			Handler:    _ModelsWorkerService_AcquireUnloadedBaseModel_Handler,
 		},
 		{
+			MethodName: "AcquireUnloadedModel",
+			Handler:    _ModelsWorkerService_AcquireUnloadedModel_Handler,
+		},
+		{
 			MethodName: "UpdateBaseModelLoadingStatus",
 			Handler:    _ModelsWorkerService_UpdateBaseModelLoadingStatus_Handler,
+		},
+		{
+			MethodName: "UpdateModelLoadingStatus",
+			Handler:    _ModelsWorkerService_UpdateModelLoadingStatus_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

@@ -54,6 +54,7 @@ func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDi
 		prefix = filepath.Join(d.pathPrefix, modelPath)
 	}
 
+	d.log.Info("Listing objects", "bucket", bucket, "prefix", prefix)
 	var keys []string
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, obj := range page.Contents {

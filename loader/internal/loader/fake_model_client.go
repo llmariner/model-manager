@@ -2,6 +2,7 @@ package loader
 
 import (
 	"context"
+	"fmt"
 
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"google.golang.org/grpc"
@@ -130,4 +131,14 @@ func (c *FakeModelClient) AcquireUnloadedBaseModel(ctx context.Context, in *v1.A
 // UpdateBaseModelLoadingStatus updates the loading status of a base model.
 func (c *FakeModelClient) UpdateBaseModelLoadingStatus(ctx context.Context, in *v1.UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*v1.UpdateBaseModelLoadingStatusResponse, error) {
 	return &v1.UpdateBaseModelLoadingStatusResponse{}, nil
+}
+
+// AcquireUnloadedModel acquires an unloaded model.
+func (c *FakeModelClient) AcquireUnloadedModel(ctx context.Context, in *v1.AcquireUnloadedModelRequest, opts ...grpc.CallOption) (*v1.AcquireUnloadedModelResponse, error) {
+	return nil, fmt.Errorf("not implemented")
+}
+
+// UpdateModelLoadingStatus updates the loading status of a model.
+func (c *FakeModelClient) UpdateModelLoadingStatus(ctx context.Context, in *v1.UpdateModelLoadingStatusRequest, opts ...grpc.CallOption) (*v1.UpdateModelLoadingStatusResponse, error) {
+	return &v1.UpdateModelLoadingStatusResponse{}, nil
 }

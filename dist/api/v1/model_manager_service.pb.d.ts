@@ -170,6 +170,27 @@ export type UpdateBaseModelLoadingStatusRequest = BaseUpdateBaseModelLoadingStat
     failure: UpdateBaseModelLoadingStatusRequestFailure;
 }>;
 export type UpdateBaseModelLoadingStatusResponse = {};
+export type AcquireUnloadedModelRequest = {};
+export type AcquireUnloadedModelResponse = {
+    model_id?: string;
+    is_base_model?: boolean;
+    source_repository?: SourceRepository;
+    model_file_location?: string;
+    dest_path?: string;
+};
+export type UpdateModelLoadingStatusRequestSuccess = {};
+export type UpdateModelLoadingStatusRequestFailure = {
+    reason?: string;
+};
+type BaseUpdateModelLoadingStatusRequest = {
+    id?: string;
+    is_base_model?: boolean;
+};
+export type UpdateModelLoadingStatusRequest = BaseUpdateModelLoadingStatusRequest & OneOf<{
+    success: UpdateModelLoadingStatusRequestSuccess;
+    failure: UpdateModelLoadingStatusRequestFailure;
+}>;
+export type UpdateModelLoadingStatusResponse = {};
 export declare class ModelsService {
     static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse>;
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
@@ -189,6 +210,8 @@ export declare class ModelsWorkerService {
     static CreateHFModelRepo(req: CreateHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo>;
     static GetHFModelRepo(req: GetHFModelRepoRequest, initReq?: fm.InitReq): Promise<HFModelRepo>;
     static AcquireUnloadedBaseModel(req: AcquireUnloadedBaseModelRequest, initReq?: fm.InitReq): Promise<AcquireUnloadedBaseModelResponse>;
+    static AcquireUnloadedModel(req: AcquireUnloadedModelRequest, initReq?: fm.InitReq): Promise<AcquireUnloadedModelResponse>;
     static UpdateBaseModelLoadingStatus(req: UpdateBaseModelLoadingStatusRequest, initReq?: fm.InitReq): Promise<UpdateBaseModelLoadingStatusResponse>;
+    static UpdateModelLoadingStatus(req: UpdateModelLoadingStatusRequest, initReq?: fm.InitReq): Promise<UpdateModelLoadingStatusResponse>;
 }
 export {};

@@ -21,6 +21,92 @@ func (s *S) CreateModel(
 	ctx context.Context,
 	req *v1.CreateModelRequest,
 ) (*v1.Model, error) {
+	if req.IsFineTunedModel {
+		return s.createFineTunedModel(ctx, req)
+
+	}
+	return s.createBaseModel(ctx, req)
+}
+
+func (s *S) createFineTunedModel(
+	ctx context.Context,
+	req *v1.CreateModelRequest,
+) (*v1.Model, error) {
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
+	}
+
+	if req.BaseModelId == "" {
+		return nil, status.Error(codes.InvalidArgument, "base_model_id is required")
+	}
+
+	if req.Suffix == "" {
+		return nil, status.Error(codes.InvalidArgument, "suffix is required")
+	}
+	// TODO(kenji): This follows the OpenAI API spec, but might not be necessary.
+	// TODO(kenji): Longer suffix needs to be truncated when a statefulset name is generated. Make sure there
+	// is no conflict.
+	if len(req.Suffix) > 18 {
+		return nil, status.Errorf(codes.InvalidArgument, "suffix must not be more than 18 characters")
+	}
+
+	// Only support S3 as a source repository for now.
+	if req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE {
+		return nil, status.Errorf(codes.InvalidArgument, "unsupported source repository: %s", req.SourceRepository)
+	}
+
+	// TODO(kenji): Revisit.
+	if req.ModelFileLocation == "" {
+		return nil, status.Error(codes.InvalidArgument, "model_file_location is required")
+	}
+	if !strings.HasPrefix(req.ModelFileLocation, "s3://") {
+		return nil, status.Errorf(codes.InvalidArgument, "model file location must start with s3://, but got %s", req.ModelFileLocation)
+	}
+
+	if _, err := s.store.GetBaseModel(req.BaseModelId, userInfo.TenantID); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+		}
+		return nil, status.Errorf(codes.NotFound, "base model %q not found", req.BaseModelId)
+	}
+
+	id := fmt.Sprintf("%s:%s", req.BaseModelId, req.Suffix)
+
+	sc, err := s.store.GetStorageConfig(userInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get storage config: %s", err)
+	}
+
+	path := fmt.Sprintf("%s/%s/%s", sc.PathPrefix, userInfo.TenantID, id)
+
+	m, err := s.store.CreateModel(store.ModelSpec{
+		ModelID:           id,
+		TenantID:          userInfo.TenantID,
+		OrganizationID:    userInfo.OrganizationID,
+		ProjectID:         userInfo.ProjectID,
+		IsPublished:       true,
+		Path:              path,
+		BaseModelID:       req.BaseModelId,
+		Adapter:           v1.AdapterType_ADAPTER_TYPE_LORA,
+		LoadingStatus:     v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+		SourceRepository:  req.SourceRepository,
+		ModelFileLocation: req.ModelFileLocation,
+	})
+	if err != nil {
+		if gerrors.IsUniqueConstraintViolation(err) {
+			return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", id)
+		}
+		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+	}
+
+	return toModelProto(m), nil
+}
+
+func (s *S) createBaseModel(
+	ctx context.Context,
+	req *v1.CreateModelRequest,
+) (*v1.Model, error) {
 	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("failed to extract user info from context")
@@ -647,6 +733,44 @@ func (s *WS) AcquireUnloadedBaseModel(
 	}, nil
 }
 
+// AcquireUnloadedModel checks if there is any unloaded model. If exists,
+// update the loading status to LOADED and return it.
+func (s *WS) AcquireUnloadedModel(
+	ctx context.Context,
+	req *v1.AcquireUnloadedModelRequest,
+) (*v1.AcquireUnloadedModelResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ms, err := s.store.ListUnloadedModels(clusterInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list unloaded models: %s", err)
+	}
+
+	if len(ms) == 0 {
+		return &v1.AcquireUnloadedModelResponse{}, nil
+	}
+
+	m := ms[0]
+	if err := s.store.UpdateModelToLoadingStatus(m.ModelID, clusterInfo.TenantID); err != nil {
+		if errors.Is(err, store.ErrConcurrentUpdate) {
+			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
+		}
+
+		return nil, status.Errorf(codes.Internal, "update model loading status: %s", err)
+	}
+
+	return &v1.AcquireUnloadedModelResponse{
+		ModelId:           m.ModelID,
+		IsBaseModel:       false,
+		SourceRepository:  m.SourceRepository,
+		ModelFileLocation: m.ModelFileLocation,
+		DestPath:          m.Path,
+	}, nil
+}
+
 // UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
 // updates the base model metadata.
 func (s *WS) UpdateBaseModelLoadingStatus(
@@ -682,7 +806,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		// model ID mismatch due to our internal conversion (e.g., "/" to "-") or
 		// a Hugging Face repo contains multiple models.
 		//
-		// In this case, we should delete delete the requested model ID.
+		// In this case, we should delete the requested model ID.
 		if bm.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING {
 			s.log.Info("Delete the model as base models have been successfully created", "modelID", req.Id)
 			if err := s.store.DeleteBaseModel(req.Id, clusterInfo.TenantID); err != nil {
@@ -714,6 +838,68 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 	return &v1.UpdateBaseModelLoadingStatusResponse{}, nil
 }
 
+// UpdateModelLoadingStatus updates the loading status. When the loading succeeded, it also
+// updates the model metadata.
+func (s *WS) UpdateModelLoadingStatus(
+	ctx context.Context,
+	req *v1.UpdateModelLoadingStatusRequest,
+) (*v1.UpdateModelLoadingStatusResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if req.LoadingResult == nil {
+		return nil, status.Error(codes.InvalidArgument, "loading_result is required")
+	}
+
+	// TODO(kenji): Remove once this RPC supports both a base model and a fine-tuned model.
+	if req.IsBaseModel {
+		return nil, status.Error(codes.InvalidArgument, "only accept fine-tuned models")
+	}
+
+	if _, err := s.store.GetModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
+		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+	}
+
+	switch req.LoadingResult.(type) {
+	case *v1.UpdateModelLoadingStatusRequest_Success_:
+		err = s.store.UpdateModelToSucceededStatus(
+			req.Id,
+			clusterInfo.TenantID,
+		)
+	case *v1.UpdateModelLoadingStatusRequest_Failure_:
+		failure := req.GetFailure()
+		if failure.Reason == "" {
+			return nil, status.Error(codes.InvalidArgument, "reason is required")
+		}
+		err = s.store.UpdateModelToFailedStatus(
+			req.Id,
+			clusterInfo.TenantID,
+			failure.Reason,
+		)
+	default:
+		return nil, status.Error(codes.InvalidArgument, "invalid loading_result")
+	}
+
+	if err != nil {
+		if errors.Is(err, store.ErrConcurrentUpdate) {
+			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
+		}
+
+		return nil, status.Errorf(codes.Internal, "update model loading status: %s", err)
+	}
+
+	return &v1.UpdateModelLoadingStatusResponse{}, nil
+}
+
 func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error) {
 	const randomLength = 10
 	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
@@ -736,12 +922,13 @@ func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error)
 
 func toModelProto(m *store.Model) *v1.Model {
 	return &v1.Model{
-		Id:               m.ModelID,
-		Object:           "model",
-		Created:          m.CreatedAt.UTC().Unix(),
-		OwnedBy:          "user",
-		LoadingStatus:    toLoadingStatus(m.LoadingStatus),
-		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
+		Id:                   m.ModelID,
+		Object:               "model",
+		Created:              m.CreatedAt.UTC().Unix(),
+		OwnedBy:              "user",
+		LoadingStatus:        toLoadingStatus(m.LoadingStatus),
+		SourceRepository:     v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
+		LoadingFailureReason: m.LoadingFailureReason,
 		// Fine-tuned models always have the Hugging Face format.
 		Formats:     []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		IsBaseModel: false,

@@ -747,6 +747,221 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 	assert.Equal(t, "error", got.LoadingFailureReason)
 }
 
+func TestFineTunedModelCreation(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	ctx := fakeAuthInto(context.Background())
+	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
+		PathPrefix: "models",
+	})
+	assert.NoError(t, err)
+
+	// No model to be acquired.
+	resp, err := wsrv.AcquireUnloadedModel(ctx, &v1.AcquireUnloadedModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.ModelId)
+
+	// Create a base model.
+	const baseModelID = "bm0"
+
+	_, err = st.CreateBaseModel(
+		baseModelID,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
+		"",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		IsFineTunedModel:  true,
+		BaseModelId:       baseModelID,
+		Suffix:            "suffix0",
+		SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		ModelFileLocation: "s3://bucket0/path0",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+	assert.Equal(t, "bm0:suffix0", m.Id)
+
+	resp, err = wsrv.AcquireUnloadedModel(ctx, &v1.AcquireUnloadedModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, resp.SourceRepository)
+	assert.Equal(t, "s3://bucket0/path0", resp.ModelFileLocation)
+	assert.Equal(t, "models/default-tenant-id/bm0:suffix0", resp.DestPath)
+
+	modelID := resp.ModelId
+
+	got, err := st.GetModelByModelIDAndTenantID(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	// No model to be acquired as the model has already been acquired.
+	resp, err = wsrv.AcquireUnloadedModel(ctx, &v1.AcquireUnloadedModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.ModelId)
+
+	_, err = wsrv.UpdateModelLoadingStatus(ctx, &v1.UpdateModelLoadingStatusRequest{
+		Id: modelID,
+		LoadingResult: &v1.UpdateModelLoadingStatusRequest_Success_{
+			Success: &v1.UpdateModelLoadingStatusRequest_Success{},
+		},
+	})
+	assert.NoError(t, err)
+
+	got, err = st.GetModelByModelIDAndTenantID(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, got.LoadingStatus)
+}
+
+func TestFineTunedModelCreation_Failure(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	ctx := fakeAuthInto(context.Background())
+	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
+		PathPrefix: "models",
+	})
+	assert.NoError(t, err)
+
+	// Create a base model.
+	const baseModelID = "bm0"
+
+	_, err = st.CreateBaseModel(
+		baseModelID,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
+		"",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		IsFineTunedModel:  true,
+		BaseModelId:       baseModelID,
+		Suffix:            "suffix0",
+		SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		ModelFileLocation: "s3://bucket0/path0",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	resp, err := wsrv.AcquireUnloadedModel(ctx, &v1.AcquireUnloadedModelRequest{})
+	assert.NoError(t, err)
+
+	modelID := resp.ModelId
+
+	got, err := st.GetModelByModelIDAndTenantID(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	_, err = wsrv.UpdateModelLoadingStatus(ctx, &v1.UpdateModelLoadingStatusRequest{
+		Id: modelID,
+		LoadingResult: &v1.UpdateModelLoadingStatusRequest_Failure_{
+			Failure: &v1.UpdateModelLoadingStatusRequest_Failure{
+				Reason: "error",
+			},
+		},
+	})
+	assert.NoError(t, err)
+
+	got, err = st.GetModelByModelIDAndTenantID(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, got.LoadingStatus)
+	assert.Equal(t, "error", got.LoadingFailureReason)
+}
+
+func TestFineTunedModelCreation_CreateModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	ctx := fakeAuthInto(context.Background())
+	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
+		PathPrefix: "models",
+	})
+	assert.NoError(t, err)
+
+	// No model to be acquired.
+	resp, err := wsrv.AcquireUnloadedModel(ctx, &v1.AcquireUnloadedModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.ModelId)
+
+	// Create a base model.
+	const baseModelID = "bm0"
+
+	_, err = st.CreateBaseModel(
+		baseModelID,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
+		"",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	tcs := []struct {
+		name    string
+		req     *v1.CreateModelRequest
+		wantErr bool
+	}{
+		{
+			name: "success",
+			req: &v1.CreateModelRequest{
+				IsFineTunedModel:  true,
+				BaseModelId:       baseModelID,
+				Suffix:            "suffix0",
+				SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+				ModelFileLocation: "s3://bucket0/path0",
+			},
+		},
+		{
+			name: "no base model",
+			req: &v1.CreateModelRequest{
+				IsFineTunedModel:  true,
+				BaseModelId:       "invalid base model ID",
+				Suffix:            "suffix0",
+				SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+				ModelFileLocation: "s3://bucket0/path0",
+			},
+			wantErr: true,
+		},
+		{
+			name: "too long suffix",
+			req: &v1.CreateModelRequest{
+				IsFineTunedModel:  true,
+				BaseModelId:       "invalid base model ID",
+				Suffix:            "12345678910234567890",
+				SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+				ModelFileLocation: "s3://bucket0/path0",
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			_, err := srv.CreateModel(ctx, tc.req)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+}
+
 func TestValidateIdAndSourceRepository(t *testing.T) {
 	tcs := []struct {
 		name             string

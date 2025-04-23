@@ -220,6 +220,36 @@ export type UpdateBaseModelLoadingStatusRequest = BaseUpdateBaseModelLoadingStat
 export type UpdateBaseModelLoadingStatusResponse = {
 }
 
+export type AcquireUnloadedModelRequest = {
+}
+
+export type AcquireUnloadedModelResponse = {
+  model_id?: string
+  is_base_model?: boolean
+  source_repository?: SourceRepository
+  model_file_location?: string
+  dest_path?: string
+}
+
+export type UpdateModelLoadingStatusRequestSuccess = {
+}
+
+export type UpdateModelLoadingStatusRequestFailure = {
+  reason?: string
+}
+
+
+type BaseUpdateModelLoadingStatusRequest = {
+  id?: string
+  is_base_model?: boolean
+}
+
+export type UpdateModelLoadingStatusRequest = BaseUpdateModelLoadingStatusRequest
+  & OneOf<{ success: UpdateModelLoadingStatusRequestSuccess; failure: UpdateModelLoadingStatusRequestFailure }>
+
+export type UpdateModelLoadingStatusResponse = {
+}
+
 export class ModelsService {
   static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse> {
     return fm.fetchReq<ListModelsRequest, ListModelsResponse>(`/v1/models?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
@@ -271,7 +301,13 @@ export class ModelsWorkerService {
   static AcquireUnloadedBaseModel(req: AcquireUnloadedBaseModelRequest, initReq?: fm.InitReq): Promise<AcquireUnloadedBaseModelResponse> {
     return fm.fetchReq<AcquireUnloadedBaseModelRequest, AcquireUnloadedBaseModelResponse>(`/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedBaseModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
+  static AcquireUnloadedModel(req: AcquireUnloadedModelRequest, initReq?: fm.InitReq): Promise<AcquireUnloadedModelResponse> {
+    return fm.fetchReq<AcquireUnloadedModelRequest, AcquireUnloadedModelResponse>(`/llmariner.models.server.v1.ModelsWorkerService/AcquireUnloadedModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
   static UpdateBaseModelLoadingStatus(req: UpdateBaseModelLoadingStatusRequest, initReq?: fm.InitReq): Promise<UpdateBaseModelLoadingStatusResponse> {
     return fm.fetchReq<UpdateBaseModelLoadingStatusRequest, UpdateBaseModelLoadingStatusResponse>(`/llmariner.models.server.v1.ModelsWorkerService/UpdateBaseModelLoadingStatus`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static UpdateModelLoadingStatus(req: UpdateModelLoadingStatusRequest, initReq?: fm.InitReq): Promise<UpdateModelLoadingStatusResponse> {
+    return fm.fetchReq<UpdateModelLoadingStatusRequest, UpdateModelLoadingStatusResponse>(`/llmariner.models.server.v1.ModelsWorkerService/UpdateModelLoadingStatus`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
 }
