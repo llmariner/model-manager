@@ -53,9 +53,6 @@ export class ModelsService {
     static CreateModel(req, initReq) {
         return fm.fetchReq(`/v1/models`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
-    static ListBaseModels(req, initReq) {
-        return fm.fetchReq(`/v1/basemodels?${fm.renderURLSearchParams(req, [])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
-    }
 }
 export class ModelsWorkerService {
     static CreateStorageConfig(req, initReq) {

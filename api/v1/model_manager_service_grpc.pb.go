@@ -21,10 +21,9 @@ type ModelsServiceClient interface {
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
-	// CreateModel creates a new base model. The model becomes available once
+	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
 	CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error)
-	ListBaseModels(ctx context.Context, in *ListBaseModelsRequest, opts ...grpc.CallOption) (*ListBaseModelsResponse, error)
 }
 
 type modelsServiceClient struct {
@@ -71,15 +70,6 @@ func (c *modelsServiceClient) CreateModel(ctx context.Context, in *CreateModelRe
 	return out, nil
 }
 
-func (c *modelsServiceClient) ListBaseModels(ctx context.Context, in *ListBaseModelsRequest, opts ...grpc.CallOption) (*ListBaseModelsResponse, error) {
-	out := new(ListBaseModelsResponse)
-	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ListBaseModels", in, out, opts...)
-	if err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
 // ModelsServiceServer is the server API for ModelsService service.
 // All implementations must embed UnimplementedModelsServiceServer
 // for forward compatibility
@@ -87,10 +77,9 @@ type ModelsServiceServer interface {
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
-	// CreateModel creates a new base model. The model becomes available once
+	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
 	CreateModel(context.Context, *CreateModelRequest) (*Model, error)
-	ListBaseModels(context.Context, *ListBaseModelsRequest) (*ListBaseModelsResponse, error)
 	mustEmbedUnimplementedModelsServiceServer()
 }
 
@@ -109,9 +98,6 @@ func (UnimplementedModelsServiceServer) DeleteModel(context.Context, *DeleteMode
 }
 func (UnimplementedModelsServiceServer) CreateModel(context.Context, *CreateModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateModel not implemented")
-}
-func (UnimplementedModelsServiceServer) ListBaseModels(context.Context, *ListBaseModelsRequest) (*ListBaseModelsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListBaseModels not implemented")
 }
 func (UnimplementedModelsServiceServer) mustEmbedUnimplementedModelsServiceServer() {}
 
@@ -198,24 +184,6 @@ func _ModelsService_CreateModel_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
-func _ModelsService_ListBaseModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListBaseModelsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ModelsServiceServer).ListBaseModels(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/llmariner.models.server.v1.ModelsService/ListBaseModels",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsServiceServer).ListBaseModels(ctx, req.(*ListBaseModelsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 // ModelsService_ServiceDesc is the grpc.ServiceDesc for ModelsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -238,10 +206,6 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateModel",
 			Handler:    _ModelsService_CreateModel_Handler,
-		},
-		{
-			MethodName: "ListBaseModels",
-			Handler:    _ModelsService_ListBaseModels_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

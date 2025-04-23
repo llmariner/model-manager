@@ -19,28 +19,6 @@
     "application/json"
   ],
   "paths": {
-    "/v1/basemodels": {
-      "get": {
-        "operationId": "ModelsService_ListBaseModels",
-        "responses": {
-          "200": {
-            "description": "A successful response.",
-            "schema": {
-              "$ref": "#/definitions/v1ListBaseModelsResponse"
-            }
-          },
-          "default": {
-            "description": "An unexpected error response.",
-            "schema": {
-              "$ref": "#/definitions/rpcStatus"
-            }
-          }
-        },
-        "tags": [
-          "ModelsService"
-        ]
-      }
-    },
     "/v1/models": {
       "get": {
         "operationId": "ModelsService_ListModels",
@@ -87,7 +65,7 @@
         ]
       },
       "post": {
-        "summary": "CreateModel creates a new base model. The model becomes available once\nits model file is loaded to an object store.",
+        "summary": "CreateModel creates a new model. The model becomes available once\nits model file is loaded to an object store.",
         "operationId": "ModelsService_CreateModel",
         "responses": {
           "200": {
@@ -267,6 +245,21 @@
         },
         "sourceRepository": {
           "$ref": "#/definitions/v1SourceRepository"
+        },
+        "isFineTunedModel": {
+          "type": "boolean",
+          "description": "is_fine_tuned_model is a flag to indicate if the model is a fine-tuned model."
+        },
+        "baseModelId": {
+          "type": "string",
+          "description": "base_model_id is the ID of the base model. Only set if the model is a fine-tuned model."
+        },
+        "suffix": {
+          "type": "string",
+          "description": "suffix is the suffix of the model. Only set if the model is a fine-tuned model."
+        },
+        "modelFileLocation": {
+          "type": "string"
         }
       }
     },
@@ -316,20 +309,6 @@
       "properties": {
         "name": {
           "type": "string"
-        }
-      }
-    },
-    "v1ListBaseModelsResponse": {
-      "type": "object",
-      "properties": {
-        "object": {
-          "type": "string"
-        },
-        "data": {
-          "type": "array",
-          "items": {
-            "$ref": "#/definitions/v1BaseModel"
-          }
         }
       }
     },

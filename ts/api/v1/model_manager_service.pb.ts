@@ -71,6 +71,10 @@ export type Model = {
 export type CreateModelRequest = {
   id?: string
   source_repository?: SourceRepository
+  is_fine_tuned_model?: boolean
+  base_model_id?: string
+  suffix?: string
+  model_file_location?: string
 }
 
 export type ListModelsRequest = {
@@ -99,20 +103,6 @@ export type DeleteModelResponse = {
   id?: string
   object?: string
   deleted?: boolean
-}
-
-export type ListBaseModelsRequest = {
-}
-
-export type BaseModel = {
-  id?: string
-  created?: string
-  object?: string
-}
-
-export type ListBaseModelsResponse = {
-  object?: string
-  data?: BaseModel[]
 }
 
 export type StorageConfig = {
@@ -176,6 +166,12 @@ export type CreateBaseModelRequest = {
   source_repository?: SourceRepository
 }
 
+export type BaseModel = {
+  id?: string
+  created?: string
+  object?: string
+}
+
 export type GetBaseModelPathRequest = {
   id?: string
 }
@@ -236,9 +232,6 @@ export class ModelsService {
   }
   static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model> {
     return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})
-  }
-  static ListBaseModels(req: ListBaseModelsRequest, initReq?: fm.InitReq): Promise<ListBaseModelsResponse> {
-    return fm.fetchReq<ListBaseModelsRequest, ListBaseModelsResponse>(`/v1/basemodels?${fm.renderURLSearchParams(req, [])}`, {...initReq, method: "GET"})
   }
 }
 export class ModelsWorkerService {

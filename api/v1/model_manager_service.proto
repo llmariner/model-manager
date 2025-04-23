@@ -76,6 +76,14 @@ message Model {
 message CreateModelRequest {
   string id = 1;
   SourceRepository source_repository = 2;
+
+  // is_fine_tuned_model is a flag to indicate if the model is a fine-tuned model.
+  bool is_fine_tuned_model = 3;
+  // base_model_id is the ID of the base model. Only set if the model is a fine-tuned model.
+  string base_model_id = 4;
+  // suffix is the suffix of the model. Only set if the model is a fine-tuned model.
+  string suffix = 5;
+  string model_file_location = 6;
 }
 
 message ListModelsRequest {
@@ -191,7 +199,6 @@ message RegisterModelRequest {
   // id is the model name.
   string id = 7;
   string base_model = 1;
-  // suffix is deprecated, use adapter and quantization instead.
   string suffix = 2;
   string organization_id = 3;
   string project_id = 4;
@@ -250,6 +257,12 @@ message CreateBaseModelRequest {
   SourceRepository source_repository = 5;
 
   // Next ID: 6
+}
+
+message BaseModel {
+  string id = 1;
+  int64 created = 2;
+  string object = 3;
 }
 
 message GetBaseModelPathRequest {
