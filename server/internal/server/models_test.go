@@ -176,7 +176,14 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+	_, err := st.CreateBaseModel(
+		"m0",
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf-path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
@@ -201,28 +208,34 @@ func TestDeleteModel_BaseModelAndHFModelRepo(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("repo-m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+	const (
+		modelID    = "meta-llama-Llama-3.2-1B-Instruct"
+		hfRepoName = "meta-llama/Llama-3.2-1B-Instruct"
+	)
+
+	_, err := st.CreateBaseModel(
+		modelID,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf-path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
 	assert.NoError(t, err)
 
-	_, err = st.CreateHFModelRepo("repo/m0", defaultTenantID)
+	_, err = st.CreateHFModelRepo(hfRepoName, modelID, defaultTenantID)
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
-		Id: "repo-m0",
-	})
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{Id: modelID})
 	assert.NoError(t, err)
 
-	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
-		Id: "repo-m0",
-	})
+	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{Id: modelID})
 	assert.NoError(t, err)
 
-	_, err = srv.GetModel(ctx, &v1.GetModelRequest{
-		Id: "repo-m0",
-	})
+	_, err = srv.GetModel(ctx, &v1.GetModelRequest{Id: modelID})
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
 

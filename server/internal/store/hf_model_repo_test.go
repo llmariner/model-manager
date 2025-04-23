@@ -14,6 +14,7 @@ func TestHFModelRepo(t *testing.T) {
 
 	const (
 		repoName = "r0"
+		modelID  = "mid-0"
 		tenantID = "t0"
 	)
 
@@ -21,7 +22,7 @@ func TestHFModelRepo(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	_, err = st.CreateHFModelRepo(repoName, tenantID)
+	_, err = st.CreateHFModelRepo(repoName, modelID, tenantID)
 	assert.NoError(t, err)
 
 	gotR, err := st.GetHFModelRepo(repoName, tenantID)
@@ -40,4 +41,9 @@ func TestHFModelRepo(t *testing.T) {
 	gotRs, err = st.ListHFModelRepos("different_tenant")
 	assert.NoError(t, err)
 	assert.Empty(t, gotRs)
+
+	err = st.db.Transaction(func(tx *gorm.DB) error {
+		return DeleteHFModelRepoInTransactionByModelID(tx, modelID, tenantID)
+	})
+	assert.NoError(t, err)
 }
