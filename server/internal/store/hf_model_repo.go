@@ -12,16 +12,19 @@ type HFModelRepo struct {
 	gorm.Model
 
 	Name     string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id"`
-	TenantID string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id"`
+	ModelID  string `gorm:"uniqueIndex:idx_hf_model_repo_model_id_tenant_id"`
+	TenantID string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id;uniqueIndex:idx_hf_model_repo_model_id_tenant_id"`
 }
 
 // CreateHFModelRepo creates a model repo.
 func (s *S) CreateHFModelRepo(
 	name string,
+	modelID string,
 	tenantID string,
 ) (*HFModelRepo, error) {
 	r := &HFModelRepo{
 		Name:     name,
+		ModelID:  modelID,
 		TenantID: tenantID,
 	}
 	if err := s.db.Create(r).Error; err != nil {
@@ -48,9 +51,9 @@ func (s *S) ListHFModelRepos(tenantID string) ([]*HFModelRepo, error) {
 	return rs, nil
 }
 
-// DeleteHFModelRepoInTransaction deletes a model repo.
-func DeleteHFModelRepoInTransaction(tx *gorm.DB, name, tenantID string) error {
-	res := tx.Where("name = ? AND tenant_id = ?", name, tenantID).Delete(&HFModelRepo{})
+// DeleteHFModelRepoInTransactionByModelID deletes a model repo.
+func DeleteHFModelRepoInTransactionByModelID(tx *gorm.DB, modelID, tenantID string) error {
+	res := tx.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&HFModelRepo{})
 	if err := res.Error; err != nil {
 		return err
 	}

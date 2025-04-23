@@ -263,6 +263,7 @@ func (s *S) DeleteModel(
 		}
 
 		// The specified model is not a base-model or the base-model has already been deleted.
+		// Try deleting a fine-tuned model of the specified ID.
 		if err := s.store.DeleteModel(req.Id, userInfo.ProjectID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -296,12 +297,9 @@ func (s *S) DeleteModel(
 		// the Hugging Face repo name and the model ID does not match.
 		//
 		// Also, deleting a HFModelRepo can trigger downloading the remaining undeleted models again, which is not ideal.
-
-		// Replace the first "-" with "-" to have the original repo name.
-		hfRepoName := strings.Replace(req.Id, "-", "/", 1)
-		if err := store.DeleteHFModelRepoInTransaction(tx, hfRepoName, userInfo.TenantID); err != nil {
+		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, req.Id, userInfo.TenantID); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.Internal, "delete hf model repo (id: %q, repo name: %q): %s", req.Id, hfRepoName, err)
+				return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", req.Id, err)
 			}
 			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
 		}

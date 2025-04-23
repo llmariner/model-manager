@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"errors"
+	"strings"
 
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"google.golang.org/grpc/codes"
@@ -24,7 +25,9 @@ func (s *WS) CreateHFModelRepo(
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	r, err := s.store.CreateHFModelRepo(req.Name, clusterInfo.TenantID)
+	modelID := strings.ReplaceAll(req.Name, "/", "-")
+
+	r, err := s.store.CreateHFModelRepo(req.Name, modelID, clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get hugging-face model repo: %s", err)
 	}
