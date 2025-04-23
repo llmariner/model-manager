@@ -216,7 +216,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 		}
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, true, sourceRepository)
+	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, sourceRepository, l.baseModelPathPrefix())
 	if err != nil {
 		return err
 	}
@@ -255,6 +255,12 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 }
 
 func (l *L) loadModel(ctx context.Context, model config.ModelConfig, sourceRepository v1.SourceRepository) error {
+	// TODO(guangrui): Make these configurable.
+	const (
+		projectID      = "default"
+		organizationID = "defautl"
+		tenantID       = "default-tenant-id"
+	)
 	if err := l.loadBaseModel(ctx, model.BaseModel, sourceRepository); err != nil {
 		return err
 	}
@@ -272,7 +278,9 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig, sourceRepos
 		return err
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", false, sourceRepository)
+	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
+	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID)
+	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", sourceRepository, pathPrefix)
 	if err != nil {
 		return err
 	}
@@ -287,9 +295,9 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig, sourceRepos
 		Adapter:      config.ToAdapterType(model.AdapterType),
 		Quantization: config.ToQuantizationType(model.QuantizationType),
 		Path:         mi.path,
-		// TODO(guangrui): Allow to configure project and org for models.
-		ProjectId:      "default",
-		OrganizationId: "default",
+
+		ProjectId:      projectID,
+		OrganizationId: organizationID,
 	}); err != nil {
 		return err
 	}
@@ -309,7 +317,13 @@ type modelInfo struct {
 	sourceRepository v1.SourceRepository
 }
 
-func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string, isBaseModel bool, sourceRepository v1.SourceRepository) ([]*modelInfo, error) {
+func (l *L) downloadAndUploadModel(
+	ctx context.Context,
+	modelID,
+	filename string,
+	sourceRepository v1.SourceRepository,
+	pathPrefix string,
+) ([]*modelInfo, error) {
 	log := l.log.WithValues("modelID", modelID)
 	log.Info("Started loading model")
 
@@ -344,7 +358,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 	toKey := func(path string) string {
 		// Remove the tmpdir path from the path.
 		relativePath := strings.TrimPrefix(path, tmpDir)
-		return filepath.Join(l.toPathPrefix(isBaseModel), keyModelID, relativePath)
+		return filepath.Join(pathPrefix, keyModelID, relativePath)
 	}
 
 	var (
@@ -409,7 +423,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		return []*modelInfo{
 			{
 				id:               modelID,
-				path:             filepath.Join(l.toPathPrefix(isBaseModel), keyModelID),
+				path:             filepath.Join(pathPrefix, keyModelID),
 				formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_OLLAMA},
 				sourceRepository: sourceRepository,
 			},
@@ -442,7 +456,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 		return []*modelInfo{
 			{
 				id:               id,
-				path:             filepath.Join(l.toPathPrefix(isBaseModel), modelID),
+				path:             filepath.Join(pathPrefix, modelID),
 				ggufModelPath:    ggufModelPath,
 				formats:          formats,
 				sourceRepository: sourceRepository,
@@ -461,7 +475,7 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 
 		minfos = append(minfos, &modelInfo{
 			id:               id,
-			path:             filepath.Join(l.toPathPrefix(isBaseModel), id),
+			path:             filepath.Join(pathPrefix, id),
 			ggufModelPath:    gpath,
 			formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 			sourceRepository: sourceRepository,
@@ -471,12 +485,8 @@ func (l *L) downloadAndUploadModel(ctx context.Context, modelID, filename string
 	return minfos, nil
 }
 
-func (l *L) toPathPrefix(isBaseModel bool) string {
-	if isBaseModel {
-		return filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix)
-	}
-	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
-	return filepath.Join(l.objectStorePathPrefix, "default-tenant-id")
+func (l *L) baseModelPathPrefix() string {
+	return filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix)
 }
 
 func buildModelIDForGGUF(modelID, ggufModelFilePath string) string {
