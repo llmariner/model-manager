@@ -9,10 +9,9 @@ import (
 type Model struct {
 	gorm.Model
 
-	// ModelID is the model ID. It is globally unique.
-	ModelID string `gorm:"uniqueIndex"`
+	TenantID string `gorm:"uniqueIndex:idx_model_model_id_tenant_id"`
+	ModelID  string `gorm:"uniqueIndex:idx_model_model_id_tenant_id"`
 
-	TenantID       string `gorm:"index"`
 	OrganizationID string
 	ProjectID      string `gorm:"index"`
 
@@ -60,28 +59,19 @@ func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 	return m, nil
 }
 
-// GetPublishedModelByModelIDAndProjectID returns a published model by model ID and tenant ID.
-func (s *S) GetPublishedModelByModelIDAndProjectID(modelID, projectID string) (*Model, error) {
-	var m Model
-	if err := s.db.Where("model_id = ? AND project_id = ? AND is_published = ? ", modelID, projectID, true).Take(&m).Error; err != nil {
-		return nil, err
-	}
-	return &m, nil
-}
-
-// GetModelByModelID returns a model by model ID.
-func (s *S) GetModelByModelID(modelID string) (*Model, error) {
-	var m Model
-	if err := s.db.Where("model_id = ?", modelID).Take(&m).Error; err != nil {
-		return nil, err
-	}
-	return &m, nil
-}
-
-// GetPublishedModelByModelIDAndTenantID returns a model by model ID.
+// GetPublishedModelByModelIDAndTenantID returns a published model by model ID and tenant ID.
 func (s *S) GetPublishedModelByModelIDAndTenantID(modelID, tenantID string) (*Model, error) {
 	var m Model
-	if err := s.db.Where("model_id = ? AND tenant_id = ? AND is_published = ?", modelID, tenantID, true).Take(&m).Error; err != nil {
+	if err := s.db.Where("model_id = ? AND tenant_id = ? AND is_published = ? ", modelID, tenantID, true).Take(&m).Error; err != nil {
+		return nil, err
+	}
+	return &m, nil
+}
+
+// GetModelByModelIDAndTenantID returns a model by model ID and tenant ID.
+func (s *S) GetModelByModelIDAndTenantID(modelID, tenantID string) (*Model, error) {
+	var m Model
+	if err := s.db.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Take(&m).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -119,8 +109,8 @@ func (s *S) ListModelsByProjectIDWithPagination(
 }
 
 // DeleteModel deletes a model by model ID and tenant ID.
-func (s *S) DeleteModel(modelID, projectID string) error {
-	res := s.db.Unscoped().Where("model_id = ? AND project_id = ?", modelID, projectID).Delete(&Model{})
+func (s *S) DeleteModel(modelID, tenantID string) error {
+	res := s.db.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&Model{})
 	if err := res.Error; err != nil {
 		return err
 	}
