@@ -28,13 +28,6 @@ spec:
             name: {{ include "model-manager-server.fullname" . }}-http
             port:
               number: {{ .Values.httpPort }}
-      - path: /v1/basemodels
-        pathType: Prefix
-        backend:
-          service:
-            name: {{ include "model-manager-server.fullname" . }}-http
-            port:
-              number: {{ .Values.httpPort }}
 
 ---
 
