@@ -56,6 +56,10 @@ export type Model = {
 export type CreateModelRequest = {
     id?: string;
     source_repository?: SourceRepository;
+    is_fine_tuned_model?: boolean;
+    base_model_id?: string;
+    suffix?: string;
+    model_file_location?: string;
 };
 export type ListModelsRequest = {
     include_loading_models?: boolean;
@@ -79,16 +83,6 @@ export type DeleteModelResponse = {
     id?: string;
     object?: string;
     deleted?: boolean;
-};
-export type ListBaseModelsRequest = {};
-export type BaseModel = {
-    id?: string;
-    created?: string;
-    object?: string;
-};
-export type ListBaseModelsResponse = {
-    object?: string;
-    data?: BaseModel[];
 };
 export type StorageConfig = {
     path_prefix?: string;
@@ -137,6 +131,11 @@ export type CreateBaseModelRequest = {
     gguf_model_path?: string;
     source_repository?: SourceRepository;
 };
+export type BaseModel = {
+    id?: string;
+    created?: string;
+    object?: string;
+};
 export type GetBaseModelPathRequest = {
     id?: string;
 };
@@ -176,7 +175,6 @@ export declare class ModelsService {
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
     static DeleteModel(req: DeleteModelRequest, initReq?: fm.InitReq): Promise<DeleteModelResponse>;
     static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model>;
-    static ListBaseModels(req: ListBaseModelsRequest, initReq?: fm.InitReq): Promise<ListBaseModelsResponse>;
 }
 export declare class ModelsWorkerService {
     static CreateStorageConfig(req: CreateStorageConfigRequest, initReq?: fm.InitReq): Promise<StorageConfig>;
