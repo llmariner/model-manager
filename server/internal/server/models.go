@@ -79,7 +79,7 @@ func (s *S) ListModels(
 	if req.After != "" {
 		// Find a corresponding base model or a fine-tuned model
 		var err error
-		afterBaseModel, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID)
+		afterBaseModel, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
 		if err != nil {
 			return nil, err
 		}
@@ -99,15 +99,11 @@ func (s *S) ListModels(
 			afterModelID = afterBaseModel.ModelID
 		}
 
-		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterModelID, int(limit))
+		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterModelID, int(limit), req.IncludeLoadingModels)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 		}
 		for _, m := range bms {
-			if !isBaseModelLoaded(m) && !req.IncludeLoadingModels {
-				continue
-			}
-
 			mp, err := baseToModelProto(m)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "to proto: %s", err)
@@ -165,11 +161,14 @@ func (s *S) ListModels(
 	}, nil
 }
 
-func (s *S) findBaseModelOrModel(modelID, tenantID string) (*store.BaseModel, *store.Model, error) {
+func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, error) {
 	// Find a corresponding base model or a fine-tuned model
 	var err error
 	bm, err := s.store.GetBaseModel(modelID, tenantID)
 	if err == nil {
+		if !isBaseModelLoaded(bm) && !includeLoadingModels {
+			return nil, nil, status.Errorf(codes.InvalidArgument, "base model is not loaded")
+		}
 		return bm, nil, nil
 	}
 
@@ -186,6 +185,11 @@ func (s *S) findBaseModelOrModel(modelID, tenantID string) (*store.BaseModel, *s
 
 		return nil, nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
 	}
+
+	if !isModelLoaded(m) && !includeLoadingModels {
+		return nil, nil, status.Errorf(codes.InvalidArgument, "model is not loaded")
+	}
+
 	return nil, m, nil
 }
 
@@ -779,15 +783,18 @@ func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {
 
 func toLoadingStatus(s v1.ModelLoadingStatus) v1.ModelLoadingStatus {
 	if s == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_UNSPECIFIED {
-		// For backward compatibility.
+		// The UNSPECIFIED status is considered as loaded for backward compatibility.
 		return v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED
 	}
 	return s
 }
 
 func isBaseModelLoaded(m *store.BaseModel) bool {
-	// The UNSPECIFIED status is considered as loaded for backward compatibility.
-	return m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_UNSPECIFIED
+	return toLoadingStatus(m.LoadingStatus) == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED
+}
+
+func isModelLoaded(m *store.Model) bool {
+	return toLoadingStatus(m.LoadingStatus) == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED
 }
 
 func validateIDAndSourceRepository(id string, sourceRepository v1.SourceRepository) error {
