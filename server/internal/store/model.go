@@ -22,6 +22,8 @@ type Model struct {
 	BaseModelID  string `gorm:"index"`
 	Adapter      v1.AdapterType
 	Quantization v1.QuantizationType
+
+	LoadingStatus v1.ModelLoadingStatus
 }
 
 // ModelSpec represents a model spec that is passed to CreateModel.
@@ -35,6 +37,7 @@ type ModelSpec struct {
 	BaseModelID    string
 	Adapter        v1.AdapterType
 	Quantization   v1.QuantizationType
+	LoadingStatus  v1.ModelLoadingStatus
 }
 
 // CreateModel creates a model.
@@ -49,6 +52,7 @@ func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 		BaseModelID:    spec.BaseModelID,
 		Adapter:        spec.Adapter,
 		Quantization:   spec.Quantization,
+		LoadingStatus:  spec.LoadingStatus,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err
@@ -118,8 +122,12 @@ func (s *S) DeleteModel(modelID, projectID string) error {
 }
 
 // UpdateModel updates the model.
-func (s *S) UpdateModel(modelID string, tenantID string, isPublished bool) error {
-	res := s.db.Model(&Model{}).Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Update("is_published", isPublished)
+func (s *S) UpdateModel(modelID string, tenantID string, isPublished bool, loadingStatus v1.ModelLoadingStatus) error {
+	res := s.db.Model(&Model{}).Where("model_id = ? AND tenant_id = ?", modelID, tenantID).
+		Updates(map[string]interface{}{
+			"is_published":   isPublished,
+			"loading_status": loadingStatus,
+		})
 	if err := res.Error; err != nil {
 		return err
 	}

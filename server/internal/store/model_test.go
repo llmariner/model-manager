@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/stretchr/testify/assert"
 	"gorm.io/gorm"
 )
@@ -153,6 +154,7 @@ func TestUpdateModel(t *testing.T) {
 		ProjectID:      projectID,
 		Path:           "path",
 		IsPublished:    false,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
 	})
 	assert.NoError(t, err)
 
@@ -160,13 +162,14 @@ func TestUpdateModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 
-	err = st.UpdateModel(modelID, tenantID, true)
+	err = st.UpdateModel(modelID, tenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	assert.NoError(t, err)
 	got, err = st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
 	assert.True(t, got.IsPublished)
+	assert.Equal(t, got.LoadingStatus, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 
-	err = st.UpdateModel(modelID, tenantID, false)
+	err = st.UpdateModel(modelID, tenantID, false, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	assert.NoError(t, err)
 	got, err = st.GetModelByModelID(modelID)
 	assert.NoError(t, err)
