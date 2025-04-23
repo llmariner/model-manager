@@ -216,7 +216,8 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 		}
 	}
 
-	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, sourceRepository, l.baseModelPathPrefix())
+	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix)
+	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, sourceRepository, pathPrefix)
 	if err != nil {
 		return err
 	}
@@ -258,7 +259,7 @@ func (l *L) loadModel(ctx context.Context, model config.ModelConfig, sourceRepos
 	// TODO(guangrui): Make these configurable.
 	const (
 		projectID      = "default"
-		organizationID = "defautl"
+		organizationID = "default"
 		tenantID       = "default-tenant-id"
 	)
 	if err := l.loadBaseModel(ctx, model.BaseModel, sourceRepository); err != nil {
@@ -483,10 +484,6 @@ func (l *L) downloadAndUploadModel(
 	}
 
 	return minfos, nil
-}
-
-func (l *L) baseModelPathPrefix() string {
-	return filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix)
 }
 
 func buildModelIDForGGUF(modelID, ggufModelFilePath string) string {
