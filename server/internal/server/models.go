@@ -122,8 +122,8 @@ func (s *S) ListModels(
 		}
 
 		if len(modelProtos) == int(limit) {
-			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model.
-			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", 1)
+			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model to know the value of `HasMore`.
+			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", 1, req.IncludeLoadingModels)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "list models: %s", err)
 			}
@@ -143,8 +143,8 @@ func (s *S) ListModels(
 		afterModelID = afterModel.ModelID
 	}
 
-	// Then add generated models owned by the project
-	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterModelID, int(limit)-len(modelProtos))
+	// Then add generated models owned by the project.
+	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterModelID, int(limit)-len(modelProtos), req.IncludeLoadingModels)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list models: %s", err)
 	}
