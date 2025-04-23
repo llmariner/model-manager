@@ -177,7 +177,7 @@ func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels 
 	}
 
 	// Try a fine-tuned model next.
-	m, err := s.store.GetModelByModelID(modelID)
+	m, err := s.store.GetModelByModelIDAndTenantID(modelID, tenantID)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, status.Errorf(codes.Internal, "get model: %s", err)
@@ -237,7 +237,7 @@ func (s *S) GetModel(
 	}
 
 	// Then check if it's a generated model.
-	m, err := s.store.GetPublishedModelByModelIDAndProjectID(req.Id, userInfo.ProjectID)
+	m, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, userInfo.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -268,7 +268,7 @@ func (s *S) DeleteModel(
 
 		// The specified model is not a base-model or the base-model has already been deleted.
 		// Try deleting a fine-tuned model of the specified ID.
-		if err := s.store.DeleteModel(req.Id, userInfo.ProjectID); err != nil {
+		if err := s.store.DeleteModel(req.Id, userInfo.TenantID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 			}
@@ -381,7 +381,7 @@ func (s *WS) RegisterModel(
 
 	id := req.Id
 	if id != "" {
-		_, err := s.store.GetModelByModelID(id)
+		_, err := s.store.GetModelByModelIDAndTenantID(id, clusterInfo.TenantID)
 		if err == nil {
 			return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", id)
 		}
@@ -389,7 +389,7 @@ func (s *WS) RegisterModel(
 			return nil, status.Errorf(codes.Internal, "get model by model ID: %s", err)
 		}
 	} else {
-		id, err = s.genenerateModelID(req.BaseModel, req.Suffix)
+		id, err = s.generateModelID(req.BaseModel, req.Suffix, clusterInfo.TenantID)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "generate model ID: %s", err)
 		}
@@ -714,7 +714,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 	return &v1.UpdateBaseModelLoadingStatusResponse{}, nil
 }
 
-func (s *WS) genenerateModelID(baseModel, suffix string) (string, error) {
+func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error) {
 	const randomLength = 10
 	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
 	// TODO(kenji): Revisit this.
@@ -728,7 +728,7 @@ func (s *WS) genenerateModelID(baseModel, suffix string) (string, error) {
 			return "", fmt.Errorf("generate ID: %s", err)
 		}
 		id := fmt.Sprintf("%s%s", base, randomStr)
-		if _, err := s.store.GetModelByModelID(id); errors.Is(err, gorm.ErrRecordNotFound) {
+		if _, err := s.store.GetModelByModelIDAndTenantID(id, tenantID); errors.Is(err, gorm.ErrRecordNotFound) {
 			return id, nil
 		}
 	}

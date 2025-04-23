@@ -428,7 +428,7 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	modelID := resp.Id
 	assert.True(t, strings.HasPrefix(modelID, "ft:my-model:fine-tuning-"))
 
-	m, err := st.GetModelByModelID(modelID)
+	m, err := st.GetModelByModelIDAndTenantID(modelID, defaultTenantID)
 	assert.NoError(t, err)
 	assert.False(t, m.IsPublished)
 

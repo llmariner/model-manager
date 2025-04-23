@@ -87,7 +87,7 @@ func TestModel(t *testing.T) {
 	assert.False(t, hasMore)
 	assert.Equal(t, m0.ID, gotMs[0].ID)
 
-	err = st.DeleteModel(modelID, projectID)
+	err = st.DeleteModel(modelID, tenantID)
 	assert.NoError(t, err)
 
 	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, true)
@@ -95,7 +95,7 @@ func TestModel(t *testing.T) {
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
 
-	err = st.DeleteModel(modelID, projectID)
+	err = st.DeleteModel(modelID, tenantID)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }
 
@@ -192,20 +192,20 @@ func TestUpdateModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	got, err := st.GetModelByModelID(modelID)
+	got, err := st.GetModelByModelIDAndTenantID(modelID, tenantID)
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 
 	err = st.UpdateModel(modelID, tenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	assert.NoError(t, err)
-	got, err = st.GetModelByModelID(modelID)
+	got, err = st.GetModelByModelIDAndTenantID(modelID, tenantID)
 	assert.NoError(t, err)
 	assert.True(t, got.IsPublished)
 	assert.Equal(t, got.LoadingStatus, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 
 	err = st.UpdateModel(modelID, tenantID, false, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	assert.NoError(t, err)
-	got, err = st.GetModelByModelID(modelID)
+	got, err = st.GetModelByModelIDAndTenantID(modelID, tenantID)
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 }
