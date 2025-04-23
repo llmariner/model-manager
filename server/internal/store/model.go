@@ -124,8 +124,10 @@ func (s *S) DeleteModel(modelID, projectID string) error {
 // UpdateModel updates the model.
 func (s *S) UpdateModel(modelID string, tenantID string, isPublished bool, loadingStatus v1.ModelLoadingStatus) error {
 	res := s.db.Model(&Model{}).Where("model_id = ? AND tenant_id = ?", modelID, tenantID).
-		Update("is_published", isPublished).
-		Update("loading_status", loadingStatus)
+		Updates(map[string]interface{}{
+			"is_published":   isPublished,
+			"loading_status": loadingStatus,
+		})
 	if err := res.Error; err != nil {
 		return err
 	}
