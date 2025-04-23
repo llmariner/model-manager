@@ -89,35 +89,35 @@ func TestListBaseModelsWithPagination(t *testing.T) {
 		afterModelID string
 		limit        int
 		wantModelIDs []string
-		wantHaMore   bool
+		wantHasMore  bool
 	}{
 		{
 			name:         "page 1",
 			afterModelID: "",
 			limit:        2,
 			wantModelIDs: []string{"m0", "m1"},
-			wantHaMore:   true,
+			wantHasMore:  true,
 		},
 		{
 			name:         "page 2",
 			afterModelID: "m1",
 			limit:        2,
 			wantModelIDs: []string{"m2"},
-			wantHaMore:   false,
+			wantHasMore:  false,
 		},
 		{
 			name:         "page 1 with limit 1",
 			afterModelID: "",
 			limit:        1,
 			wantModelIDs: []string{"m0"},
-			wantHaMore:   true,
+			wantHasMore:  true,
 		},
 		{
 			name:         "page 1 with limit 10",
 			afterModelID: "",
 			limit:        10,
 			wantModelIDs: []string{"m0", "m1", "m2"},
-			wantHaMore:   false,
+			wantHasMore:  false,
 		},
 	}
 	for _, tc := range tcs {
@@ -128,7 +128,7 @@ func TestListBaseModelsWithPagination(t *testing.T) {
 			for i, got := range gotMs {
 				assert.Equal(t, tc.wantModelIDs[i], got.ModelID)
 			}
-			assert.Equal(t, tc.wantHaMore, gotHasMore)
+			assert.Equal(t, tc.wantHasMore, gotHasMore)
 		})
 	}
 }
@@ -213,7 +213,7 @@ func TestListBaseModelsWithPagination_ExcludeUnloaded(t *testing.T) {
 			for i, got := range gotMs {
 				assert.Equal(t, tc.wantModelIDs[i], got.ModelID)
 			}
-			assert.Equal(t, tc.wantHaMore, gotHasMore)
+			assert.Equal(t, tc.wantHasMore, gotHasMore)
 		})
 	}
 }

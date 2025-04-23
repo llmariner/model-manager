@@ -167,7 +167,7 @@ func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels 
 	bm, err := s.store.GetBaseModel(modelID, tenantID)
 	if err == nil {
 		if !isBaseModelLoaded(bm) && !includeLoadingModels {
-			return nil, nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
+			return nil, nil, status.Errorf(codes.InvalidArgument, "base model is not loaded")
 		}
 		return bm, nil, nil
 	}
