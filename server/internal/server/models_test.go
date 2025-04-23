@@ -30,6 +30,7 @@ func TestModels(t *testing.T) {
 		ProjectID:      defaultProjectID,
 		TenantID:       defaultTenantID,
 		IsPublished:    true,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 	})
 	assert.NoError(t, err)
 
@@ -39,6 +40,7 @@ func TestModels(t *testing.T) {
 		ProjectID:      defaultProjectID,
 		TenantID:       defaultTenantID,
 		IsPublished:    true,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 	})
 	assert.NoError(t, err)
 
@@ -101,6 +103,7 @@ func TestModels_Pagination(t *testing.T) {
 			ProjectID:      defaultProjectID,
 			TenantID:       defaultTenantID,
 			IsPublished:    true,
+			LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 		})
 		assert.NoError(t, err)
 	}
@@ -260,6 +263,7 @@ func TestGetAndListModels(t *testing.T) {
 		OrganizationID: orgID,
 		ProjectID:      defaultProjectID,
 		IsPublished:    true,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 	})
 	assert.NoError(t, err)
 
@@ -373,6 +377,7 @@ func TestInternalGetModel(t *testing.T) {
 		OrganizationID: "o0",
 		ProjectID:      defaultProjectID,
 		IsPublished:    true,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 	})
 	assert.NoError(t, err)
 
@@ -478,6 +483,7 @@ func TestGetModelPath(t *testing.T) {
 		ProjectID:      defaultProjectID,
 		Path:           "model-path",
 		IsPublished:    false,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 	})
 	assert.NoError(t, err)
 
@@ -526,6 +532,7 @@ func TestGetModelAttributes(t *testing.T) {
 		BaseModelID:    "base-model0",
 		Adapter:        v1.AdapterType_ADAPTER_TYPE_LORA,
 		Quantization:   v1.QuantizationType_QUANTIZATION_TYPE_AWQ,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 	})
 	assert.NoError(t, err)
 
