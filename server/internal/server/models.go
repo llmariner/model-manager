@@ -433,6 +433,7 @@ func (s *WS) RegisterModel(
 		BaseModelID:    req.BaseModel,
 		Adapter:        req.Adapter,
 		Quantization:   req.Quantization,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
 	})
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "create model: %s", err)
@@ -458,7 +459,7 @@ func (s *WS) PublishModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if err := s.store.UpdateModel(req.Id, clusterInfo.TenantID, true); err != nil {
+	if err := s.store.UpdateModel(req.Id, clusterInfo.TenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
@@ -759,7 +760,7 @@ func toModelProto(m *store.Model) *v1.Model {
 		Object:           "model",
 		Created:          m.CreatedAt.UTC().Unix(),
 		OwnedBy:          "user",
-		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		LoadingStatus:    toLoadingStatus(m.LoadingStatus),
 		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
 		// Fine-tuned models always have the Hugging Face format.
 		Formats:     []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
@@ -783,7 +784,7 @@ func baseToModelProto(m *store.BaseModel) (*v1.Model, error) {
 		Object:               "model",
 		Created:              m.CreatedAt.UTC().Unix(),
 		OwnedBy:              "system",
-		LoadingStatus:        m.LoadingStatus,
+		LoadingStatus:        toLoadingStatus(m.LoadingStatus),
 		SourceRepository:     m.SourceRepository,
 		LoadingFailureReason: m.LoadingFailureReason,
 		Formats:              formats,
@@ -798,6 +799,14 @@ func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {
 		Object:  "basemodel",
 		Created: m.CreatedAt.UTC().Unix(),
 	}
+}
+
+func toLoadingStatus(s v1.ModelLoadingStatus) v1.ModelLoadingStatus {
+	if s == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_UNSPECIFIED {
+		// For backward compatibility.
+		return v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED
+	}
+	return s
 }
 
 func isBaseModelLoaded(m *store.BaseModel) bool {
