@@ -315,30 +315,6 @@ func (s *S) DeleteModel(
 	}, nil
 }
 
-// ListBaseModels lists base models.
-func (s *S) ListBaseModels(
-	ctx context.Context,
-	req *v1.ListBaseModelsRequest,
-) (*v1.ListBaseModelsResponse, error) {
-	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
-	if !ok {
-		return nil, fmt.Errorf("failed to extract user info from context")
-	}
-
-	ms, err := s.store.ListBaseModels(userInfo.TenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-	}
-	var modelProtos []*v1.BaseModel
-	for _, m := range ms {
-		modelProtos = append(modelProtos, toBaseModelProto(m))
-	}
-	return &v1.ListBaseModelsResponse{
-		Object: "list",
-		Data:   modelProtos,
-	}, nil
-}
-
 // GetModel gets a model.
 func (s *WS) GetModel(
 	ctx context.Context,

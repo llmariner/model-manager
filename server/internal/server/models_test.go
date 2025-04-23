@@ -554,9 +554,7 @@ func TestBaseModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
-
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
 
 	const modelID = "m0"
@@ -566,10 +564,6 @@ func TestBaseModels(t *testing.T) {
 	})
 	assert.Error(t, err)
 	assert.Equal(t, codes.NotFound, status.Code(err))
-
-	listResp, err := srv.ListBaseModels(ctx, &v1.ListBaseModelsRequest{})
-	assert.NoError(t, err)
-	assert.Len(t, listResp.Data, 0)
 
 	// Create a base model.
 	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
