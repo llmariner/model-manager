@@ -132,7 +132,7 @@ func (l *L) LoadModels(
 		}
 	}
 	for _, m := range models {
-		if err := l.loadModel(ctx, m, sourceRepository); err != nil {
+		if err := l.loadModelFromConfig(ctx, m, sourceRepository); err != nil {
 			return err
 		}
 	}
@@ -255,7 +255,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 	return nil
 }
 
-func (l *L) loadModel(ctx context.Context, model config.ModelConfig, sourceRepository v1.SourceRepository) error {
+func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, sourceRepository v1.SourceRepository) error {
 	// TODO(guangrui): Make these configurable.
 	const (
 		projectID      = "default"
