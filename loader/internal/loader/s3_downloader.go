@@ -13,35 +13,33 @@ import (
 )
 
 type s3Client interface {
-	Download(ctx context.Context, w io.WriterAt, key string) error
-	ListObjectsPages(ctx context.Context, prefix string, f func(page *s3.ListObjectsV2Output, lastPage bool) bool) error
+	Download(ctx context.Context, w io.WriterAt, bucket, key string) error
+	ListObjectsPages(ctx context.Context, bucket, prefix string, f func(page *s3.ListObjectsV2Output, lastPage bool) bool) error
 }
 
 // NewS3Downloader returns a new S3Downloader.
-func NewS3Downloader(s3Client s3Client, pathPrefix string, log logr.Logger) *S3Downloader {
+func NewS3Downloader(s3Client s3Client, bucket, pathPrefix string, log logr.Logger) *S3Downloader {
 	return &S3Downloader{
 		s3Client:   s3Client,
-		log:        log.WithName("s3"),
+		bucket:     bucket,
 		pathPrefix: pathPrefix,
+		log:        log.WithName("s3"),
 	}
 }
 
 // S3Downloader downloads models from S3.
 type S3Downloader struct {
 	s3Client   s3Client
-	log        logr.Logger
+	bucket     string
 	pathPrefix string
+	log        logr.Logger
 }
 
 func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDir string) error {
 	d.log.Info("Downloading the model", "modelPath", modelPath)
 
+	prefix := filepath.Join(d.pathPrefix, modelPath)
 	var keys []string
-	// Use pathPrefix if the model name does not start with "s3://".
-	prefix := modelPath
-	if !strings.HasPrefix(modelPath, "s3://") {
-		prefix = filepath.Join(d.pathPrefix, modelPath)
-	}
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, obj := range page.Contents {
 			if filename != "" && *obj.Key != filepath.Join(prefix, filename) {
@@ -56,7 +54,7 @@ func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDi
 
 	// We need to append "/". Otherwise, we will download all objects with the same prefix
 	// (e.g., "google/gemma-2b" will download "google/gemma-2b" and "google/gemma-2b-it").
-	if err := d.s3Client.ListObjectsPages(ctx, prefix+"/", f); err != nil {
+	if err := d.s3Client.ListObjectsPages(ctx, d.bucket, prefix+"/", f); err != nil {
 		return err
 	}
 	if len(keys) == 0 {
@@ -94,7 +92,7 @@ func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destD
 	}()
 
 	d.log.Info("Downloading S3 object", "key", key, "filePath", filePath)
-	if err := d.s3Client.Download(ctx, f, key); err != nil {
+	if err := d.s3Client.Download(ctx, f, d.bucket, key); err != nil {
 		return fmt.Errorf("download key %q: %s", key, err)
 	}
 
