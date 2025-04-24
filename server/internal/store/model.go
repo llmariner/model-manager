@@ -120,8 +120,8 @@ func (s *S) DeleteModel(modelID, tenantID string) error {
 	return nil
 }
 
-// UpdateModel updates the model.
-func (s *S) UpdateModel(modelID string, tenantID string, isPublished bool, loadingStatus v1.ModelLoadingStatus) error {
+// UpdateModelPublishingStatus updates the publishing status of a model.
+func (s *S) UpdateModelPublishingStatus(modelID string, tenantID string, isPublished bool, loadingStatus v1.ModelLoadingStatus) error {
 	res := s.db.Model(&Model{}).Where("model_id = ? AND tenant_id = ?", modelID, tenantID).
 		Updates(map[string]interface{}{
 			"is_published":   isPublished,

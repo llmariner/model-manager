@@ -170,7 +170,7 @@ func TestListModels_LoadingStatus(t *testing.T) {
 	assert.False(t, hasMore)
 }
 
-func TestUpdateModel(t *testing.T) {
+func TestUpdateModelPublishingStatus(t *testing.T) {
 	st, tearDown := NewTest(t)
 	defer tearDown()
 
@@ -196,14 +196,14 @@ func TestUpdateModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 
-	err = st.UpdateModel(modelID, tenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	err = st.UpdateModelPublishingStatus(modelID, tenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	assert.NoError(t, err)
 	got, err = st.GetModelByModelIDAndTenantID(modelID, tenantID)
 	assert.NoError(t, err)
 	assert.True(t, got.IsPublished)
 	assert.Equal(t, got.LoadingStatus, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 
-	err = st.UpdateModel(modelID, tenantID, false, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	err = st.UpdateModelPublishingStatus(modelID, tenantID, false, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	assert.NoError(t, err)
 	got, err = st.GetModelByModelIDAndTenantID(modelID, tenantID)
 	assert.NoError(t, err)

@@ -439,7 +439,7 @@ func (s *WS) PublishModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if err := s.store.UpdateModel(req.Id, clusterInfo.TenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED); err != nil {
+	if err := s.store.UpdateModelPublishingStatus(req.Id, clusterInfo.TenantID, true, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
