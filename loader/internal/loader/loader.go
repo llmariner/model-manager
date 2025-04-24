@@ -169,7 +169,7 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 				return err
 			}
 			// Do not return the error here. We need to continue loading other models.
-			return nil
+			continue
 		}
 
 		l.log.Info("Successfully loaded base model", "modelID", resp.BaseModelId)
