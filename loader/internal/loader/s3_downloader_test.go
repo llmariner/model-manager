@@ -60,7 +60,7 @@ func TestS3Download(t *testing.T) {
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
 			ctx := context.Background()
-			d := NewS3Downloader(client, "v1/base-models", testr.New(t))
+			d := NewS3Downloader(client, "bucket", "v1/base-models", testr.New(t))
 			err = d.download(ctx, tc.modelName, tc.filename, destDir)
 			assert.NoError(t, err)
 
@@ -92,7 +92,7 @@ func TestS3Download_IgnoreExactMatch(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	d := NewS3Downloader(client, "v1/base-models", testr.New(t))
+	d := NewS3Downloader(client, "bucket", "v1/base-models", testr.New(t))
 	err = d.download(ctx, "google/gemma-2b", "", destDir)
 	assert.NoError(t, err)
 
@@ -105,7 +105,7 @@ type fakeS3Client struct {
 	objs map[string][]byte
 }
 
-func (c *fakeS3Client) Download(ctx context.Context, w io.WriterAt, key string) error {
+func (c *fakeS3Client) Download(ctx context.Context, w io.WriterAt, bucket, key string) error {
 	b, ok := c.objs[key]
 	if !ok {
 		return fmt.Errorf("unknown key: %s", key)
@@ -115,7 +115,7 @@ func (c *fakeS3Client) Download(ctx context.Context, w io.WriterAt, key string) 
 
 }
 
-func (c *fakeS3Client) ListObjectsPages(ctx context.Context, prefix string, f func(page *s3.ListObjectsV2Output, lastPage bool) bool) error {
+func (c *fakeS3Client) ListObjectsPages(ctx context.Context, bucket, prefix string, f func(page *s3.ListObjectsV2Output, lastPage bool) bool) error {
 	var objs []types.Object
 	for key := range c.objs {
 		objs = append(objs, types.Object{Key: aws.String(key)})

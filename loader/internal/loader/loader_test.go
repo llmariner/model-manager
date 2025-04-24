@@ -33,6 +33,7 @@ func TestLoadBaseModel(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -72,6 +73,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -113,6 +115,7 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -155,6 +158,7 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -192,6 +196,7 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -242,6 +247,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -300,6 +306,7 @@ func TestLoadModelFronConfig_HuggingFace(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -346,6 +353,7 @@ func TestLoadModel_InvalidFileFormat(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -442,6 +450,7 @@ func TestPullAndLoadBaseModels(t *testing.T) {
 	mc.requestedBaseModelID = "google/gemma-2b"
 
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -472,6 +481,7 @@ func TestPullAndLoadBaseModels_NoRequestedModel(t *testing.T) {
 	s3Client := &mockS3Client{}
 	mc := NewFakeModelClient()
 	ld := New(
+		"bucket",
 		"models",
 		"base-models",
 		&fakeDownloaderFactory{d: downloader},
@@ -492,7 +502,7 @@ type mockS3Client struct {
 	uploadedKeys []string
 }
 
-func (c *mockS3Client) Upload(ctx context.Context, r io.Reader, key string) error {
+func (c *mockS3Client) Upload(ctx context.Context, r io.Reader, bucket, key string) error {
 	c.uploadedKeys = append(c.uploadedKeys, key)
 	return nil
 }

@@ -86,6 +86,7 @@ func run(ctx context.Context, c *config.Config) error {
 	}
 
 	s := loader.New(
+		s3c.Bucket,
 		s3c.PathPrefix,
 		s3c.BaseModelPathPrefix,
 		&mdFactory{c: c},
@@ -169,11 +170,11 @@ func (f *mdFactory) Create(ctx context.Context, sourceRepository v1.SourceReposi
 				ExternalID: ar.ExternalID,
 			}
 		}
-		s3Client, err := s3.NewClient(ctx, opts, s3c.Bucket)
+		s3Client, err := s3.NewClient(ctx, opts)
 		if err != nil {
 			return nil, err
 		}
-		return loader.NewS3Downloader(s3Client, s3c.PathPrefix, logger), nil
+		return loader.NewS3Downloader(s3Client, s3c.Bucket, s3c.PathPrefix, logger), nil
 	case v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE:
 		return loader.NewHuggingFaceDownloader(f.c.Downloader.HuggingFace.CacheDir, logger), nil
 	case v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA:
@@ -195,7 +196,7 @@ func newS3Client(ctx context.Context, c *config.Config) (loader.S3Client, error)
 			ExternalID: ar.ExternalID,
 		}
 	}
-	return s3.NewClient(ctx, opts, s.Bucket)
+	return s3.NewClient(ctx, opts)
 }
 
 func grpcOption(c *config.Config) grpc.DialOption {

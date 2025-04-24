@@ -30,7 +30,7 @@ type modelDownloaderFactory interface {
 
 // S3Client is an interface for uploading a file to S3.
 type S3Client interface {
-	Upload(ctx context.Context, r io.Reader, key string) error
+	Upload(ctx context.Context, r io.Reader, bucket, key string) error
 }
 
 // NoopS3Client is a no-op S3 client.
@@ -38,7 +38,7 @@ type NoopS3Client struct {
 }
 
 // Upload uploads a file to S3.
-func (c *NoopS3Client) Upload(ctx context.Context, r io.Reader, key string) error {
+func (c *NoopS3Client) Upload(ctx context.Context, r io.Reader, bucket, key string) error {
 	return nil
 }
 
@@ -59,6 +59,7 @@ type ModelClient interface {
 
 // New creates a new loader.
 func New(
+	objectStoreBucket string,
 	objectStorePathPrefix string,
 	baseModelPathPrefix string,
 	modelDownloaderFactory modelDownloaderFactory,
@@ -67,6 +68,7 @@ func New(
 	log logr.Logger,
 ) *L {
 	return &L{
+		objectStoreBucket:      objectStoreBucket,
 		objectStorePathPrefix:  objectStorePathPrefix,
 		baseModelPathPrefix:    baseModelPathPrefix,
 		modelDownloaderFactory: modelDownloaderFactory,
@@ -79,6 +81,7 @@ func New(
 
 // L is a loader.
 type L struct {
+	objectStoreBucket string
 	// objectStorePathPrefix is the prefix of the path to the base and non-base models in the object stoer.
 	objectStorePathPrefix string
 	baseModelPathPrefix   string
@@ -413,7 +416,7 @@ func (l *L) downloadAndUploadModel(
 			return nil, err
 		}
 
-		if err := l.s3Client.Upload(ctx, r, toKey(path)); err != nil {
+		if err := l.s3Client.Upload(ctx, r, l.objectStoreBucket, toKey(path)); err != nil {
 			return nil, err
 		}
 		if err := r.Close(); err != nil {
