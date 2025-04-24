@@ -209,3 +209,63 @@ func TestUpdateModelPublishingStatus(t *testing.T) {
 	assert.NoError(t, err)
 	assert.False(t, got.IsPublished)
 }
+
+func TestLoadingStatus(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID   = "m0"
+		tenantID  = "tid0"
+		orgID     = "org0"
+		projectID = "project0"
+	)
+
+	m, err := st.CreateModel(ModelSpec{
+		ModelID:        modelID,
+		TenantID:       tenantID,
+		OrganizationID: orgID,
+		ProjectID:      projectID,
+		Path:           "path",
+		IsPublished:    false,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+	})
+	assert.NoError(t, err)
+
+	gots, err := st.ListUnloadedModels(tenantID)
+	assert.NoError(t, err)
+	assert.Len(t, gots, 1)
+	assert.Equal(t, modelID, gots[0].ModelID)
+
+	err = st.UpdateModelToLoadingStatus(modelID, tenantID)
+	assert.NoError(t, err)
+
+	got, err := st.GetModelByModelIDAndTenantID(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	// Calling again.
+	err = st.UpdateModelToLoadingStatus(modelID, tenantID)
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, ErrConcurrentUpdate)
+
+	err = st.UpdateModelToSucceededStatus(modelID, tenantID)
+	assert.NoError(t, err)
+
+	got, err = st.GetModelByModelIDAndTenantID(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, got.LoadingStatus)
+
+	// Set the loading status back to loading.
+	m.LoadingStatus = v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING
+	err = st.db.Save(m).Error
+	assert.NoError(t, err)
+
+	err = st.UpdateModelToFailedStatus(modelID, tenantID, "fake-error")
+	assert.NoError(t, err)
+
+	got, err = st.GetModelByModelIDAndTenantID(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, got.LoadingStatus)
+	assert.Equal(t, "fake-error", got.LoadingFailureReason)
+}

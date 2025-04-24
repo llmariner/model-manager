@@ -22,36 +22,44 @@ type Model struct {
 	Adapter      v1.AdapterType
 	Quantization v1.QuantizationType
 
-	LoadingStatus v1.ModelLoadingStatus
+	LoadingStatus        v1.ModelLoadingStatus
+	LoadingFailureReason string
+
+	SourceRepository  v1.SourceRepository
+	ModelFileLocation string
 }
 
 // ModelSpec represents a model spec that is passed to CreateModel.
 type ModelSpec struct {
-	ModelID        string
-	TenantID       string
-	OrganizationID string
-	ProjectID      string
-	Path           string
-	IsPublished    bool
-	BaseModelID    string
-	Adapter        v1.AdapterType
-	Quantization   v1.QuantizationType
-	LoadingStatus  v1.ModelLoadingStatus
+	ModelID           string
+	TenantID          string
+	OrganizationID    string
+	ProjectID         string
+	Path              string
+	IsPublished       bool
+	BaseModelID       string
+	Adapter           v1.AdapterType
+	Quantization      v1.QuantizationType
+	LoadingStatus     v1.ModelLoadingStatus
+	SourceRepository  v1.SourceRepository
+	ModelFileLocation string
 }
 
 // CreateModel creates a model.
 func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 	m := &Model{
-		ModelID:        spec.ModelID,
-		TenantID:       spec.TenantID,
-		OrganizationID: spec.OrganizationID,
-		ProjectID:      spec.ProjectID,
-		Path:           spec.Path,
-		IsPublished:    spec.IsPublished,
-		BaseModelID:    spec.BaseModelID,
-		Adapter:        spec.Adapter,
-		Quantization:   spec.Quantization,
-		LoadingStatus:  spec.LoadingStatus,
+		ModelID:           spec.ModelID,
+		TenantID:          spec.TenantID,
+		OrganizationID:    spec.OrganizationID,
+		ProjectID:         spec.ProjectID,
+		Path:              spec.Path,
+		IsPublished:       spec.IsPublished,
+		BaseModelID:       spec.BaseModelID,
+		Adapter:           spec.Adapter,
+		Quantization:      spec.Quantization,
+		LoadingStatus:     spec.LoadingStatus,
+		SourceRepository:  spec.SourceRepository,
+		ModelFileLocation: spec.ModelFileLocation,
 	}
 	if err := s.db.Create(m).Error; err != nil {
 		return nil, err
@@ -106,6 +114,72 @@ func (s *S) ListModelsByProjectIDWithPagination(
 		hasMore = true
 	}
 	return ms, hasMore, nil
+}
+
+// ListUnloadedModels returns all unloaded base models with the requested loading status.
+func (s *S) ListUnloadedModels(tenantID string) ([]*Model, error) {
+	var ms []*Model
+	if err := s.db.Where("tenant_id = ? AND loading_status = ?", tenantID, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED).
+		Order("id ASC").Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
+// updateModel updates the model if the current status matches with the given one.
+func (s *S) updateModel(
+	modelID string,
+	tenantID string,
+	curr v1.ModelLoadingStatus,
+	updates map[string]interface{},
+) error {
+	res := s.db.Model(&Model{}).
+		Where("model_id = ? AND tenant_id = ? AND loading_status = ?", modelID, tenantID, curr).
+		Updates(updates)
+	if err := res.Error; err != nil {
+		return err
+	}
+	if res.RowsAffected == 0 {
+		return ErrConcurrentUpdate
+	}
+	return nil
+}
+
+// UpdateModelToLoadingStatus updates the loading status to LOADING.
+func (s *S) UpdateModelToLoadingStatus(modelID string, tenantID string) error {
+	return s.updateModel(
+		modelID,
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+		map[string]interface{}{
+			"loading_status": v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		},
+	)
+}
+
+// UpdateModelToSucceededStatus updates the loading status to SUCCEEDED and updates other relevant information.
+func (s *S) UpdateModelToSucceededStatus(modelID string, tenantID string) error {
+	return s.updateModel(
+		modelID,
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		map[string]interface{}{
+			"loading_status": v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		},
+	)
+}
+
+// UpdateModelToFailedStatus updates the loading status to FAILED and updates other relevant information.
+func (s *S) UpdateModelToFailedStatus(modelID string, tenantID string, failureReason string) error {
+	return s.updateModel(
+		modelID,
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		map[string]interface{}{
+			"loading_failure_reason": failureReason,
+			"loading_status":         v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED,
+		},
+	)
 }
 
 // DeleteModel deletes a model by model ID and tenant ID.
