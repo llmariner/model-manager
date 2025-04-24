@@ -168,10 +168,11 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 			}); err != nil {
 				return err
 			}
-			return err
+			// Do not return the error here. We need to continue loading other models.
+			return nil
 		}
 
-		l.log.Error(err, "Successfully loaded base model", "modelID", resp.BaseModelId)
+		l.log.Info("Successfully loaded base model", "modelID", resp.BaseModelId)
 		if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
 			Id:            resp.BaseModelId,
 			LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{},
