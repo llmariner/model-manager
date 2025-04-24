@@ -289,7 +289,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", got.GgufModelPath)
 }
 
-func TestLoadModel_HuggingFace(t *testing.T) {
+func TestLoadModelFronConfig_HuggingFace(t *testing.T) {
 	downloader := &fakeDownloader{
 		dirs: []string{},
 		files: []string{
@@ -308,7 +308,7 @@ func TestLoadModel_HuggingFace(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadModel(context.Background(), config.ModelConfig{
+	err := ld.loadModelFromConfig(context.Background(), config.ModelConfig{
 		Model:       "abc/lora1",
 		BaseModel:   "google/gemma-2b",
 		AdapterType: "lora",
