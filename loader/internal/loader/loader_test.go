@@ -358,21 +358,20 @@ func TestLoadModel_InvalidFileFormat(t *testing.T) {
 	assert.Error(t, err)
 }
 
-func TestBuildModelIDForGGUF(t *testing.T) {
+func TestExtractFileNameFromGGUFPath(t *testing.T) {
 	tcs := []struct {
 		modelID           string
 		ggufModelFilePath string
 		want              string
 	}{
 		{
-			modelID:           "lmstudio-community/phi-4-GGUF",
 			ggufModelFilePath: "/tmp/phi-4-Q3_K_L.gguf",
-			want:              "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L",
+			want:              "phi-4-Q3_K_L",
 		},
 	}
 
 	for _, tc := range tcs {
-		got := buildModelIDForGGUF(tc.modelID, tc.ggufModelFilePath)
+		got := extractFileNameFromGGUFPath(tc.ggufModelFilePath)
 		assert.Equal(t, tc.want, got)
 	}
 }
