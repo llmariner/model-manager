@@ -502,7 +502,7 @@ type fakeDownloader struct {
 	files []string
 }
 
-func (d *fakeDownloader) download(ctx context.Context, modelName, filename string, destDir string) error {
+func (d *fakeDownloader) download(ctx context.Context, modelPath, filename string, destDir string) error {
 	for _, d := range d.dirs {
 		if err := os.MkdirAll(filepath.Join(destDir, d), 0755); err != nil {
 			return err

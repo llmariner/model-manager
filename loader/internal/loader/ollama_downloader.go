@@ -51,7 +51,7 @@ func (o *OllamaDownloader) waitForReady(ctx context.Context) error {
 	}
 }
 
-func (o *OllamaDownloader) download(ctx context.Context, modelName, filename, destDir string) error {
+func (o *OllamaDownloader) download(ctx context.Context, modelPath, filename, destDir string) error {
 	if err := os.Setenv("OLLAMA_HOST", fmt.Sprintf("0.0.0.0:%d", o.port)); err != nil {
 		return err
 	}
@@ -70,7 +70,7 @@ func (o *OllamaDownloader) download(ctx context.Context, modelName, filename, de
 	if err := o.waitForReady(ctx); err != nil {
 		return err
 	}
-	return o.runCommand(ctx, "pull", modelName)
+	return o.runCommand(ctx, "pull", modelPath)
 }
 
 func (o *OllamaDownloader) runCommand(ctx context.Context, args ...string) error {
