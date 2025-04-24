@@ -101,6 +101,47 @@ func TestS3Download_IgnoreExactMatch(t *testing.T) {
 	assert.Equal(t, "object2", string(b))
 }
 
+func TestSplitS3Path(t *testing.T) {
+	tcs := []struct {
+		path       string
+		wantBucket string
+		wantPrefix string
+		wantErr    bool
+	}{
+		{
+			path:       "s3://bucket/prefix",
+			wantBucket: "bucket",
+			wantPrefix: "prefix",
+		},
+		{
+			path:    "s3://bucket",
+			wantErr: true,
+		},
+		{
+			path:    "foo",
+			wantErr: true,
+		},
+		{
+			path:    "https://",
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.path, func(t *testing.T) {
+			bucket, prefix, err := splitS3Path(tc.path)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantBucket, bucket)
+			assert.Equal(t, tc.wantPrefix, prefix)
+		})
+	}
+
+}
+
 type fakeS3Client struct {
 	objs map[string][]byte
 }

@@ -38,7 +38,22 @@ type S3Downloader struct {
 func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDir string) error {
 	d.log.Info("Downloading the model", "modelPath", modelPath)
 
-	prefix := filepath.Join(d.pathPrefix, modelPath)
+	var (
+		bucket string
+		prefix string
+	)
+	if strings.HasPrefix(modelPath, "s3://") {
+		var err error
+		bucket, prefix, err = splitS3Path(modelPath)
+		if err != nil {
+			return fmt.Errorf("invalid model path %q: %s", modelPath, err)
+		}
+	} else {
+		// Use the default bucket and path prefix.
+		bucket = d.bucket
+		prefix = filepath.Join(d.pathPrefix, modelPath)
+	}
+
 	var keys []string
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, obj := range page.Contents {
@@ -54,7 +69,7 @@ func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDi
 
 	// We need to append "/". Otherwise, we will download all objects with the same prefix
 	// (e.g., "google/gemma-2b" will download "google/gemma-2b" and "google/gemma-2b-it").
-	if err := d.s3Client.ListObjectsPages(ctx, d.bucket, prefix+"/", f); err != nil {
+	if err := d.s3Client.ListObjectsPages(ctx, bucket, prefix+"/", f); err != nil {
 		return err
 	}
 	if len(keys) == 0 {
@@ -62,7 +77,7 @@ func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDi
 	}
 
 	for _, key := range keys {
-		if err := d.downloadOneObject(ctx, key, prefix, destDir); err != nil {
+		if err := d.downloadOneObject(ctx, bucket, key, prefix, destDir); err != nil {
 			return err
 		}
 	}
@@ -70,7 +85,7 @@ func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDi
 	return nil
 }
 
-func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destDir string) error {
+func (d *S3Downloader) downloadOneObject(ctx context.Context, bucket, key, prefix, destDir string) error {
 	p := strings.TrimPrefix(key, prefix)
 	if p == "" || p == "/" {
 		// Do nothing if there is an object whose key exactly matches with the model path. We don't need to copy that one.
@@ -92,9 +107,25 @@ func (d *S3Downloader) downloadOneObject(ctx context.Context, key, prefix, destD
 	}()
 
 	d.log.Info("Downloading S3 object", "key", key, "filePath", filePath)
-	if err := d.s3Client.Download(ctx, f, d.bucket, key); err != nil {
+	if err := d.s3Client.Download(ctx, f, bucket, key); err != nil {
 		return fmt.Errorf("download key %q: %s", key, err)
 	}
 
 	return nil
+}
+
+// splitS3Path splits the S3 path into bucket and prefix.
+//
+// For example, "s3://bucket/path/to/model" will be converted to bucket="bucket" and
+// prefix="path/to/model".
+func splitS3Path(path string) (string, string, error) {
+	if !strings.HasPrefix(path, "s3://") {
+		return "", "", fmt.Errorf("invalid prefix: %s", path)
+	}
+
+	parts := strings.SplitN(path[5:], "/", 2)
+	if len(parts) != 2 {
+		return "", "", fmt.Errorf("invalid format: %s", path)
+	}
+	return parts[0], parts[1], nil
 }
