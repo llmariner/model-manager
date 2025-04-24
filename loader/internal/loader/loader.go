@@ -20,7 +20,7 @@ import (
 
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
-	download(ctx context.Context, modelName, filename, destDir string) error
+	download(ctx context.Context, modelPath, filename, destDir string) error
 }
 
 // modelDownloaderFactory is the factory for ModelDownloader.
@@ -217,7 +217,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 	}
 
 	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix, toKeyModelID(modelIDToDownload))
-	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, sourceRepository, pathPrefix)
+	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, modelIDToDownload, filename, sourceRepository, pathPrefix)
 	if err != nil {
 		return err
 	}
@@ -281,7 +281,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
 	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID, toKeyModelID(model.Model))
-	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", sourceRepository, pathPrefix)
+	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, model.Model, "", sourceRepository, pathPrefix)
 	if err != nil {
 		return err
 	}
@@ -321,6 +321,7 @@ type modelInfo struct {
 func (l *L) downloadAndUploadModel(
 	ctx context.Context,
 	modelID,
+	modelPath,
 	filename string,
 	sourceRepository v1.SourceRepository,
 	pathPrefix string,
@@ -351,7 +352,7 @@ func (l *L) downloadAndUploadModel(
 	if err != nil {
 		return nil, err
 	}
-	if err := downloader.download(ctx, modelID, filename, tmpDir); err != nil {
+	if err := downloader.download(ctx, modelPath, filename, tmpDir); err != nil {
 		return nil, err
 	}
 

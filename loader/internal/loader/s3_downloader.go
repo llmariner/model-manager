@@ -33,11 +33,15 @@ type S3Downloader struct {
 	pathPrefix string
 }
 
-func (d *S3Downloader) download(ctx context.Context, modelName, filename, destDir string) error {
-	d.log.Info("Downloading the model", "name", modelName)
+func (d *S3Downloader) download(ctx context.Context, modelPath, filename, destDir string) error {
+	d.log.Info("Downloading the model", "modelPath", modelPath)
 
 	var keys []string
-	prefix := filepath.Join(d.pathPrefix, modelName)
+	// Use pathPrefix if the model name does not start with "s3://".
+	prefix := modelPath
+	if !strings.HasPrefix(modelPath, "s3://") {
+		prefix = filepath.Join(d.pathPrefix, modelPath)
+	}
 	f := func(page *s3.ListObjectsV2Output, lastPage bool) bool {
 		for _, obj := range page.Contents {
 			if filename != "" && *obj.Key != filepath.Join(prefix, filename) {
