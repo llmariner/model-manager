@@ -216,7 +216,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 		}
 	}
 
-	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix)
+	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix, toKeyModelID(modelIDToDownload))
 	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, filename, sourceRepository, pathPrefix)
 	if err != nil {
 		return err
@@ -280,7 +280,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 	}
 
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
-	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID)
+	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID, toKeyModelID(model.Model))
 	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, "", sourceRepository, pathPrefix)
 	if err != nil {
 		return err
@@ -355,11 +355,10 @@ func (l *L) downloadAndUploadModel(
 		return nil, err
 	}
 
-	keyModelID := strings.ReplaceAll(modelID, ":", "-")
 	toKey := func(path string) string {
 		// Remove the tmpdir path from the path.
 		relativePath := strings.TrimPrefix(path, tmpDir)
-		return filepath.Join(pathPrefix, keyModelID, relativePath)
+		return filepath.Join(pathPrefix, relativePath)
 	}
 
 	var (
@@ -424,7 +423,7 @@ func (l *L) downloadAndUploadModel(
 		return []*modelInfo{
 			{
 				id:               modelID,
-				path:             filepath.Join(pathPrefix, keyModelID),
+				path:             pathPrefix,
 				formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_OLLAMA},
 				sourceRepository: sourceRepository,
 			},
@@ -457,7 +456,7 @@ func (l *L) downloadAndUploadModel(
 		return []*modelInfo{
 			{
 				id:               id,
-				path:             filepath.Join(pathPrefix, modelID),
+				path:             pathPrefix,
 				ggufModelPath:    ggufModelPath,
 				formats:          formats,
 				sourceRepository: sourceRepository,
@@ -472,11 +471,12 @@ func (l *L) downloadAndUploadModel(
 
 	var minfos []*modelInfo
 	for _, gpath := range ggufModelPaths {
-		id := buildModelIDForGGUF(modelID, gpath)
+		filename := extractFileNameFromGGUFPath(gpath)
+		id := filepath.Join(modelID, filename)
 
 		minfos = append(minfos, &modelInfo{
 			id:               id,
-			path:             filepath.Join(pathPrefix, id),
+			path:             filepath.Join(pathPrefix, filename),
 			ggufModelPath:    gpath,
 			formats:          []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 			sourceRepository: sourceRepository,
@@ -486,9 +486,13 @@ func (l *L) downloadAndUploadModel(
 	return minfos, nil
 }
 
-func buildModelIDForGGUF(modelID, ggufModelFilePath string) string {
-	p := strings.TrimSuffix(ggufModelFilePath, ".gguf")
-	return filepath.Join(modelID, filepath.Base(p))
+func extractFileNameFromGGUFPath(path string) string {
+	return filepath.Base(strings.TrimSuffix(path, ".gguf"))
+}
+
+func toKeyModelID(modelID string) string {
+	// Ollama uses ':' as a separator, but it cannot be used for bucket name. Use '-' instead.
+	return strings.ReplaceAll(modelID, ":", "-")
 }
 
 func toLLMarinerModelID(id string) string {
