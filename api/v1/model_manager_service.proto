@@ -315,10 +315,42 @@ message UpdateBaseModelLoadingStatusRequest {
     Success success = 2;
     Failure failure = 3;
   }
-
 }
 
 message UpdateBaseModelLoadingStatusResponse {
+}
+
+message AcquireUnloadedModelRequest {
+}
+
+message AcquireUnloadedModelResponse {
+  string model_id = 1;
+  bool is_base_model = 2;
+
+  SourceRepository source_repository = 3;
+  string model_file_location = 4;
+
+  string dest_path = 5;
+}
+
+message UpdateModelLoadingStatusRequest {
+  string id = 1;
+  bool is_base_model = 2;
+
+  message Success {
+  }
+
+  message Failure {
+    string reason = 1;
+  }
+
+  oneof loading_result {
+    Success success = 3;
+    Failure failure = 4;
+  }
+}
+
+message UpdateModelLoadingStatusResponse {
 }
 
 service ModelsWorkerService {
@@ -373,9 +405,19 @@ service ModelsWorkerService {
   rpc AcquireUnloadedBaseModel(AcquireUnloadedBaseModelRequest) returns (AcquireUnloadedBaseModelResponse) {
   }
 
+  // AcquireUnloadedModel checks if there is any unloaded model. If exists, update the loading status to LOADED,
+  // and return it. Used by model-manager-loader.
+  rpc AcquireUnloadedModel(AcquireUnloadedModelRequest) returns (AcquireUnloadedModelResponse) {
+  }
+
   // UpdateBaseModelLoadingStatus updates the loading status. When the loading succeeded, it also
   // updates the base model metadata. Used by model-manager-loader.
   rpc UpdateBaseModelLoadingStatus(UpdateBaseModelLoadingStatusRequest) returns (UpdateBaseModelLoadingStatusResponse) {
+  }
+
+  // UpdateModelLoadingStatus updates the loading status. When the loading succeeded, it also
+  // updates the model metadata. Used by model-manager-loader.
+  rpc UpdateModelLoadingStatus(UpdateModelLoadingStatusRequest) returns (UpdateModelLoadingStatusResponse) {
   }
 
 }

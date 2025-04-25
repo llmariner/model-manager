@@ -163,17 +163,6 @@
     }
   },
   "definitions": {
-    "UpdateBaseModelLoadingStatusRequestFailure": {
-      "type": "object",
-      "properties": {
-        "reason": {
-          "type": "string"
-        }
-      }
-    },
-    "UpdateBaseModelLoadingStatusRequestSuccess": {
-      "type": "object"
-    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -210,6 +199,26 @@
         },
         "sourceRepository": {
           "$ref": "#/definitions/v1SourceRepository"
+        }
+      }
+    },
+    "v1AcquireUnloadedModelResponse": {
+      "type": "object",
+      "properties": {
+        "modelId": {
+          "type": "string"
+        },
+        "isBaseModel": {
+          "type": "boolean"
+        },
+        "sourceRepository": {
+          "$ref": "#/definitions/v1SourceRepository"
+        },
+        "modelFileLocation": {
+          "type": "string"
+        },
+        "destPath": {
+          "type": "string"
         }
       }
     },
@@ -464,7 +473,32 @@
         }
       }
     },
+    "v1UpdateBaseModelLoadingStatusRequestFailure": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "v1UpdateBaseModelLoadingStatusRequestSuccess": {
+      "type": "object"
+    },
     "v1UpdateBaseModelLoadingStatusResponse": {
+      "type": "object"
+    },
+    "v1UpdateModelLoadingStatusRequestFailure": {
+      "type": "object",
+      "properties": {
+        "reason": {
+          "type": "string"
+        }
+      }
+    },
+    "v1UpdateModelLoadingStatusRequestSuccess": {
+      "type": "object"
+    },
+    "v1UpdateModelLoadingStatusResponse": {
       "type": "object"
     }
   }

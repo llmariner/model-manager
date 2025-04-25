@@ -55,6 +55,9 @@ type ModelClient interface {
 
 	AcquireUnloadedBaseModel(ctx context.Context, in *v1.AcquireUnloadedBaseModelRequest, opts ...grpc.CallOption) (*v1.AcquireUnloadedBaseModelResponse, error)
 	UpdateBaseModelLoadingStatus(ctx context.Context, in *v1.UpdateBaseModelLoadingStatusRequest, opts ...grpc.CallOption) (*v1.UpdateBaseModelLoadingStatusResponse, error)
+
+	AcquireUnloadedModel(ctx context.Context, in *v1.AcquireUnloadedModelRequest, opts ...grpc.CallOption) (*v1.AcquireUnloadedModelResponse, error)
+	UpdateModelLoadingStatus(ctx context.Context, in *v1.UpdateModelLoadingStatusRequest, opts ...grpc.CallOption) (*v1.UpdateModelLoadingStatusResponse, error)
 }
 
 // New creates a new loader.
@@ -118,6 +121,9 @@ func (l *L) Run(
 			if err := l.pullAndLoadBaseModels(ctx); err != nil {
 				return err
 			}
+			if err := l.pullAndLoadModels(ctx); err != nil {
+				return err
+			}
 		}
 	}
 }
@@ -179,6 +185,49 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 		if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
 			Id:            resp.BaseModelId,
 			LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{},
+		}); err != nil {
+			return err
+		}
+	}
+}
+
+func (l *L) pullAndLoadModels(ctx context.Context) error {
+	actx := auth.AppendWorkerAuthorization(ctx)
+	for {
+		resp, err := l.modelClient.AcquireUnloadedModel(actx, &v1.AcquireUnloadedModelRequest{})
+		if err != nil {
+			if status.Code(err) == codes.FailedPrecondition {
+				l.log.Error(err, "Failed to acquire an unloaded base model")
+				continue
+			}
+			return err
+		}
+
+		if resp.ModelId == "" {
+			l.log.Info("No unloaded model")
+			return nil
+		}
+
+		if _, err := l.downloadAndUploadModel(ctx, resp.ModelId, resp.ModelFileLocation, "", resp.SourceRepository, resp.DestPath); err != nil {
+			l.log.Error(err, "Failed to load model", "modelID", resp.ModelId)
+			if _, err := l.modelClient.UpdateModelLoadingStatus(actx, &v1.UpdateModelLoadingStatusRequest{
+				Id: resp.ModelId,
+				LoadingResult: &v1.UpdateModelLoadingStatusRequest_Failure_{
+					Failure: &v1.UpdateModelLoadingStatusRequest_Failure{
+						Reason: err.Error(),
+					},
+				},
+			}); err != nil {
+				return err
+			}
+			// Do not return the error here. We need to continue loading other models.
+			continue
+		}
+
+		l.log.Info("Successfully loaded base model", "modelID", resp.ModelId)
+		if _, err := l.modelClient.UpdateModelLoadingStatus(actx, &v1.UpdateModelLoadingStatusRequest{
+			Id:            resp.ModelId,
+			LoadingResult: &v1.UpdateModelLoadingStatusRequest_Success_{},
 		}); err != nil {
 			return err
 		}
