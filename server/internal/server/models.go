@@ -71,7 +71,7 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.NotFound, "base model %q not found", req.BaseModelId)
 	}
 
-	id := fmt.Sprintf("%s:%s", req.BaseModelId, req.Suffix)
+	id := fmt.Sprintf("ft:%s:%s", req.BaseModelId, req.Suffix)
 
 	sc, err := s.store.GetStorageConfig(userInfo.TenantID)
 	if err != nil {
