@@ -133,7 +133,7 @@ func run(ctx context.Context, c *config.Config) error {
 	case err := <-errCh:
 		return err
 	case sig := <-sigCh:
-		log.Info("Got signal %v. Wait for %s before graceful shutdown", sig, c.GracefulShutdownDelay)
+		log.Info("Got signal, waiting for graceful shutdown", "signal", sig, "delay", c.GracefulShutdownDelay)
 		time.Sleep(c.GracefulShutdownDelay)
 
 		log.Info("Starting graceful shutdown.")
