@@ -110,14 +110,14 @@ func run(ctx context.Context, c *config.Config) error {
 		usageSetter = sender.NoopUsageSetter{}
 	}
 
+	sigCh := make(chan os.Signal, 1)
+	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
 	errCh := make(chan error)
 	go func() {
 		log.Info("Starting HTTP server...", "port", c.HTTPPort)
 		errCh <- http.ListenAndServe(fmt.Sprintf(":%d", c.HTTPPort), mux)
 	}()
-
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
 	s := server.New(st, logger)
 	go func() {
