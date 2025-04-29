@@ -117,6 +117,9 @@ grpcPort: 8081
 # +docs:type=number
 workerServiceGrpcPort: 8082
 
+# Delay before shutting down the server.
+gracefulShutdownDelay: 0s
+
 # Override the "model-manager-server.fullname" value. This value is used
 # as part of most of the names of the resources created by this Helm chart.
 # +docs:property
@@ -223,6 +226,9 @@ livenessProbe:
   # ready/healthy/live.
   # +docs:type=number
   failureThreshold: 5
+
+# Termination grace period of the pod.
+terminationGracePeriodSeconds: 30
 
 # Security Context for the model-manager-server pod.
 # For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).

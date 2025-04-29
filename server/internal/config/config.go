@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/llmariner/api-usage/pkg/sender"
 	"github.com/llmariner/common/pkg/db"
@@ -37,6 +38,9 @@ type Config struct {
 	HTTPPort              int `yaml:"httpPort"`
 	GRPCPort              int `yaml:"grpcPort"`
 	WorkerServiceGRPCPort int `yaml:"workerServiceGrpcPort"`
+
+	// GracefulShutdownDelay is the delay before shutting down the server.
+	GracefulShutdownDelay time.Duration `yaml:"gracefulShutdownDelay"`
 
 	Database    db.Config     `yaml:"database"`
 	AuthConfig  AuthConfig    `yaml:"auth"`
