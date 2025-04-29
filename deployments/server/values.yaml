@@ -228,7 +228,7 @@ livenessProbe:
   failureThreshold: 5
 
 # Termination grace period of the pod.
-terminationGracePeriodSeconds: 30
+terminationGracePeriodSeconds: 60
 
 # Security Context for the model-manager-server pod.
 # For more information, see [Configure a Security Context for a Pod or Container](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/).
