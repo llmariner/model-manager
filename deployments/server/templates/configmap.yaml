@@ -9,6 +9,7 @@ data:
     httpPort: {{ .Values.httpPort }}
     grpcPort: {{ .Values.grpcPort }}
     workerServiceGrpcPort: {{ .Values.workerServiceGrpcPort }}
+    gracefulShutdownDelay: {{ .Values.gracefulShutdownDelay }}
     database:
       host: {{ .Values.global.database.host }}
       port: {{ .Values.global.database.port }}
