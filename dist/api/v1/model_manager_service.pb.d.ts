@@ -28,6 +28,11 @@ export declare enum SourceRepository {
     SOURCE_REPOSITORY_OLLAMA = "SOURCE_REPOSITORY_OLLAMA",
     SOURCE_REPOSITORY_FINE_TUNING = "SOURCE_REPOSITORY_FINE_TUNING"
 }
+export declare enum ActivationStatus {
+    ACTIVATION_STATUS_UNSPECIFIED = "ACTIVATION_STATUS_UNSPECIFIED",
+    ACTIVATION_STATUS_ACTIVE = "ACTIVATION_STATUS_ACTIVE",
+    ACTIVATION_STATUS_INACTIVE = "ACTIVATION_STATUS_INACTIVE"
+}
 export declare enum AdapterType {
     ADAPTER_TYPE_UNSPECIFIED = "ADAPTER_TYPE_UNSPECIFIED",
     ADAPTER_TYPE_LORA = "ADAPTER_TYPE_LORA",
@@ -52,6 +57,7 @@ export type Model = {
     formats?: ModelFormat[];
     is_base_model?: boolean;
     base_model_id?: string;
+    activation_status?: ActivationStatus;
 };
 export type CreateModelRequest = {
     id?: string;
@@ -84,6 +90,14 @@ export type DeleteModelResponse = {
     object?: string;
     deleted?: boolean;
 };
+export type ActivateModelRequest = {
+    id?: string;
+};
+export type ActivateModelResponse = {};
+export type DeactivateModelRequest = {
+    id?: string;
+};
+export type DeactivateModelResponse = {};
 export type StorageConfig = {
     path_prefix?: string;
 };
@@ -196,6 +210,8 @@ export declare class ModelsService {
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
     static DeleteModel(req: DeleteModelRequest, initReq?: fm.InitReq): Promise<DeleteModelResponse>;
     static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model>;
+    static ActivateModel(req: ActivateModelRequest, initReq?: fm.InitReq): Promise<ActivateModelResponse>;
+    static DeactivateModel(req: DeactivateModelRequest, initReq?: fm.InitReq): Promise<DeactivateModelResponse>;
 }
 export declare class ModelsWorkerService {
     static CreateStorageConfig(req: CreateStorageConfigRequest, initReq?: fm.InitReq): Promise<StorageConfig>;

@@ -39,6 +39,12 @@ export enum SourceRepository {
   SOURCE_REPOSITORY_FINE_TUNING = "SOURCE_REPOSITORY_FINE_TUNING",
 }
 
+export enum ActivationStatus {
+  ACTIVATION_STATUS_UNSPECIFIED = "ACTIVATION_STATUS_UNSPECIFIED",
+  ACTIVATION_STATUS_ACTIVE = "ACTIVATION_STATUS_ACTIVE",
+  ACTIVATION_STATUS_INACTIVE = "ACTIVATION_STATUS_INACTIVE",
+}
+
 export enum AdapterType {
   ADAPTER_TYPE_UNSPECIFIED = "ADAPTER_TYPE_UNSPECIFIED",
   ADAPTER_TYPE_LORA = "ADAPTER_TYPE_LORA",
@@ -66,6 +72,7 @@ export type Model = {
   formats?: ModelFormat[]
   is_base_model?: boolean
   base_model_id?: string
+  activation_status?: ActivationStatus
 }
 
 export type CreateModelRequest = {
@@ -103,6 +110,20 @@ export type DeleteModelResponse = {
   id?: string
   object?: string
   deleted?: boolean
+}
+
+export type ActivateModelRequest = {
+  id?: string
+}
+
+export type ActivateModelResponse = {
+}
+
+export type DeactivateModelRequest = {
+  id?: string
+}
+
+export type DeactivateModelResponse = {
 }
 
 export type StorageConfig = {
@@ -262,6 +283,12 @@ export class ModelsService {
   }
   static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model> {
     return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static ActivateModel(req: ActivateModelRequest, initReq?: fm.InitReq): Promise<ActivateModelResponse> {
+    return fm.fetchReq<ActivateModelRequest, ActivateModelResponse>(`/v1/models/${req["id==**"]}:activate`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static DeactivateModel(req: DeactivateModelRequest, initReq?: fm.InitReq): Promise<DeactivateModelResponse> {
+    return fm.fetchReq<DeactivateModelRequest, DeactivateModelResponse>(`/v1/models/${req["id==**"]}:deactivate`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
 }
 export class ModelsWorkerService {

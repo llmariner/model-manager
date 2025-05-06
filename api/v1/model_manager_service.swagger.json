@@ -160,6 +160,82 @@
           "ModelsService"
         ]
       }
+    },
+    "/v1/models/{id}:activate": {
+      "post": {
+        "operationId": "ModelsService_ActivateModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ActivateModelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "tags": [
+          "ModelsService"
+        ]
+      }
+    },
+    "/v1/models/{id}:deactivate": {
+      "post": {
+        "operationId": "ModelsService_DeactivateModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1DeactivateModelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "type": "object"
+            }
+          }
+        ],
+        "tags": [
+          "ModelsService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -222,6 +298,18 @@
         }
       }
     },
+    "v1ActivateModelResponse": {
+      "type": "object"
+    },
+    "v1ActivationStatus": {
+      "type": "string",
+      "enum": [
+        "ACTIVATION_STATUS_UNSPECIFIED",
+        "ACTIVATION_STATUS_ACTIVE",
+        "ACTIVATION_STATUS_INACTIVE"
+      ],
+      "default": "ACTIVATION_STATUS_UNSPECIFIED"
+    },
     "v1AdapterType": {
       "type": "string",
       "enum": [
@@ -271,6 +359,9 @@
           "type": "string"
         }
       }
+    },
+    "v1DeactivateModelResponse": {
+      "type": "object"
     },
     "v1DeleteModelResponse": {
       "type": "object",
@@ -386,6 +477,9 @@
         "baseModelId": {
           "type": "string",
           "description": "base_model_id is the ID of the base model. Only set if the model is a fine-tuned model.\nThis is not in the Open AI API specification."
+        },
+        "activationStatus": {
+          "$ref": "#/definitions/v1ActivationStatus"
         }
       }
     },

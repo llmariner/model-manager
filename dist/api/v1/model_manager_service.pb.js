@@ -28,6 +28,12 @@ export var SourceRepository;
     SourceRepository["SOURCE_REPOSITORY_OLLAMA"] = "SOURCE_REPOSITORY_OLLAMA";
     SourceRepository["SOURCE_REPOSITORY_FINE_TUNING"] = "SOURCE_REPOSITORY_FINE_TUNING";
 })(SourceRepository || (SourceRepository = {}));
+export var ActivationStatus;
+(function (ActivationStatus) {
+    ActivationStatus["ACTIVATION_STATUS_UNSPECIFIED"] = "ACTIVATION_STATUS_UNSPECIFIED";
+    ActivationStatus["ACTIVATION_STATUS_ACTIVE"] = "ACTIVATION_STATUS_ACTIVE";
+    ActivationStatus["ACTIVATION_STATUS_INACTIVE"] = "ACTIVATION_STATUS_INACTIVE";
+})(ActivationStatus || (ActivationStatus = {}));
 export var AdapterType;
 (function (AdapterType) {
     AdapterType["ADAPTER_TYPE_UNSPECIFIED"] = "ADAPTER_TYPE_UNSPECIFIED";
@@ -52,6 +58,12 @@ export class ModelsService {
     }
     static CreateModel(req, initReq) {
         return fm.fetchReq(`/v1/models`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
+    static ActivateModel(req, initReq) {
+        return fm.fetchReq(`/v1/models/${req["id==**"]}:activate`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
+    static DeactivateModel(req, initReq) {
+        return fm.fetchReq(`/v1/models/${req["id==**"]}:deactivate`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
 }
 export class ModelsWorkerService {

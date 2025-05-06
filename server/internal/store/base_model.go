@@ -45,6 +45,27 @@ func (s *S) CreateBaseModel(
 	sourceRepository v1.SourceRepository,
 	tenantID string,
 ) (*BaseModel, error) {
+	return CreateBaseModelInTransaction(
+		s.db,
+		modelID,
+		path,
+		formats,
+		ggufModelPath,
+		sourceRepository,
+		tenantID,
+	)
+}
+
+// CreateBaseModelInTransaction creates a model in a transaction.
+func CreateBaseModelInTransaction(
+	tx *gorm.DB,
+	modelID string,
+	path string,
+	formats []v1.ModelFormat,
+	ggufModelPath string,
+	sourceRepository v1.SourceRepository,
+	tenantID string,
+) (*BaseModel, error) {
 	b, err := marshalFormats(formats)
 	if err != nil {
 		return nil, err
@@ -59,7 +80,7 @@ func (s *S) CreateBaseModel(
 		SourceRepository: sourceRepository,
 		TenantID:         tenantID,
 	}
-	if err := s.db.Create(m).Error; err != nil {
+	if err := tx.Create(m).Error; err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -71,13 +92,28 @@ func (s *S) CreateBaseModelWithLoadingRequested(
 	sourceRepository v1.SourceRepository,
 	tenantID string,
 ) (*BaseModel, error) {
+	return CreateBaseModelWithLoadingRequestedInTransaction(
+		s.db,
+		modelID,
+		sourceRepository,
+		tenantID,
+	)
+}
+
+// CreateBaseModelWithLoadingRequestedInTransaction creates a model with the requested loading status in a transaction.
+func CreateBaseModelWithLoadingRequestedInTransaction(
+	tx *gorm.DB,
+	modelID string,
+	sourceRepository v1.SourceRepository,
+	tenantID string,
+) (*BaseModel, error) {
 	m := &BaseModel{
 		ModelID:          modelID,
 		SourceRepository: sourceRepository,
 		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
 		TenantID:         tenantID,
 	}
-	if err := s.db.Create(m).Error; err != nil {
+	if err := tx.Create(m).Error; err != nil {
 		return nil, err
 	}
 	return m, nil
