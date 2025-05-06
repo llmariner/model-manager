@@ -80,27 +80,43 @@ func (s *S) createFineTunedModel(
 
 	path := fmt.Sprintf("%s/%s/%s", sc.PathPrefix, userInfo.TenantID, id)
 
-	m, err := s.store.CreateModel(store.ModelSpec{
-		ModelID:           id,
-		TenantID:          userInfo.TenantID,
-		OrganizationID:    userInfo.OrganizationID,
-		ProjectID:         userInfo.ProjectID,
-		IsPublished:       true,
-		Path:              path,
-		BaseModelID:       req.BaseModelId,
-		Adapter:           v1.AdapterType_ADAPTER_TYPE_LORA,
-		LoadingStatus:     v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
-		SourceRepository:  req.SourceRepository,
-		ModelFileLocation: req.ModelFileLocation,
-	})
-	if err != nil {
-		if gerrors.IsUniqueConstraintViolation(err) {
-			return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", id)
+	var m *store.Model
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		var err error
+		m, err = store.CreateModelInTransaction(tx, store.ModelSpec{
+			ModelID:           id,
+			TenantID:          userInfo.TenantID,
+			OrganizationID:    userInfo.OrganizationID,
+			ProjectID:         userInfo.ProjectID,
+			IsPublished:       true,
+			Path:              path,
+			BaseModelID:       req.BaseModelId,
+			Adapter:           v1.AdapterType_ADAPTER_TYPE_LORA,
+			LoadingStatus:     v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+			SourceRepository:  req.SourceRepository,
+			ModelFileLocation: req.ModelFileLocation,
+		})
+		if err != nil {
+			if gerrors.IsUniqueConstraintViolation(err) {
+				return status.Errorf(codes.AlreadyExists, "model %q already exists", id)
+			}
+			return status.Errorf(codes.Internal, "create model: %s", err)
 		}
-		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+
+		if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
+			ModelID:  id,
+			TenantID: userInfo.TenantID,
+			Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+		}); err != nil {
+			return status.Errorf(codes.Internal, "create model activation status: %s", err)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
-	return toModelProto(m), nil
+	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE), nil
 }
 
 func (s *S) createBaseModel(
@@ -122,15 +138,31 @@ func (s *S) createBaseModel(
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
-	m, err := s.store.CreateBaseModelWithLoadingRequested(req.Id, req.SourceRepository, userInfo.TenantID)
-	if err != nil {
-		if gerrors.IsUniqueConstraintViolation(err) {
-			return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", req.Id)
+	var m *store.BaseModel
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		var err error
+		m, err = store.CreateBaseModelWithLoadingRequestedInTransaction(tx, req.Id, req.SourceRepository, userInfo.TenantID)
+		if err != nil {
+			if gerrors.IsUniqueConstraintViolation(err) {
+				return status.Errorf(codes.AlreadyExists, "model %q already exists", req.Id)
+			}
+			return status.Errorf(codes.Internal, "create base model: %s", err)
 		}
-		return nil, status.Errorf(codes.Internal, "create base model: %s", err)
+
+		if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
+			ModelID:  req.Id,
+			TenantID: userInfo.TenantID,
+			Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+		}); err != nil {
+			return status.Errorf(codes.Internal, "create model activation status: %s", err)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
-	mp, err := baseToModelProto(m)
+	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 	}
@@ -190,7 +222,11 @@ func (s *S) ListModels(
 			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 		}
 		for _, m := range bms {
-			mp, err := baseToModelProto(m)
+			as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+			if err != nil {
+				return nil, err
+			}
+			mp, err := baseToModelProto(m, as)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "to proto: %s", err)
 			}
@@ -236,7 +272,11 @@ func (s *S) ListModels(
 	}
 
 	for _, m := range ms {
-		modelProtos = append(modelProtos, toModelProto(m))
+		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		modelProtos = append(modelProtos, toModelProto(m, as))
 	}
 
 	return &v1.ListModelsResponse{
@@ -306,13 +346,27 @@ func (s *S) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
+	m, err := getModel(s.store, req.Id, userInfo.TenantID, req.IncludeLoadingModel)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+func getModel(st *store.S, modelID, tenantID string, includeLoadingModel bool) (*v1.Model, error) {
 	// First check if it's a base model.
-	bm, err := s.store.GetBaseModel(req.Id, userInfo.TenantID)
+	bm, err := st.GetBaseModel(modelID, tenantID)
 	if err == nil {
-		if !isBaseModelLoaded(bm) && !req.IncludeLoadingModel {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		if !isBaseModelLoaded(bm) && !includeLoadingModel {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", modelID)
 		}
-		mp, err := baseToModelProto(bm)
+
+		as, err := getModelActivationStatus(st, modelID, tenantID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+		}
+
+		mp, err := baseToModelProto(bm, as)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
 		}
@@ -323,14 +377,32 @@ func (s *S) GetModel(
 	}
 
 	// Then check if it's a generated model.
-	m, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, userInfo.TenantID)
+	m, err := st.GetPublishedModelByModelIDAndTenantID(modelID, tenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+			return nil, status.Errorf(codes.NotFound, "model %q not found", modelID)
 		}
 		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
 	}
-	return toModelProto(m), nil
+
+	as, err := getModelActivationStatus(st, modelID, tenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+	}
+
+	return toModelProto(m, as), nil
+}
+
+func getModelActivationStatus(st *store.S, modelID, tenantID string) (v1.ActivationStatus, error) {
+	status, err := st.GetModelActivationStatus(modelID, tenantID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
+		}
+		// For backward compatibility.
+		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, nil
+	}
+	return status.Status, nil
 }
 
 // DeleteModel deletes a model.
@@ -354,11 +426,23 @@ func (s *S) DeleteModel(
 
 		// The specified model is not a base-model or the base-model has already been deleted.
 		// Try deleting a fine-tuned model of the specified ID.
-		if err := s.store.DeleteModel(req.Id, userInfo.TenantID); err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+
+		if err := s.store.Transaction(func(tx *gorm.DB) error {
+			if err := store.DeleteModelInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return status.Errorf(codes.NotFound, "model %q not found", req.Id)
+				}
+				return status.Errorf(codes.Internal, "delete model: %s", err)
 			}
-			return nil, status.Errorf(codes.Internal, "delete model: %s", err)
+			if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+				// Gracefully handle a not found error for backward compatibility.
+				if !errors.Is(err, gorm.ErrRecordNotFound) {
+					return status.Errorf(codes.NotFound, "model activation status %q not found", req.Id)
+				}
+			}
+			return nil
+		}); err != nil {
+			return nil, err
 		}
 
 		return &v1.DeleteModelResponse{
@@ -393,6 +477,14 @@ func (s *S) DeleteModel(
 			}
 			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
 		}
+
+		if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+			// Gracefully handle a not found error for backward compatibility.
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -403,6 +495,64 @@ func (s *S) DeleteModel(
 		Object:  "model",
 		Deleted: true,
 	}, nil
+}
+
+// ActivateModel activates a model.
+func (s *S) ActivateModel(
+	ctx context.Context,
+	req *v1.ActivateModelRequest,
+) (*v1.ActivateModelResponse, error) {
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
+	}
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if _, err := getModel(s.store, req.Id, userInfo.TenantID, false /* includeLoadingModel */); err != nil {
+		return nil, err
+	}
+
+	if err := s.store.UpdateModelActivationStatus(
+		req.Id,
+		userInfo.TenantID,
+		v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE,
+	); err != nil {
+		return nil, status.Errorf(codes.Internal, "update model activation status: %s", err)
+	}
+
+	return &v1.ActivateModelResponse{}, nil
+}
+
+// DeactivateModel deactivates a model.
+func (s *S) DeactivateModel(
+	ctx context.Context,
+	req *v1.DeactivateModelRequest,
+) (*v1.DeactivateModelResponse, error) {
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
+	}
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if _, err := getModel(s.store, req.Id, userInfo.TenantID, false /* includeLoadingModel */); err != nil {
+		return nil, err
+	}
+
+	if err := s.store.UpdateModelActivationStatus(
+		req.Id,
+		userInfo.TenantID,
+		v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+	); err != nil {
+		return nil, status.Errorf(codes.Internal, "update model activation status: %s", err)
+	}
+
+	return &v1.DeactivateModelResponse{}, nil
 }
 
 // GetModel gets a model.
@@ -419,28 +569,12 @@ func (s *WS) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	// First check if it's a base model.
-	bm, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
-	if err == nil {
-		mp, err := baseToModelProto(bm)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-		}
-		return mp, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+	m, err := getModel(s.store, req.Id, clusterInfo.TenantID, true /* includeLoadingModel */)
+	if err != nil {
+		return nil, err
 	}
 
-	// Then check if it's a generated model.
-	m, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
-		}
-		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
-	}
-	return toModelProto(m), nil
+	return m, nil
 }
 
 // RegisterModel registers a model.
@@ -489,20 +623,34 @@ func (s *WS) RegisterModel(
 		}
 		path = fmt.Sprintf("%s/%s/%s", sc.PathPrefix, clusterInfo.TenantID, id)
 	}
-	_, err = s.store.CreateModel(store.ModelSpec{
-		ModelID:        id,
-		TenantID:       clusterInfo.TenantID,
-		OrganizationID: req.OrganizationId,
-		ProjectID:      req.ProjectId,
-		IsPublished:    false,
-		Path:           path,
-		BaseModelID:    req.BaseModel,
-		Adapter:        req.Adapter,
-		Quantization:   req.Quantization,
-		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
-	})
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "create model: %s", err)
+
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		if _, err := store.CreateModelInTransaction(tx, store.ModelSpec{
+			ModelID:        id,
+			TenantID:       clusterInfo.TenantID,
+			OrganizationID: req.OrganizationId,
+			ProjectID:      req.ProjectId,
+			IsPublished:    false,
+			Path:           path,
+			BaseModelID:    req.BaseModel,
+			Adapter:        req.Adapter,
+			Quantization:   req.Quantization,
+			LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+		}); err != nil {
+			return status.Errorf(codes.Internal, "create model: %s", err)
+		}
+
+		if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
+			ModelID:  id,
+			TenantID: clusterInfo.TenantID,
+			Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+		}); err != nil {
+			return status.Errorf(codes.Internal, "create model activation status: %s", err)
+		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return &v1.RegisterModelResponse{
@@ -630,11 +778,27 @@ func (s *WS) CreateBaseModel(
 		}
 
 		// Create a new base model.
+		var m *store.BaseModel
+		if err := s.store.Transaction(func(tx *gorm.DB) error {
+			var err error
+			m, err = store.CreateBaseModelInTransaction(tx, req.Id, req.Path, formats, req.GgufModelPath, req.SourceRepository, clusterInfo.TenantID)
+			if err != nil {
+				return status.Errorf(codes.Internal, "create base model: %s", err)
+			}
 
-		m, err := s.store.CreateBaseModel(req.Id, req.Path, formats, req.GgufModelPath, req.SourceRepository, clusterInfo.TenantID)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "create base model: %s", err)
+			if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
+				ModelID:  req.Id,
+				TenantID: clusterInfo.TenantID,
+				Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+			}); err != nil {
+				return status.Errorf(codes.Internal, "create model activation status: %s", err)
+			}
+
+			return nil
+		}); err != nil {
+			return nil, err
 		}
+
 		return toBaseModelProto(m), nil
 	}
 
@@ -920,7 +1084,7 @@ func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error)
 	}
 }
 
-func toModelProto(m *store.Model) *v1.Model {
+func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {
 	return &v1.Model{
 		Id:                   m.ModelID,
 		Object:               "model",
@@ -933,10 +1097,12 @@ func toModelProto(m *store.Model) *v1.Model {
 		Formats:     []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		IsBaseModel: false,
 		BaseModelId: m.BaseModelID,
+
+		ActivationStatus: as,
 	}
 }
 
-func baseToModelProto(m *store.BaseModel) (*v1.Model, error) {
+func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus) (*v1.Model, error) {
 	formats, err := store.UnmarshalModelFormats(m.Formats)
 	if err != nil {
 		return nil, err
@@ -957,6 +1123,8 @@ func baseToModelProto(m *store.BaseModel) (*v1.Model, error) {
 		Formats:              formats,
 		IsBaseModel:          true,
 		BaseModelId:          "",
+
+		ActivationStatus: as,
 	}, nil
 }
 

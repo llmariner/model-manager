@@ -24,6 +24,8 @@ type ModelsServiceClient interface {
 	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
 	CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error)
+	ActivateModel(ctx context.Context, in *ActivateModelRequest, opts ...grpc.CallOption) (*ActivateModelResponse, error)
+	DeactivateModel(ctx context.Context, in *DeactivateModelRequest, opts ...grpc.CallOption) (*DeactivateModelResponse, error)
 }
 
 type modelsServiceClient struct {
@@ -70,6 +72,24 @@ func (c *modelsServiceClient) CreateModel(ctx context.Context, in *CreateModelRe
 	return out, nil
 }
 
+func (c *modelsServiceClient) ActivateModel(ctx context.Context, in *ActivateModelRequest, opts ...grpc.CallOption) (*ActivateModelResponse, error) {
+	out := new(ActivateModelResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ActivateModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsServiceClient) DeactivateModel(ctx context.Context, in *DeactivateModelRequest, opts ...grpc.CallOption) (*DeactivateModelResponse, error) {
+	out := new(DeactivateModelResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/DeactivateModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ModelsServiceServer is the server API for ModelsService service.
 // All implementations must embed UnimplementedModelsServiceServer
 // for forward compatibility
@@ -80,6 +100,8 @@ type ModelsServiceServer interface {
 	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
 	CreateModel(context.Context, *CreateModelRequest) (*Model, error)
+	ActivateModel(context.Context, *ActivateModelRequest) (*ActivateModelResponse, error)
+	DeactivateModel(context.Context, *DeactivateModelRequest) (*DeactivateModelResponse, error)
 	mustEmbedUnimplementedModelsServiceServer()
 }
 
@@ -98,6 +120,12 @@ func (UnimplementedModelsServiceServer) DeleteModel(context.Context, *DeleteMode
 }
 func (UnimplementedModelsServiceServer) CreateModel(context.Context, *CreateModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateModel not implemented")
+}
+func (UnimplementedModelsServiceServer) ActivateModel(context.Context, *ActivateModelRequest) (*ActivateModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ActivateModel not implemented")
+}
+func (UnimplementedModelsServiceServer) DeactivateModel(context.Context, *DeactivateModelRequest) (*DeactivateModelResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method DeactivateModel not implemented")
 }
 func (UnimplementedModelsServiceServer) mustEmbedUnimplementedModelsServiceServer() {}
 
@@ -184,6 +212,42 @@ func _ModelsService_CreateModel_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsService_ActivateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ActivateModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsServiceServer).ActivateModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsService/ActivateModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsServiceServer).ActivateModel(ctx, req.(*ActivateModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsService_DeactivateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(DeactivateModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsServiceServer).DeactivateModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsService/DeactivateModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsServiceServer).DeactivateModel(ctx, req.(*DeactivateModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 // ModelsService_ServiceDesc is the grpc.ServiceDesc for ModelsService service.
 // It's only intended for direct use with grpc.RegisterService,
 // and not to be introspected or modified (even as a copy)
@@ -206,6 +270,14 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateModel",
 			Handler:    _ModelsService_CreateModel_Handler,
+		},
+		{
+			MethodName: "ActivateModel",
+			Handler:    _ModelsService_ActivateModel_Handler,
+		},
+		{
+			MethodName: "DeactivateModel",
+			Handler:    _ModelsService_DeactivateModel_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},

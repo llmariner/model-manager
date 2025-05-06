@@ -586,6 +586,10 @@ func TestBaseModels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, "path", getResp.Path)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, getResp.Formats)
+
+	as, err := st.GetModelActivationStatus(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 }
 
 func TestBaseModelCreation(t *testing.T) {
@@ -610,6 +614,10 @@ func TestBaseModelCreation(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	as, err := st.GetModelActivationStatus(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 
 	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
 	assert.NoError(t, err)
@@ -789,6 +797,10 @@ func TestFineTunedModelCreation(t *testing.T) {
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
 	assert.Equal(t, "ft:bm0:suffix0", m.Id)
 
+	as, err := st.GetModelActivationStatus(m.Id, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
+
 	resp, err = wsrv.AcquireUnloadedModel(ctx, &v1.AcquireUnloadedModelRequest{})
 	assert.NoError(t, err)
 	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, resp.SourceRepository)
@@ -960,6 +972,52 @@ func TestFineTunedModelCreation_CreateModel(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestActivateModelAndDeactivateModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	const modelID = "r/m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	as, err := st.GetModelActivationStatus(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
+
+	// Update the loading status to succeeded.
+	err = st.UpdateBaseModelToLoadingStatus(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	err = st.UpdateBaseModelToSucceededStatus(modelID, defaultTenantID, "", nil, "")
+	assert.NoError(t, err)
+
+	_, err = srv.ActivateModel(ctx, &v1.ActivateModelRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
+
+	as, err = st.GetModelActivationStatus(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, as.Status)
+
+	_, err = srv.DeactivateModel(ctx, &v1.DeactivateModelRequest{
+		Id: modelID,
+	})
+	assert.NoError(t, err)
+
+	as, err = st.GetModelActivationStatus(modelID, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
+
 }
 
 func TestValidateIdAndSourceRepository(t *testing.T) {

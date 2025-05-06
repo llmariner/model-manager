@@ -47,6 +47,11 @@ type ModelSpec struct {
 
 // CreateModel creates a model.
 func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
+	return CreateModelInTransaction(s.db, spec)
+}
+
+// CreateModelInTransaction creates a model in a transaction.
+func CreateModelInTransaction(tx *gorm.DB, spec ModelSpec) (*Model, error) {
 	m := &Model{
 		ModelID:           spec.ModelID,
 		TenantID:          spec.TenantID,
@@ -61,7 +66,7 @@ func (s *S) CreateModel(spec ModelSpec) (*Model, error) {
 		SourceRepository:  spec.SourceRepository,
 		ModelFileLocation: spec.ModelFileLocation,
 	}
-	if err := s.db.Create(m).Error; err != nil {
+	if err := tx.Create(m).Error; err != nil {
 		return nil, err
 	}
 	return m, nil
@@ -184,7 +189,12 @@ func (s *S) UpdateModelToFailedStatus(modelID string, tenantID string, failureRe
 
 // DeleteModel deletes a model by model ID and tenant ID.
 func (s *S) DeleteModel(modelID, tenantID string) error {
-	res := s.db.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&Model{})
+	return DeleteModelInTransaction(s.db, modelID, tenantID)
+}
+
+// DeleteModelInTransaction deletes a model by model ID and tenant ID in a transaction.
+func DeleteModelInTransaction(tx *gorm.DB, modelID, tenantID string) error {
+	res := tx.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&Model{})
 	if err := res.Error; err != nil {
 		return err
 	}
