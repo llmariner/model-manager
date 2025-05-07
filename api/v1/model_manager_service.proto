@@ -194,15 +194,13 @@ service ModelsService {
 
   rpc ActivateModel(ActivateModelRequest) returns (ActivateModelResponse) {
     option (google.api.http) = {
-      post: "/v1/models/{id==**}:activate"
-      body: "*"
+      post: "/v1/models/{id}:activate"
     };
   }
 
   rpc DeactivateModel(DeactivateModelRequest) returns (DeactivateModelResponse) {
     option (google.api.http) = {
-      post: "/v1/models/{id==**}:deactivate"
-      body: "*"
+      post: "/v1/models/{id}:deactivate"
     };
   }
 }
