@@ -301,6 +301,9 @@ export class ModelsWorkerService {
   static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model> {
     return fm.fetchReq<GetModelRequest, Model>(`/llmariner.models.server.v1.ModelsWorkerService/GetModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
+  static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse> {
+    return fm.fetchReq<ListModelsRequest, ListModelsResponse>(`/llmariner.models.server.v1.ModelsWorkerService/ListModels`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
   static RegisterModel(req: RegisterModelRequest, initReq?: fm.InitReq): Promise<RegisterModelResponse> {
     return fm.fetchReq<RegisterModelRequest, RegisterModelResponse>(`/llmariner.models.server.v1.ModelsWorkerService/RegisterModel`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }

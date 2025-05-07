@@ -577,6 +577,64 @@ func (s *WS) GetModel(
 	return m, nil
 }
 
+// ListModels lists models.
+func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.ListModelsResponse, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	bms, err := s.store.ListBaseModels(clusterInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
+	}
+
+	var modelProtos []*v1.Model
+	for _, m := range bms {
+		if !isBaseModelLoaded(m) {
+			continue
+		}
+
+		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		mp, err := baseToModelProto(m, as)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+		}
+		modelProtos = append(modelProtos, mp)
+	}
+
+	ms, err := s.store.ListModelsByTenantID(clusterInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+	}
+
+	for _, m := range ms {
+		if !isModelLoaded(m) {
+			continue
+		}
+
+		if !m.IsPublished {
+			continue
+		}
+
+		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		modelProtos = append(modelProtos, toModelProto(m, as))
+	}
+
+	return &v1.ListModelsResponse{
+		Object:     "list",
+		Data:       modelProtos,
+		HasMore:    false,
+		TotalItems: int32(len(modelProtos)),
+	}, nil
+}
+
 // RegisterModel registers a model.
 func (s *WS) RegisterModel(
 	ctx context.Context,

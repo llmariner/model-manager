@@ -90,6 +90,16 @@ func (s *S) GetModelByModelIDAndTenantID(modelID, tenantID string) (*Model, erro
 	return &m, nil
 }
 
+// ListModelsByTenantID returns all models by tenant ID.
+func (s *S) ListModelsByTenantID(tenantID string,
+) ([]*Model, error) {
+	var ms []*Model
+	if err := s.db.Where("tenant_id = ?", tenantID).Order("model_id DESC").Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
 // ListModelsByProjectIDWithPagination finds models with pagination. Models are returned with an ascending order of ID.
 func (s *S) ListModelsByProjectIDWithPagination(
 	projectID string,

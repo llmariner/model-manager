@@ -294,6 +294,9 @@ type ModelsWorkerServiceClient interface {
 	GetStorageConfig(ctx context.Context, in *GetStorageConfigRequest, opts ...grpc.CallOption) (*StorageConfig, error)
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
+	// ListModels lists all models. Used by inference-manager-engine.
+	// This RPC does not support pagination.
+	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
 	// The model is not published until PublishModel is called.
 	RegisterModel(ctx context.Context, in *RegisterModelRequest, opts ...grpc.CallOption) (*RegisterModelResponse, error)
@@ -355,6 +358,15 @@ func (c *modelsWorkerServiceClient) GetStorageConfig(ctx context.Context, in *Ge
 func (c *modelsWorkerServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
 	out := new(Model)
 	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/GetModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *modelsWorkerServiceClient) ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error) {
+	out := new(ListModelsResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsWorkerService/ListModels", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -479,6 +491,9 @@ type ModelsWorkerServiceServer interface {
 	GetStorageConfig(context.Context, *GetStorageConfigRequest) (*StorageConfig, error)
 	// GetModel gets a model. Used by inference-manager-engine.
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
+	// ListModels lists all models. Used by inference-manager-engine.
+	// This RPC does not support pagination.
+	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	// RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
 	// The model is not published until PublishModel is called.
 	RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error)
@@ -524,6 +539,9 @@ func (UnimplementedModelsWorkerServiceServer) GetStorageConfig(context.Context, 
 }
 func (UnimplementedModelsWorkerServiceServer) GetModel(context.Context, *GetModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModel not implemented")
+}
+func (UnimplementedModelsWorkerServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListModels not implemented")
 }
 func (UnimplementedModelsWorkerServiceServer) RegisterModel(context.Context, *RegisterModelRequest) (*RegisterModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method RegisterModel not implemented")
@@ -624,6 +642,24 @@ func _ModelsWorkerService_GetModel_Handler(srv interface{}, ctx context.Context,
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsWorkerServiceServer).GetModel(ctx, req.(*GetModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsWorkerService_ListModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListModelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsWorkerServiceServer).ListModels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsWorkerService/ListModels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsWorkerServiceServer).ListModels(ctx, req.(*ListModelsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -862,6 +898,10 @@ var ModelsWorkerService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetModel",
 			Handler:    _ModelsWorkerService_GetModel_Handler,
+		},
+		{
+			MethodName: "ListModels",
+			Handler:    _ModelsWorkerService_ListModels_Handler,
 		},
 		{
 			MethodName: "RegisterModel",

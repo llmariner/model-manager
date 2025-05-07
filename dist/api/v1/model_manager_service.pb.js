@@ -76,6 +76,9 @@ export class ModelsWorkerService {
     static GetModel(req, initReq) {
         return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/GetModel`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
+    static ListModels(req, initReq) {
+        return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/ListModels`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+    }
     static RegisterModel(req, initReq) {
         return fm.fetchReq(`/llmariner.models.server.v1.ModelsWorkerService/RegisterModel`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }

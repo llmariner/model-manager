@@ -401,6 +401,11 @@ service ModelsWorkerService {
   rpc GetModel(GetModelRequest) returns (Model) {
   }
 
+  // ListModels lists all models. Used by inference-manager-engine.
+  // This RPC does not support pagination.
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
+  }
+
   // RegisterModel registers a new fine-tuned model. Used by job-manager-dispatcher and model-manager-loader.
   // The model is not published until PublishModel is called.
   rpc RegisterModel(RegisterModelRequest) returns (RegisterModelResponse) {
