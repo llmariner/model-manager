@@ -60,10 +60,10 @@ export class ModelsService {
         return fm.fetchReq(`/v1/models`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
     static ActivateModel(req, initReq) {
-        return fm.fetchReq(`/v1/models/${req["id==**"]}:activate`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+        return fm.fetchReq(`/v1/models/${req["id"]}:activate`, Object.assign(Object.assign({}, initReq), { method: "POST" }));
     }
     static DeactivateModel(req, initReq) {
-        return fm.fetchReq(`/v1/models/${req["id==**"]}:deactivate`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
+        return fm.fetchReq(`/v1/models/${req["id"]}:deactivate`, Object.assign(Object.assign({}, initReq), { method: "POST" }));
     }
 }
 export class ModelsWorkerService {

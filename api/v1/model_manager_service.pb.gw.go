@@ -227,14 +227,6 @@ func request_ModelsService_ActivateModel_0(ctx context.Context, marshaler runtim
 	var protoReq ActivateModelRequest
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
 	var (
 		val string
 		ok  bool
@@ -260,14 +252,6 @@ func request_ModelsService_ActivateModel_0(ctx context.Context, marshaler runtim
 func local_request_ModelsService_ActivateModel_0(ctx context.Context, marshaler runtime.Marshaler, server ModelsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq ActivateModelRequest
 	var metadata runtime.ServerMetadata
-
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
 
 	var (
 		val string
@@ -295,14 +279,6 @@ func request_ModelsService_DeactivateModel_0(ctx context.Context, marshaler runt
 	var protoReq DeactivateModelRequest
 	var metadata runtime.ServerMetadata
 
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
-
 	var (
 		val string
 		ok  bool
@@ -328,14 +304,6 @@ func request_ModelsService_DeactivateModel_0(ctx context.Context, marshaler runt
 func local_request_ModelsService_DeactivateModel_0(ctx context.Context, marshaler runtime.Marshaler, server ModelsServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
 	var protoReq DeactivateModelRequest
 	var metadata runtime.ServerMetadata
-
-	newReader, berr := utilities.IOReaderFactory(req.Body)
-	if berr != nil {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", berr)
-	}
-	if err := marshaler.NewDecoder(newReader()).Decode(&protoReq); err != nil && err != io.EOF {
-		return nil, metadata, status.Errorf(codes.InvalidArgument, "%v", err)
-	}
 
 	var (
 		val string
@@ -463,7 +431,7 @@ func RegisterModelsServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/ActivateModel", runtime.WithHTTPPathPattern("/v1/models/{id==**}:activate"))
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/ActivateModel", runtime.WithHTTPPathPattern("/v1/models/{id}:activate"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -486,7 +454,7 @@ func RegisterModelsServiceHandlerServer(ctx context.Context, mux *runtime.ServeM
 		var stream runtime.ServerTransportStream
 		ctx = grpc.NewContextWithServerTransportStream(ctx, &stream)
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeactivateModel", runtime.WithHTTPPathPattern("/v1/models/{id==**}:deactivate"))
+		rctx, err := runtime.AnnotateIncomingContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeactivateModel", runtime.WithHTTPPathPattern("/v1/models/{id}:deactivate"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -628,7 +596,7 @@ func RegisterModelsServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/ActivateModel", runtime.WithHTTPPathPattern("/v1/models/{id==**}:activate"))
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/ActivateModel", runtime.WithHTTPPathPattern("/v1/models/{id}:activate"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -648,7 +616,7 @@ func RegisterModelsServiceHandlerClient(ctx context.Context, mux *runtime.ServeM
 		ctx, cancel := context.WithCancel(req.Context())
 		defer cancel()
 		inboundMarshaler, outboundMarshaler := runtime.MarshalerForRequest(mux, req)
-		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeactivateModel", runtime.WithHTTPPathPattern("/v1/models/{id==**}:deactivate"))
+		rctx, err := runtime.AnnotateContext(ctx, mux, req, "/llmariner.models.server.v1.ModelsService/DeactivateModel", runtime.WithHTTPPathPattern("/v1/models/{id}:deactivate"))
 		if err != nil {
 			runtime.HTTPError(ctx, mux, outboundMarshaler, w, req, err)
 			return
@@ -676,9 +644,9 @@ var (
 
 	pattern_ModelsService_CreateModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1}, []string{"v1", "models"}, ""))
 
-	pattern_ModelsService_ActivateModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 4, 1, 5, 3}, []string{"v1", "models", "=**", "id"}, "activate"))
+	pattern_ModelsService_ActivateModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, "activate"))
 
-	pattern_ModelsService_DeactivateModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 2, 2, 4, 1, 5, 3}, []string{"v1", "models", "=**", "id"}, "deactivate"))
+	pattern_ModelsService_DeactivateModel_0 = runtime.MustPattern(runtime.NewPattern(1, []int{2, 0, 2, 1, 1, 0, 4, 1, 5, 2}, []string{"v1", "models", "id"}, "deactivate"))
 )
 
 var (

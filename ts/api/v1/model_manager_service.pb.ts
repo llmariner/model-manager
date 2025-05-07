@@ -285,10 +285,10 @@ export class ModelsService {
     return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static ActivateModel(req: ActivateModelRequest, initReq?: fm.InitReq): Promise<ActivateModelResponse> {
-    return fm.fetchReq<ActivateModelRequest, ActivateModelResponse>(`/v1/models/${req["id==**"]}:activate`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<ActivateModelRequest, ActivateModelResponse>(`/v1/models/${req["id"]}:activate`, {...initReq, method: "POST"})
   }
   static DeactivateModel(req: DeactivateModelRequest, initReq?: fm.InitReq): Promise<DeactivateModelResponse> {
-    return fm.fetchReq<DeactivateModelRequest, DeactivateModelResponse>(`/v1/models/${req["id==**"]}:deactivate`, {...initReq, method: "POST", body: JSON.stringify(req)})
+    return fm.fetchReq<DeactivateModelRequest, DeactivateModelResponse>(`/v1/models/${req["id"]}:deactivate`, {...initReq, method: "POST"})
   }
 }
 export class ModelsWorkerService {
