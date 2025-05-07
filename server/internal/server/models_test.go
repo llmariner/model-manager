@@ -1017,7 +1017,49 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	as, err = st.GetModelActivationStatus(modelID, defaultTenantID)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
+}
 
+func TestListModels(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	baseModelIDs := []string{"bm0", "bm1"}
+	for _, id := range baseModelIDs {
+		_, err := st.CreateBaseModel(
+			id,
+			"path",
+			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+			"gguf-path",
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			defaultTenantID,
+		)
+		assert.NoError(t, err)
+	}
+
+	modelIDs := []string{"m0", "m1", "m2"}
+	for _, id := range modelIDs {
+		_, err := st.CreateModel(store.ModelSpec{
+			ModelID:        id,
+			OrganizationID: "o0",
+			ProjectID:      defaultProjectID,
+			TenantID:       defaultTenantID,
+			IsPublished:    true,
+			LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		})
+		assert.NoError(t, err)
+	}
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	got, err := wsrv.ListModels(ctx, &v1.ListModelsRequest{})
+	assert.NoError(t, err)
+
+	wantModelIDs := []string{"bm1", "bm0", "m2", "m1", "m0"}
+	assert.Len(t, got.Data, len(wantModelIDs))
+	for i, id := range wantModelIDs {
+		assert.Equal(t, id, got.Data[i].Id)
+	}
 }
 
 func TestValidateIdAndSourceRepository(t *testing.T) {

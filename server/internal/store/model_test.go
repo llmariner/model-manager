@@ -95,6 +95,16 @@ func TestModel(t *testing.T) {
 	assert.Len(t, gotMs, 1)
 	assert.False(t, hasMore)
 
+	gotMs, err = st.ListModelsByTenantID(tenantID)
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, 1)
+	assert.Equal(t, a1.ID, gotMs[0].ID)
+
+	gotMs, err = st.ListModelsByTenantID("tid1")
+	assert.NoError(t, err)
+	assert.Len(t, gotMs, 1)
+	assert.Equal(t, "m1", gotMs[0].ModelID)
+
 	err = st.DeleteModel(modelID, tenantID)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }
