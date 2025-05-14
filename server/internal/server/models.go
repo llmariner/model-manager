@@ -419,6 +419,12 @@ func (s *S) DeleteModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
+	if as, err := getModelActivationStatus(s.store, req.Id, userInfo.TenantID); err != nil {
+		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+	} else if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
+		return nil, status.Errorf(codes.FailedPrecondition, "model %q is active", req.Id)
+	}
+
 	if _, err := s.store.GetBaseModel(req.Id, userInfo.TenantID); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
