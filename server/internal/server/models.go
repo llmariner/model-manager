@@ -426,42 +426,57 @@ func (s *S) DeleteModel(
 
 		// The specified model is not a base-model or the base-model has already been deleted.
 		// Try deleting a fine-tuned model of the specified ID.
-
-		if err := s.store.Transaction(func(tx *gorm.DB) error {
-			if err := store.DeleteModelInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
-				if errors.Is(err, gorm.ErrRecordNotFound) {
-					return status.Errorf(codes.NotFound, "model %q not found", req.Id)
-				}
-				return status.Errorf(codes.Internal, "delete model: %s", err)
-			}
-			if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
-				// Gracefully handle a not found error for backward compatibility.
-				if !errors.Is(err, gorm.ErrRecordNotFound) {
-					return status.Errorf(codes.NotFound, "model activation status %q not found", req.Id)
-				}
-			}
-			return nil
-		}); err != nil {
-			return nil, err
-		}
-
-		return &v1.DeleteModelResponse{
-			Id:      req.Id,
-			Object:  "model",
-			Deleted: true,
-		}, nil
+		return s.deleteFineTunedModel(ctx, req.Id, userInfo.TenantID)
 	}
 
 	// The specified model is a base-model. Delete it.
-	//
+
+	return s.deleteBaseModel(ctx, req.Id, userInfo.TenantID)
+}
+
+func (s *S) deleteFineTunedModel(
+	ctx context.Context,
+	modelID string,
+	tenantID string,
+) (*v1.DeleteModelResponse, error) {
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		if err := store.DeleteModelInTransaction(tx, modelID, tenantID); err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return status.Errorf(codes.NotFound, "model %q not found", modelID)
+			}
+			return status.Errorf(codes.Internal, "delete model: %s", err)
+		}
+		if err := store.DeleteModelActivationStatusInTransaction(tx, modelID, tenantID); err != nil {
+			// Gracefully handle a not found error for backward compatibility.
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return status.Errorf(codes.NotFound, "model activation status %q not found", modelID)
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &v1.DeleteModelResponse{
+		Id:      modelID,
+		Object:  "model",
+		Deleted: true,
+	}, nil
+}
+
+func (s *S) deleteBaseModel(
+	ctx context.Context,
+	modelID string,
+	tenantID string,
+) (*v1.DeleteModelResponse, error) {
 	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
 	// so we should have additional check here.
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
-		if err := store.DeleteBaseModelInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+		if err := store.DeleteBaseModelInTransaction(tx, modelID, tenantID); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Errorf(codes.Internal, "delete model: %s", err)
 			}
-			return status.Errorf(codes.NotFound, "model %q not found", req.Id)
+			return status.Errorf(codes.NotFound, "model %q not found", modelID)
 		}
 
 		// Delete the HFModelRepo if the model is from Hugging Face. Otherwise the same
@@ -471,17 +486,17 @@ func (s *S) DeleteModel(
 		// the Hugging Face repo name and the model ID does not match.
 		//
 		// Also, deleting a HFModelRepo can trigger downloading the remaining undeleted models again, which is not ideal.
-		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, req.Id, userInfo.TenantID); err != nil {
+		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, modelID, tenantID); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", req.Id, err)
+				return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", modelID, err)
 			}
 			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
 		}
 
-		if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, userInfo.TenantID); err != nil {
+		if err := store.DeleteModelActivationStatusInTransaction(tx, modelID, tenantID); err != nil {
 			// Gracefully handle a not found error for backward compatibility.
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
+				return status.Errorf(codes.NotFound, "model activation status for %q not found", modelID)
 			}
 		}
 
@@ -491,7 +506,7 @@ func (s *S) DeleteModel(
 	}
 
 	return &v1.DeleteModelResponse{
-		Id:      req.Id,
+		Id:      modelID,
 		Object:  "model",
 		Deleted: true,
 	}, nil
