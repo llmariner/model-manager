@@ -247,6 +247,66 @@ func TestDeleteModel_BaseModelAndHFModelRepo(t *testing.T) {
 	assert.Empty(t, hfs)
 }
 
+func TestDeleteModel_ActiveBaseModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	_, err := st.CreateBaseModel(
+		"m0",
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf-path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{
+		ModelID:  "m0",
+		TenantID: defaultTenantID,
+		Status:   v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE,
+	})
+	assert.NoError(t, err)
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
+		Id: "m0",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+}
+
+func TestDeleteModel_ActiveFineTunedModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	_, err := st.CreateModel(store.ModelSpec{
+		ModelID:        "m0",
+		OrganizationID: "o0",
+		ProjectID:      defaultProjectID,
+		TenantID:       defaultTenantID,
+		IsPublished:    true,
+		LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+	})
+	assert.NoError(t, err)
+
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{
+		ModelID:  "m0",
+		TenantID: defaultTenantID,
+		Status:   v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE,
+	})
+	assert.NoError(t, err)
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
+		Id: "m0",
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.FailedPrecondition, status.Code(err))
+}
+
 func TestGetAndListModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
