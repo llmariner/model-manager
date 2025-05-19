@@ -27,8 +27,7 @@ func NewClient(ctx context.Context, o laws.NewS3ClientOptions) (*Client, error) 
 
 // Client is a client for S3.
 type Client struct {
-	svc    *s3.Client
-	bucket string
+	svc *s3.Client
 }
 
 // Upload uses an upload manager to upload a file to an object in a bucket.
