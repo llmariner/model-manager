@@ -175,6 +175,65 @@ func TestModels_Pagination(t *testing.T) {
 	}
 }
 
+func TestListModels_ActivationOrder(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	// Create base models.
+	_, err := st.CreateBaseModel(
+		"bm0",
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf-path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+	_, err = st.CreateBaseModel(
+		"bm1",
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf-path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		defaultTenantID,
+	)
+	assert.NoError(t, err)
+
+	// Create fine tuned models.
+	for _, id := range []string{"m0", "m1"} {
+		_, err := st.CreateModel(store.ModelSpec{
+			ModelID:        id,
+			OrganizationID: "o0",
+			ProjectID:      defaultProjectID,
+			TenantID:       defaultTenantID,
+			IsPublished:    true,
+			LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		})
+		assert.NoError(t, err)
+	}
+
+	// Activation statuses
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm0", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE})
+	assert.NoError(t, err)
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "m0", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE})
+	assert.NoError(t, err)
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
+	assert.NoError(t, err)
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "m1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
+	assert.NoError(t, err)
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	resp, err := srv.ListModels(ctx, &v1.ListModelsRequest{})
+	assert.NoError(t, err)
+	var ids []string
+	for _, m := range resp.Data {
+		ids = append(ids, m.Id)
+	}
+	assert.Equal(t, []string{"bm0", "m0", "bm1", "m1"}, ids)
+}
+
 func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
