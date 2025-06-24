@@ -75,37 +75,94 @@ func TestModels(t *testing.T) {
 	listResp, err = srv.ListModels(ctx, &v1.ListModelsRequest{})
 	assert.NoError(t, err)
 	assert.Len(t, listResp.Data, 1)
+	// The total items will now include base models if any are present.
+	// Let's add a base model to make this test more robust with the new ListModels logic.
+	_, err = st.CreateBaseModel("bm-del-test", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+	assert.NoError(t, err)
+	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm-del-test", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
+	assert.NoError(t, err)
+
+	listResp, err = srv.ListModels(ctx, &v1.ListModelsRequest{})
+	assert.NoError(t, err)
+	assert.Len(t, listResp.Data, 2) // m1 and bm-del-test
 }
 
-func TestModels_Pagination(t *testing.T) {
+func TestListModels_SortingAndPagination(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
 
-	baseModelIDs := []string{"bm0", "bm1"}
-	for _, id := range baseModelIDs {
-		_, err := st.CreateBaseModel(
-			id,
-			"path",
-			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
-			"gguf-path",
-			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-			defaultTenantID,
-		)
+	modelsToCreate := []struct {
+		id               string
+		isBase           bool
+		status           v1.ActivationStatus
+		sourceRepository v1.SourceRepository // Only for base models
+		modelFileLoc     string              // Only for fine-tuned
+		baseModelID      string              // Only for fine-tuned
+	}{
+		// Active Base Models
+		{id: "abm1", isBase: true, status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE},
+		{id: "abm2", isBase: true, status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE},
+		// Active Fine-Tuned Models
+		{id: "aftm1", isBase: false, status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, baseModelID: "abm1", modelFileLoc: "s3://bucket/aftm1"},
+		{id: "aftm2", isBase: false, status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, baseModelID: "abm2", modelFileLoc: "s3://bucket/aftm2"},
+		// Inactive Base Models
+		{id: "ibm1", isBase: true, status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA},
+		{id: "ibm2", isBase: true, status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE},
+		// Inactive Fine-Tuned Models
+		{id: "iftm1", isBase: false, status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, baseModelID: "ibm1", modelFileLoc: "s3://bucket/iftm1"},
+		{id: "iftm2", isBase: false, status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, baseModelID: "ibm2", modelFileLoc: "s3://bucket/iftm2"},
+		// Unspecified status models (should be treated as inactive or lowest priority)
+		{id: "ubm1", isBase: true, status: v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, sourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE},
+		{id: "uftm1", isBase: false, status: v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, baseModelID: "ubm1", modelFileLoc: "s3://bucket/uftm1"},
+	}
+
+	for _, m := range modelsToCreate {
+		if m.isBase {
+			_, err := st.CreateBaseModel(m.id, "path/"+m.id, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf/"+m.id, m.sourceRepository, defaultTenantID)
+			assert.NoError(t, err)
+		} else {
+			// Ensure base model for fine-tuned model exists or CreateModel will fail.
+			// For simplicity, we assume base models like "abm1" are created if used.
+			// Let's ensure the base models for fine-tuned ones are created first or available.
+			// The test data has baseModelID pointing to other models in the list.
+			if _, errLookup := st.GetBaseModel(m.baseModelID, defaultTenantID); errors.Is(errLookup, gorm.ErrRecordNotFound) {
+				// If base model doesn't exist, create a dummy one for test purposes
+				_, errCreateBase := st.CreateBaseModel(m.baseModelID, "path/"+m.baseModelID, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf/"+m.baseModelID, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+				assert.NoError(t, errCreateBase)
+				// Also set its activation status, default to inactive for simplicity if not specified
+				errStatus := st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: m.baseModelID, TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
+				assert.NoError(t, errStatus)
+			}
+
+			_, err := st.CreateModel(store.ModelSpec{
+				ModelID:           m.id,
+				TenantID:          defaultTenantID,
+				OrganizationID:    "orgTest",
+				ProjectID:         defaultProjectID,
+				IsPublished:       true,
+				LoadingStatus:     v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+				BaseModelID:       m.baseModelID,
+				ModelFileLocation: m.modelFileLoc,
+				SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, // Fine-tuned models have specific source repo
+			})
+			assert.NoError(t, err)
+		}
+		err := st.CreateModelActivationStatus(&store.ModelActivationStatus{
+			ModelID:  m.id,
+			TenantID: defaultTenantID,
+			Status:   m.status,
+		})
 		assert.NoError(t, err)
 	}
 
-	const orgID = "o0"
-	modelIDs := []string{"m0", "m1", "m2"}
-	for _, id := range modelIDs {
-		_, err := st.CreateModel(store.ModelSpec{
-			ModelID:        id,
-			OrganizationID: orgID,
-			ProjectID:      defaultProjectID,
-			TenantID:       defaultTenantID,
-			IsPublished:    true,
-			LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
-		})
-		assert.NoError(t, err)
+	// Expected order: Active Base (abm1, abm2), Active FT (aftm1, aftm2),
+	// Inactive Base (ibm1, ibm2), Inactive FT (iftm1, iftm2),
+	// Unspecified Base (ubm1), Unspecified FT (uftm1)
+	// IDs are sorted alphabetically within each group by the sort implementation.
+	expectedFullOrder := []string{
+		"abm1", "abm2", "aftm1", "aftm2", "ibm1", "ibm2", "iftm1", "iftm2", "ubm1", "uftm1",
 	}
 
 	tcs := []struct {
@@ -113,64 +170,74 @@ func TestModels_Pagination(t *testing.T) {
 		req          *v1.ListModelsRequest
 		wantModelIDs []string
 		wantHasMore  bool
+		wantTotal    int32
 	}{
 		{
-			name: "page 0 with limit 2",
-			req: &v1.ListModelsRequest{
-				Limit: 2,
-			},
-			wantModelIDs: []string{
-				"bm0", "bm1",
-			},
-			wantHasMore: true,
+			name:         "list all models",
+			req:          &v1.ListModelsRequest{Limit: 20}, // Limit greater than total models
+			wantModelIDs: expectedFullOrder,
+			wantHasMore:  false,
+			wantTotal:    int32(len(expectedFullOrder)),
 		},
 		{
-			name: "page 1 with limit 2",
-			req: &v1.ListModelsRequest{
-				Limit: 2,
-				After: "bm1",
-			},
-			wantModelIDs: []string{
-				"m0", "m1",
-			},
-			wantHasMore: true,
+			name:         "page 1 limit 3",
+			req:          &v1.ListModelsRequest{Limit: 3},
+			wantModelIDs: []string{"abm1", "abm2", "aftm1"},
+			wantHasMore:  true,
+			wantTotal:    int32(len(expectedFullOrder)),
 		},
 		{
-			name: "page 2 with limit 2",
-			req: &v1.ListModelsRequest{
-				Limit: 2,
-				After: "m1",
-			},
-			wantModelIDs: []string{
-				"m2",
-			},
-			wantHasMore: false,
+			name:         "page 2 limit 3 after aftm1",
+			req:          &v1.ListModelsRequest{Limit: 3, After: "aftm1"},
+			wantModelIDs: []string{"aftm2", "ibm1", "ibm2"},
+			wantHasMore:  true,
+			wantTotal:    int32(len(expectedFullOrder)),
 		},
 		{
-			name: "page 0 with limit 3",
-			req: &v1.ListModelsRequest{
-				Limit: 3,
-			},
-			wantModelIDs: []string{
-				"bm0", "bm1", "m0",
-			},
-			wantHasMore: true,
+			name:         "page 3 limit 3 after ibm2",
+			req:          &v1.ListModelsRequest{Limit: 3, After: "ibm2"},
+			wantModelIDs: []string{"iftm1", "iftm2", "ubm1"},
+			wantHasMore:  true,
+			wantTotal:    int32(len(expectedFullOrder)),
+		},
+		{
+			name:         "page 4 limit 3 after ubm1",
+			req:          &v1.ListModelsRequest{Limit: 3, After: "ubm1"},
+			wantModelIDs: []string{"uftm1"},
+			wantHasMore:  false,
+			wantTotal:    int32(len(expectedFullOrder)),
+		},
+		{
+			name:         "limit 0 (default page size)",
+			req:          &v1.ListModelsRequest{Limit: 0}, // default is 50
+			wantModelIDs: expectedFullOrder,               // Assuming defaultPageSize > len(expectedFullOrder)
+			wantHasMore:  false,
+			wantTotal:    int32(len(expectedFullOrder)),
+		},
+		{
+			name: "invalid after ID",
+			req:  &v1.ListModelsRequest{Limit: 5, After: "nonexistent"},
+			// wantModelIDs: nil, // Expect error, not specific model IDs
 		},
 	}
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			srv := New(st, testr.New(t))
-			ctx := fakeAuthInto(context.Background())
-
 			got, err := srv.ListModels(ctx, tc.req)
-			assert.NoError(t, err)
-			assert.Len(t, got.Data, len(tc.wantModelIDs))
-			for i, g := range got.Data {
-				assert.Equal(t, tc.wantModelIDs[i], g.Id)
+			if tc.name == "invalid after ID" {
+				assert.Error(t, err)
+				assert.Equal(t, codes.InvalidArgument, status.Code(err))
+				return
 			}
-			assert.Equal(t, tc.wantHasMore, got.HasMore)
-			assert.Equal(t, int32(5), got.TotalItems)
+
+			assert.NoError(t, err)
+			var gotIDs []string
+			for _, m := range got.Data {
+				gotIDs = append(gotIDs, m.Id)
+			}
+			assert.Equal(t, tc.wantModelIDs, gotIDs, "Model IDs mismatch")
+			assert.Equal(t, tc.wantHasMore, got.HasMore, "HasMore mismatch")
+			assert.Equal(t, tc.wantTotal, got.TotalItems, "TotalItems mismatch")
 		})
 	}
 }
