@@ -190,99 +190,42 @@ func (s *S) ListModels(
 		limit = maxPageSize
 	}
 
-	// Models are now sorted by activation status (active first) within each category:
-	// 1) Base models (ordered by activation status, then model ID)
-	// 2) Fine-tuned models (ordered by activation status, then model ID)
-	// This provides a better user experience by prioritizing active models.
-
-	var (
-		afterBaseModel *store.BaseModel
-		afterModel     *store.Model
-	)
-	if req.After != "" {
-		// Find a corresponding base model or a fine-tuned model
-		var err error
-		afterBaseModel, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
-		if err != nil {
-			return nil, err
-		}
-	}
+	// Models are now sorted by activation status across categories:
+	// 1) Active Base Models
+	// 2) Active Fine-Tuned Models
+	// 3) Inactive Base Models
+	// 4) Inactive Fine-Tuned Models
+	// This provides better user experience by prioritizing ALL active models first.
 
 	totalItems, err := s.getTotalItems(userInfo)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
 	}
 
-	var modelProtos []*v1.Model
-
-	if req.After == "" || afterBaseModel != nil {
-		// First include base models.
-		var afterModelID string
-		if afterBaseModel != nil {
-			afterModelID = afterBaseModel.ModelID
-		}
-
-		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterModelID, int(limit), req.IncludeLoadingModels)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-		}
-		for _, m := range bms {
-			as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-			if err != nil {
-				return nil, err
-			}
-			mp, err := baseToModelProto(m, as)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-			}
-			modelProtos = append(modelProtos, mp)
-		}
-
-		if hasMore {
-			// No need to query fine-tuned models.
-			return &v1.ListModelsResponse{
-				Object:     "list",
-				Data:       modelProtos,
-				HasMore:    hasMore,
-				TotalItems: totalItems,
-			}, nil
-		}
-
-		if len(modelProtos) == int(limit) {
-			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model to know the value of `HasMore`.
-			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", 1, req.IncludeLoadingModels)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "list models: %s", err)
-			}
-			return &v1.ListModelsResponse{
-				Object:     "list",
-				Data:       modelProtos,
-				HasMore:    len(ms) > 0,
-				TotalItems: totalItems,
-			}, nil
-		}
-	}
-
-	// Next include fine-tuned models.
-
-	var afterModelID string
-	if afterModel != nil {
-		afterModelID = afterModel.ModelID
-	}
-
-	// Then add generated models owned by the project.
-	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterModelID, int(limit)-len(modelProtos), req.IncludeLoadingModels)
+	// Get all base models and fine-tuned models, then sort by activation status
+	allModels, err := s.getAllModelsSortedByActivationStatus(userInfo, req.IncludeLoadingModels)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+		return nil, err
 	}
 
-	for _, m := range ms {
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-		if err != nil {
-			return nil, err
+	// Handle pagination with "after" parameter
+	startIndex := 0
+	if req.After != "" {
+		startIndex = s.findStartIndexForAfter(allModels, req.After)
+		if startIndex == -1 {
+			return nil, status.Errorf(codes.InvalidArgument, "invalid after parameter: %s", req.After)
 		}
-		modelProtos = append(modelProtos, toModelProto(m, as))
+		startIndex++ // Start after the found model
 	}
+
+	// Apply pagination
+	endIndex := startIndex + int(limit)
+	hasMore := endIndex < len(allModels)
+	if endIndex > len(allModels) {
+		endIndex = len(allModels)
+	}
+
+	modelProtos := allModels[startIndex:endIndex]
 
 	return &v1.ListModelsResponse{
 		Object:     "list",
@@ -290,6 +233,77 @@ func (s *S) ListModels(
 		HasMore:    hasMore,
 		TotalItems: totalItems,
 	}, nil
+}
+
+// getAllModelsSortedByActivationStatus gets all models (base and fine-tuned) and sorts them by activation status.
+func (s *S) getAllModelsSortedByActivationStatus(userInfo *auth.UserInfo, includeLoadingModels bool) ([]*v1.Model, error) {
+	// Get all base models
+	baseModels, err := s.store.ListAllBaseModels(userInfo.TenantID, includeLoadingModels)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list all base models: %s", err)
+	}
+
+	// Get all fine-tuned models
+	fineTunedModels, err := s.store.ListAllModelsByProjectID(userInfo.ProjectID, true, includeLoadingModels)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list all models by project: %s", err)
+	}
+
+	// Convert to proto and group by activation status
+	var activeBaseModels, inactiveBaseModels []*v1.Model
+	var activeFineTunedModels, inactiveFineTunedModels []*v1.Model
+
+	// Process base models
+	for _, m := range baseModels {
+		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		mp, err := baseToModelProto(m, as)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "base to proto: %s", err)
+		}
+
+		if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
+			activeBaseModels = append(activeBaseModels, mp)
+		} else {
+			inactiveBaseModels = append(inactiveBaseModels, mp)
+		}
+	}
+
+	// Process fine-tuned models
+	for _, m := range fineTunedModels {
+		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		if err != nil {
+			return nil, err
+		}
+		mp := toModelProto(m, as)
+
+		if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
+			activeFineTunedModels = append(activeFineTunedModels, mp)
+		} else {
+			inactiveFineTunedModels = append(inactiveFineTunedModels, mp)
+		}
+	}
+
+	// Combine in the desired order: Active Base -> Active Fine-Tuned -> Inactive Base -> Inactive Fine-Tuned
+	var allModels []*v1.Model
+	allModels = append(allModels, activeBaseModels...)
+	allModels = append(allModels, activeFineTunedModels...)
+	allModels = append(allModels, inactiveBaseModels...)
+	allModels = append(allModels, inactiveFineTunedModels...)
+
+	return allModels, nil
+}
+
+// findStartIndexForAfter finds the index of the model with the given ID in the sorted list.
+func (s *S) findStartIndexForAfter(allModels []*v1.Model, afterModelID string) int {
+	for i, model := range allModels {
+		if model.Id == afterModelID {
+			return i
+		}
+	}
+	return -1
 }
 
 func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, error) {

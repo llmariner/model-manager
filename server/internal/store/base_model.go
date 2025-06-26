@@ -154,26 +154,17 @@ func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
-// ListBaseModelsWithPagination finds base models with pagination. Models are returned ordered by activation status (active first), then by model ID.
+// ListBaseModelsWithPagination finds base models with pagination. Models are returned with an ascending order of model IDs.
 func (s *S) ListBaseModelsWithPagination(tenantID string, afterModelID string, limit int, includeLoadingModels bool) ([]*BaseModel, bool, error) {
 	var ms []*BaseModel
-	q := s.db.Table("base_models").
-		Select("base_models.*").
-		Joins("LEFT JOIN model_activation_statuses ON base_models.model_id = model_activation_statuses.model_id AND base_models.tenant_id = model_activation_statuses.tenant_id").
-		Where("base_models.tenant_id = ?", tenantID)
-
+	q := s.db.Where("tenant_id = ?", tenantID)
 	if afterModelID != "" {
-		// For composite sorting with pagination, we need to handle the cursor properly
-		// This simplified approach maintains compatibility while providing improved sorting
-		q = q.Where("base_models.model_id > ?", afterModelID)
+		q = q.Where("model_id > ?", afterModelID)
 	}
 	if !includeLoadingModels {
-		q = q.Where("(base_models.loading_status is null OR base_models.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+		q = q.Where("(loading_status is null OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	}
-
-	// Order by activation status (ACTIVE=1 first, then INACTIVE=2, UNSPECIFIED=0 treated as INACTIVE), then by model_id
-	// COALESCE treats NULL activation status as INACTIVE (2) for backward compatibility
-	if err := q.Order("COALESCE(model_activation_statuses.status, 2), base_models.model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
+	if err := q.Order("model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
 		return nil, false, err
 	}
 
@@ -183,6 +174,19 @@ func (s *S) ListBaseModelsWithPagination(tenantID string, afterModelID string, l
 		hasMore = true
 	}
 	return ms, hasMore, nil
+}
+
+// ListAllBaseModels finds all base models for a tenant (without pagination). Used for activation status-based sorting.
+func (s *S) ListAllBaseModels(tenantID string, includeLoadingModels bool) ([]*BaseModel, error) {
+	var ms []*BaseModel
+	q := s.db.Where("tenant_id = ?", tenantID)
+	if !includeLoadingModels {
+		q = q.Where("(loading_status is null OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	}
+	if err := q.Order("model_id").Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
 }
 
 // ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
