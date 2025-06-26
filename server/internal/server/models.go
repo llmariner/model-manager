@@ -190,6 +190,11 @@ func (s *S) ListModels(
 		limit = maxPageSize
 	}
 
+	// Models are now sorted by activation status (active first) within each category:
+	// 1) Base models (ordered by activation status, then model ID)
+	// 2) Fine-tuned models (ordered by activation status, then model ID)
+	// This provides a better user experience by prioritizing active models.
+
 	var (
 		afterBaseModel *store.BaseModel
 		afterModel     *store.Model
