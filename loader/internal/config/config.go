@@ -26,8 +26,9 @@ func (c *AssumeRoleConfig) validate() error {
 
 // S3Config is the S3 configuration.
 type S3Config struct {
-	EndpointURL string `yaml:"endpointUrl"`
-	Region      string `yaml:"region"`
+	EndpointURL        string `yaml:"endpointUrl"`
+	Region             string `yaml:"region"`
+	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
 
 	Bucket string `yaml:"bucket"`
 
@@ -74,11 +75,12 @@ type HuggingFaceDownloaderConfig struct {
 
 // S3DownloaderConfig is the S3 downloader configuration.
 type S3DownloaderConfig struct {
-	EndpointURL string `yaml:"endpointUrl"`
-	Region      string `yaml:"region"`
-	Bucket      string `yaml:"bucket"`
-	PathPrefix  string `yaml:"pathPrefix"`
-	IsPublic    bool   `yaml:"isPublic"`
+	EndpointURL        string `yaml:"endpointUrl"`
+	Region             string `yaml:"region"`
+	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+	Bucket             string `yaml:"bucket"`
+	PathPrefix         string `yaml:"pathPrefix"`
+	IsPublic           bool   `yaml:"isPublic"`
 
 	AssumeRole *AssumeRoleConfig `yaml:"assumeRole"`
 }

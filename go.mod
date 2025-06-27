@@ -11,7 +11,7 @@ require (
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.20.0
 	github.com/llmariner/api-usage v1.2.0
 	github.com/llmariner/cluster-manager v1.5.1
-	github.com/llmariner/common v0.15.0
+	github.com/llmariner/common v0.19.0
 	github.com/llmariner/rbac-manager v1.9.1
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0

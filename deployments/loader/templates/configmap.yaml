@@ -10,6 +10,7 @@ data:
       s3:
         endpointUrl: {{ .Values.global.objectStore.s3.endpointUrl }}
         region: {{ .Values.global.objectStore.s3.region }}
+        insecureSkipVerify: {{ .Values.global.objectStore.s3.insecureSkipVerify }}
         bucket: {{ .Values.global.objectStore.s3.bucket }}
         pathPrefix: {{ .Values.objectStore.s3.pathPrefix }}
         baseModelPathPrefix: {{ .Values.objectStore.s3.baseModelPathPrefix }}
@@ -25,6 +26,7 @@ data:
       s3:
         endpointUrl: {{ .Values.downloader.s3.endpointUrl }}
         region: {{ .Values.downloader.s3.region }}
+        insecureSkipVerify: {{ .Values.downloader.s3.insecureSkipVerify }}
         bucket: {{ .Values.downloader.s3.bucket }}
         pathPrefix: {{ .Values.downloader.s3.pathPrefix }}
         isPublic: {{ .Values.downloader.s3.isPublic }}
