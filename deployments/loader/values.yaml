@@ -22,6 +22,9 @@ global:
       # +docs:property
       # endpointUrl: ""
 
+      # Specify whether SSL certificate verification is disabled.
+      insecureSkipVerify: false
+
       # Optional AssumeRole.
       # For more information, see [AssumeRole](https://docs.aws.amazon.com/STS/latest/APIReference/API_AssumeRole.html).
       # +docs:property
@@ -127,6 +130,8 @@ downloader:
     endpointUrl: https://s3.us-west-2.amazonaws.com
     # The region name where the models are stored.
     region: us-west-2
+    # Specify whether SSL certificate verification is disabled.
+    insecureSkipVerify: false
     # The bucket name where the models are stored.
     bucket: llm-operator-models
     # The path prefix of the model.

@@ -158,8 +158,9 @@ func (f *mdFactory) Create(ctx context.Context, sourceRepository v1.SourceReposi
 	case v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE:
 		s3c := f.c.Downloader.S3
 		opts := laws.NewS3ClientOptions{
-			EndpointURL: s3c.EndpointURL,
-			Region:      s3c.Region,
+			EndpointURL:        s3c.EndpointURL,
+			Region:             s3c.Region,
+			InsecureSkipVerify: s3c.InsecureSkipVerify,
 			// Use anonymous credentials when the S3 bucket is public and we don't want to use the credential that is
 			// used to upload the model.
 			UseAnonymousCredentials: s3c.IsPublic,
@@ -187,8 +188,9 @@ func (f *mdFactory) Create(ctx context.Context, sourceRepository v1.SourceReposi
 func newS3Client(ctx context.Context, c *config.Config) (loader.S3Client, error) {
 	s := c.ObjectStore.S3
 	opts := laws.NewS3ClientOptions{
-		EndpointURL: s.EndpointURL,
-		Region:      s.Region,
+		EndpointURL:        s.EndpointURL,
+		Region:             s.Region,
+		InsecureSkipVerify: s.InsecureSkipVerify,
 	}
 	if ar := s.AssumeRole; ar != nil {
 		opts.AssumeRole = &laws.AssumeRole{
