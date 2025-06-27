@@ -150,7 +150,7 @@ func (s *S) createBaseModel(
 		}
 
 		if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
-			ModelID:  req.Id,
+			ModelID:  m.ModelID,
 			TenantID: userInfo.TenantID,
 			Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
 		}); err != nil {
@@ -865,6 +865,8 @@ func (s *WS) CreateBaseModel(
 				return status.Errorf(codes.Internal, "create base model: %s", err)
 			}
 
+			// TODO(kenji): Create a HuggingFace repo here.
+
 			if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
 				ModelID:  req.Id,
 				TenantID: clusterInfo.TenantID,
@@ -1054,6 +1056,28 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 			s.log.Info("Delete the model as base models have been successfully created", "modelID", req.Id)
 			if err := s.store.DeleteBaseModel(req.Id, clusterInfo.TenantID); err != nil {
 				return nil, status.Errorf(codes.Internal, "delete base model: %s", err)
+			}
+			if err := s.store.Transaction(func(tx *gorm.DB) error {
+				if err := store.DeleteBaseModelInTransaction(tx, req.Id, clusterInfo.TenantID); err != nil {
+					return status.Errorf(codes.Internal, "delete model: %s", err)
+				}
+
+				if err := store.DeleteHFModelRepoInTransactionByModelID(tx, req.Id, clusterInfo.TenantID); err != nil {
+					if !errors.Is(err, gorm.ErrRecordNotFound) {
+						return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", req.Id, err)
+					}
+					// Ignore. The HFModelRepo does not exist for old models or non-HF models.
+				}
+
+				if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, clusterInfo.TenantID); err != nil {
+					// Gracefully handle a not found error for backward compatibility.
+					if !errors.Is(err, gorm.ErrRecordNotFound) {
+						return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
+					}
+				}
+				return nil
+			}); err != nil {
+				return nil, err
 			}
 		}
 	case *v1.UpdateBaseModelLoadingStatusRequest_Failure_:
