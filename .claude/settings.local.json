@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(make test:*)",
+      "Bash(make lint)",
+      "Bash(go fmt:*)",
+      "Bash(make go-lint-all:*)",
+      "Bash(find:*)",
+      "Bash(git checkout:*)",
+      "Bash(git add:*)",
+      "Bash(git push:*)",
+      "Bash(gh repo view:*)"
+    ],
+    "deny": []
+  }
+}

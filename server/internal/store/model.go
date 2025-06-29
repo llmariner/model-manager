@@ -131,6 +131,22 @@ func (s *S) ListModelsByProjectIDWithPagination(
 	return ms, hasMore, nil
 }
 
+// ListAllModelsByProjectID finds all models for a project (without pagination). Used for activation status-based sorting.
+func (s *S) ListAllModelsByProjectID(projectID string, onlyPublished bool, includeLoadingModels bool) ([]*Model, error) {
+	var ms []*Model
+	q := s.db.Where("project_id = ?", projectID)
+	if onlyPublished {
+		q = q.Where("is_published = true")
+	}
+	if !includeLoadingModels {
+		q = q.Where("(loading_status is null OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	}
+	if err := q.Order("model_id").Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
 // ListUnloadedModels returns all unloaded base models with the requested loading status.
 func (s *S) ListUnloadedModels(tenantID string) ([]*Model, error) {
 	var ms []*Model
