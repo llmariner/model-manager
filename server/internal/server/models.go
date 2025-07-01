@@ -209,22 +209,22 @@ func (s *S) ListModels(
 		if err != nil {
 			return nil, err
 		}
-		var status v1.ActivationStatus
+		var as v1.ActivationStatus
 		var isBase bool
 		if bm != nil {
-			status, err = getModelActivationStatus(s.store, bm.ModelID, bm.TenantID)
+			as, err = getModelActivationStatus(s.store, bm.ModelID, bm.TenantID)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 			}
 			isBase = true
 		} else {
-			status, err = getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+			as, err = getModelActivationStatus(s.store, m.ModelID, m.TenantID)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 			}
 			isBase = false
 		}
-		startCat = activationCategory(isBase, status)
+		startCat = activationCategory(isBase, as)
 		afterID = req.After
 	}
 

@@ -360,14 +360,14 @@ func TestListBaseModelsByActivationStatusWithPagination(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	got, hasMore, err := st.ListBaseModelsByActivationStatusWithPagination(tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 2, true)
+	got, hasMore, err := st.ListBaseModelsByActivationStatusWithPagination(tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
 	assert.NoError(t, err)
-	assert.Len(t, got, 2)
+	assert.Len(t, got, 1)
 	assert.True(t, hasMore)
-	assert.Equal(t, []string{"bm0", "bm1"}, []string{got[0].ModelID, got[1].ModelID})
+	assert.Equal(t, []string{"bm0"}, []string{got[0].ModelID})
 
-	got, hasMore, err = st.ListBaseModelsByActivationStatusWithPagination(tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm1", 2, true)
+	got, hasMore, err = st.ListBaseModelsByActivationStatusWithPagination(tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm0", 2, true)
 	assert.NoError(t, err)
-	assert.Len(t, got, 0)
+	assert.Len(t, got, 1)
 	assert.False(t, hasMore)
 }
