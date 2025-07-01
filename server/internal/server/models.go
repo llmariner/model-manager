@@ -202,79 +202,126 @@ func (s *S) ListModels(
 		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
 	}
 
-	// Retrieve all base models and fine tuned models for sorting.
-	totalBase, err := s.store.CountBaseModels(userInfo.TenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "count base models: %s", err)
-	}
-	baseModels, _, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, "", int(totalBase), req.IncludeLoadingModels)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-	}
-
-	totalFine, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "count models: %s", err)
-	}
-	fineModels, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", int(totalFine), req.IncludeLoadingModels)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
-	}
-
-	var activeBase, inactiveBase []*v1.Model
-	for _, m := range baseModels {
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-		if err != nil {
-			return nil, err
-		}
-		mp, err := baseToModelProto(m, as)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-		}
-		if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
-			activeBase = append(activeBase, mp)
-		} else {
-			inactiveBase = append(inactiveBase, mp)
-		}
-	}
-
-	var activeFine, inactiveFine []*v1.Model
-	for _, m := range fineModels {
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-		if err != nil {
-			return nil, err
-		}
-		mp := toModelProto(m, as)
-		if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
-			activeFine = append(activeFine, mp)
-		} else {
-			inactiveFine = append(inactiveFine, mp)
-		}
-	}
-
-	// Concatenate in the desired order.
-	ordered := append(append(append(activeBase, activeFine...), inactiveBase...), inactiveFine...)
-
-	// Locate the starting index for pagination if After is specified.
-	start := 0
+	startCat := 0
+	afterID := ""
 	if req.After != "" {
-		for i, m := range ordered {
-			if m.Id == req.After {
-				start = i + 1
+		bm, m, err := s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
+		if err != nil {
+			return nil, err
+		}
+		var status v1.ActivationStatus
+		var isBase bool
+		if bm != nil {
+			status, err = getModelActivationStatus(s.store, bm.ModelID, bm.TenantID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+			}
+			isBase = true
+		} else {
+			status, err = getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+			}
+			isBase = false
+		}
+		startCat = activationCategory(isBase, status)
+		afterID = req.After
+	}
+
+	categories := []struct {
+		isBase bool
+		status v1.ActivationStatus
+	}{
+		{true, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE},
+		{false, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE},
+		{true, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE},
+		{false, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE},
+	}
+
+	var modelProtos []*v1.Model
+	hasMore := false
+
+	for idx := startCat; idx < len(categories); idx++ {
+		cat := categories[idx]
+		after := ""
+		if idx == startCat {
+			after = afterID
+		}
+		remain := int(limit) - len(modelProtos)
+		if remain <= 0 {
+			break
+		}
+
+		if cat.isBase {
+			bms, more, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "list base models: %s", err)
+			}
+			for _, m := range bms {
+				mp, err := baseToModelProto(m, cat.status)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+				}
+				modelProtos = append(modelProtos, mp)
+			}
+			if len(modelProtos) >= int(limit) {
+				hasMore = more || idx < len(categories)-1
+				break
+			}
+			if more {
+				hasMore = true
+				break
+			}
+		} else {
+			ms, more, err := s.store.ListModelsByActivationStatusWithPagination(userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "list models: %s", err)
+			}
+			for _, m := range ms {
+				modelProtos = append(modelProtos, toModelProto(m, cat.status))
+			}
+			if len(modelProtos) >= int(limit) {
+				hasMore = more || idx < len(categories)-1
+				break
+			}
+			if more {
+				hasMore = true
 				break
 			}
 		}
 	}
 
-	end := start + int(limit)
-	if end > len(ordered) {
-		end = len(ordered)
+	if !hasMore && len(modelProtos) < int(limit) {
+		for idx := activationCategory(true, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE); idx < len(categories); idx++ {
+			if idx <= startCat {
+				continue
+			}
+			cat := categories[idx]
+			if cat.isBase {
+				bms, _, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, "", 1, req.IncludeLoadingModels)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "list base models: %s", err)
+				}
+				if len(bms) > 0 {
+					hasMore = true
+					break
+				}
+			} else {
+				ms, _, err := s.store.ListModelsByActivationStatusWithPagination(userInfo.ProjectID, true, cat.status, "", 1, req.IncludeLoadingModels)
+				if err != nil {
+					return nil, status.Errorf(codes.Internal, "list models: %s", err)
+				}
+				if len(ms) > 0 {
+					hasMore = true
+					break
+				}
+			}
+		}
 	}
 
-	hasMore := end < len(ordered)
 	return &v1.ListModelsResponse{
 		Object:     "list",
-		Data:       ordered[start:end],
+		Data:       modelProtos,
 		HasMore:    hasMore,
 		TotalItems: totalItems,
 	}, nil
@@ -1222,6 +1269,19 @@ func isBaseModelLoaded(m *store.BaseModel) bool {
 
 func isModelLoaded(m *store.Model) bool {
 	return toLoadingStatus(m.LoadingStatus) == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED
+}
+
+func activationCategory(isBase bool, status v1.ActivationStatus) int {
+	if status == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
+		if isBase {
+			return 0
+		}
+		return 1
+	}
+	if isBase {
+		return 2
+	}
+	return 3
 }
 
 func validateIDAndSourceRepository(id string, sourceRepository v1.SourceRepository) error {

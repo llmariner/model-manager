@@ -131,6 +131,40 @@ func (s *S) ListModelsByProjectIDWithPagination(
 	return ms, hasMore, nil
 }
 
+// ListModelsByActivationStatusWithPagination finds models filtered by activation status with pagination.
+// Models are returned with an ascending order of model IDs.
+func (s *S) ListModelsByActivationStatusWithPagination(
+	projectID string,
+	onlyPublished bool,
+	status v1.ActivationStatus,
+	afterModelID string,
+	limit int,
+	includeLoadingModels bool,
+) ([]*Model, bool, error) {
+	var ms []*Model
+	q := s.db.Joins("JOIN model_activation_statuses ON model_activation_statuses.model_id = models.model_id AND model_activation_statuses.tenant_id = models.tenant_id").
+		Where("models.project_id = ? AND model_activation_statuses.status = ?", projectID, status)
+	if onlyPublished {
+		q = q.Where("models.is_published = true")
+	}
+	if afterModelID != "" {
+		q = q.Where("models.model_id > ?", afterModelID)
+	}
+	if !includeLoadingModels {
+		q = q.Where("(models.loading_status is null OR models.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	}
+	if err := q.Order("models.model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
+		return nil, false, err
+	}
+
+	var hasMore bool
+	if len(ms) > limit {
+		ms = ms[:limit]
+		hasMore = true
+	}
+	return ms, hasMore, nil
+}
+
 // ListUnloadedModels returns all unloaded base models with the requested loading status.
 func (s *S) ListUnloadedModels(tenantID string) ([]*Model, error) {
 	var ms []*Model
