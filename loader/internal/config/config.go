@@ -220,10 +220,6 @@ type Config struct {
 
 // Validate validates the configuration.
 func (c *Config) Validate() error {
-	if len(c.BaseModels) == 0 {
-		return fmt.Errorf("baseModels must be set")
-	}
-
 	for _, m := range c.Models {
 		if err := m.validate(); err != nil {
 			return fmt.Errorf("model: %s", err)
