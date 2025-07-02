@@ -191,8 +191,12 @@ func (s *S) ListModels(
 	}
 
 	// Validate the "after" parameter if provided.
+	var afterBase *store.BaseModel
+	var afterModel *store.Model
 	if req.After != "" {
-		if _, _, err := s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels); err != nil {
+		var err error
+		afterBase, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
+		if err != nil {
 			return nil, err
 		}
 	}
@@ -205,20 +209,16 @@ func (s *S) ListModels(
 	startCat := 0
 	afterID := ""
 	if req.After != "" {
-		bm, m, err := s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
-		if err != nil {
-			return nil, err
-		}
 		var as v1.ActivationStatus
 		var isBase bool
-		if bm != nil {
-			as, err = getModelActivationStatus(s.store, bm.ModelID, bm.TenantID)
+		if afterBase != nil {
+			as, err = getModelActivationStatus(s.store, afterBase.ModelID, afterBase.TenantID)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 			}
 			isBase = true
 		} else {
-			as, err = getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+			as, err = getModelActivationStatus(s.store, afterModel.ModelID, afterModel.TenantID)
 			if err != nil {
 				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 			}
@@ -240,7 +240,7 @@ func (s *S) ListModels(
 
 	var modelProtos []*v1.Model
 	hasMore := false
-
+	endCat := -1
 	for idx := startCat; idx < len(categories); idx++ {
 		cat := categories[idx]
 		after := ""
@@ -249,6 +249,8 @@ func (s *S) ListModels(
 		}
 		remain := int(limit) - len(modelProtos)
 		if remain <= 0 {
+			// Filled the limit
+			endCat = idx
 			break
 		}
 
@@ -264,10 +266,6 @@ func (s *S) ListModels(
 				}
 				modelProtos = append(modelProtos, mp)
 			}
-			if len(modelProtos) >= int(limit) {
-				hasMore = more || idx < len(categories)-1
-				break
-			}
 			if more {
 				hasMore = true
 				break
@@ -280,10 +278,6 @@ func (s *S) ListModels(
 			for _, m := range ms {
 				modelProtos = append(modelProtos, toModelProto(m, cat.status))
 			}
-			if len(modelProtos) >= int(limit) {
-				hasMore = more || idx < len(categories)-1
-				break
-			}
 			if more {
 				hasMore = true
 				break
@@ -291,8 +285,9 @@ func (s *S) ListModels(
 		}
 	}
 
-	if !hasMore && len(modelProtos) < int(limit) {
-		for idx := activationCategory(true, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE); idx < len(categories); idx++ {
+	// If we set the endCat, that means we hit the limit above and need to see if there are more models in future categories
+	if !hasMore && endCat >= 0 {
+		for idx := endCat; idx < len(categories); idx++ {
 			if idx <= startCat {
 				continue
 			}
