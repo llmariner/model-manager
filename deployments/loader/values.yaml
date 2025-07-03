@@ -149,7 +149,9 @@ downloader:
   # The configuration used when get models and base-models from huggingface.
   huggingFace:
     # The path to the cash directory for the huggingface hub.
-    cacheDir: "/home/.cache/huggingface/hub"
+    cacheDir: "/tmp/huggingface/.cache/huggingface/hub"
+    # The path to the hugging face home directory.
+    homeDir: "/tmp/huggingface"
 
   # The configuration used when get models from ollama.
   ollama:
