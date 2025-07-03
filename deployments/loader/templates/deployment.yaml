@@ -77,6 +77,8 @@ spec:
               key: {{ .apiKeyKey }}
         {{- end }}
         {{- end }}
+        - name: HF_HOME
+          value: {{ .Values.downloader.huggingFace.homeDir }}
         {{- with .Values.global.worker.registrationKeySecret }}
         {{- if .name }}
         - name: LLMO_CLUSTER_REGISTRATION_KEY
