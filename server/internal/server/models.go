@@ -1051,9 +1051,21 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		//
 		// In this case, we should delete the requested model ID.
 		if bm.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING {
-			s.log.Info("Delete the model as base models have been successfully created", "modelID", req.Id)
-			if err := s.store.DeleteBaseModel(req.Id, clusterInfo.TenantID); err != nil {
-				return nil, status.Errorf(codes.Internal, "delete base model: %s", err)
+			s.log.Info("Delete the model as a new base model has been successfully created", "modelID", req.Id)
+			if err := s.store.Transaction(func(tx *gorm.DB) error {
+				if err := store.DeleteBaseModelInTransaction(tx, req.Id, clusterInfo.TenantID); err != nil {
+					return status.Errorf(codes.Internal, "delete model: %s", err)
+				}
+
+				if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, clusterInfo.TenantID); err != nil {
+					// Gracefully handle a not-found error for backward compatibility.
+					if !errors.Is(err, gorm.ErrRecordNotFound) {
+						return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
+					}
+				}
+				return nil
+			}); err != nil {
+				return nil, err
 			}
 		}
 	case *v1.UpdateBaseModelLoadingStatusRequest_Failure_:
