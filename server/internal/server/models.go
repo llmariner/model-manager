@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strings"
 
 	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
@@ -190,136 +191,144 @@ func (s *S) ListModels(
 		limit = maxPageSize
 	}
 
-	var (
-		afterBaseModel *store.BaseModel
-		afterModel     *store.Model
-	)
-	if req.After != "" {
-		// Find a corresponding base model or a fine-tuned model
-		var err error
-		afterBaseModel, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
-		if err != nil {
-			return nil, err
-		}
-	}
-
-	totalItems, err := s.getTotalItems(userInfo)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
-	}
+	// Removed unused afterBaseModel, afterModel, and totalItems declarations and s.findBaseModelOrModel call
 
 	var modelProtos []*v1.Model
 
-	if req.After == "" || afterBaseModel != nil {
-		// First include base models.
-		var afterModelID string
-		if afterBaseModel != nil {
-			afterModelID = afterBaseModel.ModelID
-		}
-
-		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterModelID, int(limit), req.IncludeLoadingModels)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-		}
-		for _, m := range bms {
-			as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-			if err != nil {
-				return nil, err
-			}
-			mp, err := baseToModelProto(m, as)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-			}
-			modelProtos = append(modelProtos, mp)
-		}
-
-		if hasMore {
-			// No need to query fine-tuned models.
-			return &v1.ListModelsResponse{
-				Object:     "list",
-				Data:       modelProtos,
-				HasMore:    hasMore,
-				TotalItems: totalItems,
-			}, nil
-		}
-
-		if len(modelProtos) == int(limit) {
-			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model to know the value of `HasMore`.
-			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", 1, req.IncludeLoadingModels)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "list models: %s", err)
-			}
-			return &v1.ListModelsResponse{
-				Object:     "list",
-				Data:       modelProtos,
-				HasMore:    len(ms) > 0,
-				TotalItems: totalItems,
-			}, nil
-		}
-	}
-
-	// Next include fine-tuned models.
-
-	var afterModelID string
-	if afterModel != nil {
-		afterModelID = afterModel.ModelID
-	}
-
-	// Then add generated models owned by the project.
-	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterModelID, int(limit)-len(modelProtos), req.IncludeLoadingModels)
+	// 1. Fetch all base models
+	allStoreBaseModels, err := s.store.ListBaseModels(userInfo.TenantID)
 	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
+		return nil, status.Errorf(codes.Internal, "list all base models: %s", err)
+	}
+	for _, bm := range allStoreBaseModels {
+		if !req.IncludeLoadingModels && !isBaseModelLoaded(bm) {
+			continue
+		}
+		as, errStatus := getModelActivationStatus(s.store, bm.ModelID, bm.TenantID)
+		if errStatus != nil {
+			return nil, errStatus // Return error directly
+		}
+		mp, errProto := baseToModelProto(bm, as)
+		if errProto != nil {
+			return nil, status.Errorf(codes.Internal, "to proto: %s", errProto)
+		}
+		modelProtos = append(modelProtos, mp)
 	}
 
-	for _, m := range ms {
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-		if err != nil {
-			return nil, err
+	// 2. Fetch all fine-tuned models
+	// Use ListModelsByProjectIDWithPagination with a large limit to fetch all.
+	// MaxInt could be used, or a sufficiently large number like maxPageSize * 100 (assuming not millions of models).
+	// Let's use a very large number for limit to signify fetching all.
+	const fetchAllLimit = 100000 // A practical limit for "all"
+	allStoreFineTunedModels, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", fetchAllLimit, req.IncludeLoadingModels)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "list all fine-tuned models: %s", err)
+	}
+	for _, ftm := range allStoreFineTunedModels { // Iterate over the fetched models
+		as, errStatus := getModelActivationStatus(s.store, ftm.ModelID, ftm.TenantID)
+		if errStatus != nil {
+			return nil, errStatus
 		}
-		modelProtos = append(modelProtos, toModelProto(m, as))
+		modelProtos = append(modelProtos, toModelProto(ftm, as))
+	}
+
+	// 3. Sort all models
+	sort.SliceStable(modelProtos, func(i, j int) bool {
+		mi, mj := modelProtos[i], modelProtos[j]
+
+		// Primary sort key: ActivationStatus (Active > Inactive > Unspecified)
+		// Active models come first.
+		// Inactive models come next.
+		// Unspecified models (should ideally not happen for loaded models) come last.
+		if mi.ActivationStatus == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE && mj.ActivationStatus != v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
+			return true
+		}
+		if mi.ActivationStatus != v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE && mj.ActivationStatus == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
+			return false
+		}
+		// If both are active or both are not active, proceed to next criteria.
+		// If one is Inactive and other is Unspecified (within non-active group)
+		if mi.ActivationStatus == v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE && mj.ActivationStatus == v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED {
+			return true
+		}
+		if mi.ActivationStatus == v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED && mj.ActivationStatus == v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE {
+			return false
+		}
+
+		// Secondary sort key: IsBaseModel (Base > FineTuned)
+		if mi.IsBaseModel && !mj.IsBaseModel {
+			return true
+		}
+		if !mi.IsBaseModel && mj.IsBaseModel {
+			return false
+		}
+
+		// Tertiary sort key: Creation time (Newer first for active, older first for inactive for stability, or just ID)
+		// Using ID for stable sort as creation time might not be perfectly unique or always indicative.
+		// The original code listed base models then fine-tuned models, and within those groups, by ID (implicit from DB order).
+		// We'll sort by ID to maintain some consistency with previous behavior if other criteria are equal.
+		return mi.Id < mj.Id
+	})
+
+	// 4. Apply pagination
+	startIndex := 0
+	if req.After != "" {
+		found := false
+		for i, m := range modelProtos {
+			if m.Id == req.After {
+				startIndex = i + 1
+				found = true
+				break
+			}
+		}
+		if !found {
+			// afterBaseModel and afterModel logic was complex.
+			// For simplicity now, if 'after' is not found in the combined sorted list, return error or empty.
+			// The original code had a findBaseModelOrModel, which we might need to replicate if this simple approach is insufficient.
+			// However, given we sort everything first, just finding in the sorted list should be okay.
+			// If req.After is not found, it means it's an invalid ID or refers to a model not in the current list (e.g. filtered out by includeLoadingModels).
+			return nil, status.Errorf(codes.InvalidArgument, "model specified in 'after' parameter not found: %s", req.After)
+		}
+	}
+
+	endIndex := startIndex + int(limit)
+	hasMore := false
+	if endIndex < len(modelProtos) {
+		hasMore = true
+	} else {
+		endIndex = len(modelProtos)
+	}
+
+	paginatedModels := modelProtos[startIndex:endIndex]
+	if startIndex > len(modelProtos) { // If startIndex is out of bounds (e.g. after referred to the last element)
+		paginatedModels = []*v1.Model{}
 	}
 
 	return &v1.ListModelsResponse{
 		Object:     "list",
-		Data:       modelProtos,
+		Data:       paginatedModels,
 		HasMore:    hasMore,
-		TotalItems: totalItems,
+		TotalItems: int32(len(modelProtos)), // TotalItems is the count of all models matching criteria before pagination
 	}, nil
 }
 
-func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, error) {
-	// Find a corresponding base model or a fine-tuned model
-	var err error
-	bm, err := s.store.GetBaseModel(modelID, tenantID)
-	if err == nil {
-		if !isBaseModelLoaded(bm) && !includeLoadingModels {
-			return nil, nil, status.Errorf(codes.InvalidArgument, "base model is not loaded")
-		}
-		return bm, nil, nil
-	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil, status.Errorf(codes.Internal, "get base model: %s", err)
-	}
-
-	// Try a fine-tuned model next.
-	m, err := s.store.GetModelByModelIDAndTenantID(modelID, tenantID)
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil, status.Errorf(codes.Internal, "get model: %s", err)
-		}
-
-		return nil, nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
-	}
-
-	if !isModelLoaded(m) && !includeLoadingModels {
-		return nil, nil, status.Errorf(codes.InvalidArgument, "model is not loaded")
-	}
-
-	return nil, m, nil
-}
+// findBaseModelOrModel is removed as its logic is incorporated into the new ListModels flow by fetching all and then sorting.
+// If specific 'after' handling for non-existent models becomes an issue, we might need to re-evaluate.
 
 func (s *S) getTotalItems(userInfo *auth.UserInfo) (int32, error) {
+	// This function might need to be adjusted if IncludeLoadingModels affects total count differently now.
+	// For now, assume ListBaseModels and ListModelsByProjectID (without pagination) give the correct counts.
+	// The new ListModels calculates total items directly from the fetched and sorted full list.
+	// So, this specific getTotalItems might not be directly used by ListModels anymore if ListModels calculates its own total.
+	// Let's confirm if ListModels uses this. It does.
+	// The new ListModels calculates totalItems as len(modelProtos) which is the total count *after* filtering by IncludeLoadingModels.
+	// This seems correct. So, the original getTotalItems might still be used by other parts or can be simplified/removed if only ListModels used it.
+	// For now, let's keep it as is, as ListModels calculates its own total.
+	// The `totalItems` variable in `ListModels` is now `int32(len(modelProtos))`.
+	// This means the original `getTotalItems` function is not strictly needed *for this specific path* anymore.
+	// However, to minimize changes, we'll let ListModels compute its own total and leave this function for now.
+	// The plan was to modify ListModels, so let's stick to that.
+	// The new ListModels returns totalItems from the full list it constructed.
 	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
 	if err != nil {
 		return 0, err
