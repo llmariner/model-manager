@@ -191,8 +191,10 @@ func (s *S) ListModels(
 	}
 
 	// Validate the "after" parameter if provided.
-	var afterBase *store.BaseModel
-	var afterModel *store.Model
+	var (
+		afterBase  *store.BaseModel
+		afterModel *store.Model
+	)
 	if req.After != "" {
 		var err error
 		afterBase, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
@@ -206,28 +208,7 @@ func (s *S) ListModels(
 		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
 	}
 
-	startCat := 0
-	afterID := ""
-	if req.After != "" {
-		var as v1.ActivationStatus
-		var isBase bool
-		if afterBase != nil {
-			as, err = getModelActivationStatus(s.store, afterBase.ModelID, afterBase.TenantID)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
-			}
-			isBase = true
-		} else {
-			as, err = getModelActivationStatus(s.store, afterModel.ModelID, afterModel.TenantID)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
-			}
-			isBase = false
-		}
-		startCat = activationCategory(isBase, as)
-		afterID = req.After
-	}
-
+	// Categories for sorting models
 	categories := []struct {
 		isBase bool
 		status v1.ActivationStatus
@@ -238,60 +219,92 @@ func (s *S) ListModels(
 		{false, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE},
 	}
 
+	// Returns the index of the category based on whether it's a base model and its activation status.
+	var activationCategory = func(isBase bool, status v1.ActivationStatus) int {
+		for i, cat := range categories {
+			if cat.isBase == isBase && cat.status == status {
+				return i
+			}
+		}
+		return -1 // or return error
+	}
+
+	// Starting category for sorting
+	startCat := 0
+	afterID := ""
+	if req.After != "" {
+		if afterBase != nil {
+			as, err := getModelActivationStatus(s.store, afterBase.ModelID, afterBase.TenantID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+			}
+			startCat = activationCategory(true, as)
+		} else {
+			as, err := getModelActivationStatus(s.store, afterModel.ModelID, afterModel.TenantID)
+			if err != nil {
+				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+			}
+			startCat = activationCategory(false, as)
+		}
+		afterID = req.After
+	}
+
 	var modelProtos []*v1.Model
 	hasMore := false
 	endCat := -1
-	for idx := startCat; idx < len(categories); idx++ {
-		cat := categories[idx]
-		after := ""
-		if idx == startCat {
-			after = afterID
-		}
-		remain := int(limit) - len(modelProtos)
-		if remain <= 0 {
-			// Filled the limit
-			endCat = idx
-			break
-		}
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		for idx := startCat; idx < len(categories); idx++ {
+			cat := categories[idx]
+			after := ""
+			if idx == startCat {
+				after = afterID
+			}
+			remain := int(limit) - len(modelProtos)
+			if remain <= 0 {
+				// Filled the limit
+				endCat = idx
+				break
+			}
 
-		if cat.isBase {
-			bms, more, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-			}
-			for _, m := range bms {
-				mp, err := baseToModelProto(m, cat.status)
+			if cat.isBase {
+				bms, more, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
 				if err != nil {
-					return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+					return status.Errorf(codes.Internal, "list base models: %s", err)
 				}
-				modelProtos = append(modelProtos, mp)
-			}
-			if more {
-				hasMore = true
-				break
-			}
-		} else {
-			ms, more, err := s.store.ListModelsByActivationStatusWithPagination(userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "list models: %s", err)
-			}
-			for _, m := range ms {
-				modelProtos = append(modelProtos, toModelProto(m, cat.status))
-			}
-			if more {
-				hasMore = true
-				break
+				for _, m := range bms {
+					mp, err := baseToModelProto(m, cat.status)
+					if err != nil {
+						return status.Errorf(codes.Internal, "to proto: %s", err)
+					}
+					modelProtos = append(modelProtos, mp)
+				}
+				if more {
+					hasMore = true
+					break
+				}
+			} else {
+				ms, more, err := s.store.ListModelsByActivationStatusWithPagination(userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
+				if err != nil {
+					return status.Errorf(codes.Internal, "list models: %s", err)
+				}
+				for _, m := range ms {
+					modelProtos = append(modelProtos, toModelProto(m, cat.status))
+				}
+				if more {
+					hasMore = true
+					break
+				}
 			}
 		}
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	// If we set the endCat, that means we hit the limit above and need to see if there are more models in future categories
 	if !hasMore && endCat >= 0 {
-		for idx := endCat; idx < len(categories); idx++ {
-			if idx <= startCat {
-				continue
-			}
-			cat := categories[idx]
+		for i := endCat; i < len(categories); i++ {
+			cat := categories[i]
 			if cat.isBase {
 				bms, _, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, "", 1, req.IncludeLoadingModels)
 				if err != nil {
@@ -1264,19 +1277,6 @@ func isBaseModelLoaded(m *store.BaseModel) bool {
 
 func isModelLoaded(m *store.Model) bool {
 	return toLoadingStatus(m.LoadingStatus) == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED
-}
-
-func activationCategory(isBase bool, status v1.ActivationStatus) int {
-	if status == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
-		if isBase {
-			return 0
-		}
-		return 1
-	}
-	if isBase {
-		return 2
-	}
-	return 3
 }
 
 func validateIDAndSourceRepository(id string, sourceRepository v1.SourceRepository) error {
