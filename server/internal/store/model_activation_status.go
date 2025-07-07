@@ -32,8 +32,13 @@ func CreateModelActivationStatusInTransaction(tx *gorm.DB, status *ModelActivati
 
 // GetModelActivationStatus retrieves the model activation status.
 func (s *S) GetModelActivationStatus(modelID, tenantID string) (*ModelActivationStatus, error) {
+	return GetModelActivationStatusInTransaction(s.db, modelID, tenantID)
+}
+
+// GetModelActivationStatusInTransaction retrieves the model activation status in a transaction.
+func GetModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) (*ModelActivationStatus, error) {
 	status := &ModelActivationStatus{}
-	if err := s.db.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).First(status).Error; err != nil {
+	if err := tx.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).First(status).Error; err != nil {
 		return nil, err
 	}
 

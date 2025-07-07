@@ -144,6 +144,8 @@ func (s *S) ListModelsByActivationStatusWithPagination(
 	return ListModelsByActivationStatusWithPaginationInTransaction(s.db, projectID, onlyPublished, status, afterModelID, limit, includeLoadingModels)
 }
 
+// ListModelsByActivationStatusWithPaginationInTransaction finds models filtered by activation status with pagination in a transaction.
+// Models are returned with an ascending order of model IDs.
 func ListModelsByActivationStatusWithPaginationInTransaction(
 	tx *gorm.DB,
 	projectID string,

@@ -232,29 +232,32 @@ func (s *S) ListModels(
 	// Starting category for sorting
 	startCat := 0
 	afterID := ""
-	if req.After != "" {
-		if afterBase != nil {
-			as, err := getModelActivationStatus(s.store, afterBase.ModelID, afterBase.TenantID)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
-			}
-			startCat = activationCategory(true, as)
-		} else {
-			as, err := getModelActivationStatus(s.store, afterModel.ModelID, afterModel.TenantID)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
-			}
-			startCat = activationCategory(false, as)
-		}
-		afterID = req.After
-	}
 
+	// Declare output variables before transaction scope
 	var modelProtos []*v1.Model
 	hasMore := false
-	endCat := -1
 
 	// Determine what models to list in a transaction in case models change state
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
+
+		if req.After != "" {
+			if afterBase != nil {
+				as, err := getModelActivationStatusInTransaction(tx, afterBase.ModelID, afterBase.TenantID)
+				if err != nil {
+					return status.Errorf(codes.Internal, "get model activation status: %s", err)
+				}
+				startCat = activationCategory(true, as)
+			} else {
+				as, err := getModelActivationStatusInTransaction(tx, afterModel.ModelID, afterModel.TenantID)
+				if err != nil {
+					return status.Errorf(codes.Internal, "get model activation status: %s", err)
+				}
+				startCat = activationCategory(false, as)
+			}
+			afterID = req.After
+		}
+
+		endCat := -1
 		for idx := startCat; idx < len(categories); idx++ {
 			cat := categories[idx]
 			after := ""
@@ -446,6 +449,18 @@ func getModel(st *store.S, modelID, tenantID string, includeLoadingModel bool) (
 
 func getModelActivationStatus(st *store.S, modelID, tenantID string) (v1.ActivationStatus, error) {
 	status, err := st.GetModelActivationStatus(modelID, tenantID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
+		}
+		// For backward compatibility.
+		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, nil
+	}
+	return status.Status, nil
+}
+
+func getModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) (v1.ActivationStatus, error) {
+	status, err := store.GetModelActivationStatusInTransaction(tx, modelID, tenantID)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err

@@ -188,6 +188,8 @@ func (s *S) ListBaseModelsByActivationStatusWithPagination(
 	return ListBaseModelsByActivationStatusWithPaginationInTransaction(s.db, tenantID, status, afterModelID, limit, includeLoadingModels)
 }
 
+// ListBaseModelsByActivationStatusWithPaginationInTransaction finds base models filtered by activation status with pagination in a transaction.
+// Models are returned with an ascending order of model IDs.
 func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 	tx *gorm.DB,
 	tenantID string,
