@@ -141,8 +141,20 @@ func (s *S) ListModelsByActivationStatusWithPagination(
 	limit int,
 	includeLoadingModels bool,
 ) ([]*Model, bool, error) {
+	return ListModelsByActivationStatusWithPaginationInTransaction(s.db, projectID, onlyPublished, status, afterModelID, limit, includeLoadingModels)
+}
+
+func ListModelsByActivationStatusWithPaginationInTransaction(
+	tx *gorm.DB,
+	projectID string,
+	onlyPublished bool,
+	status v1.ActivationStatus,
+	afterModelID string,
+	limit int,
+	includeLoadingModels bool,
+) ([]*Model, bool, error) {
 	var ms []*Model
-	q := s.db.Joins("JOIN model_activation_statuses AS mas ON mas.model_id = models.model_id AND mas.tenant_id = models.tenant_id").
+	q := tx.Joins("JOIN model_activation_statuses AS mas ON mas.model_id = models.model_id AND mas.tenant_id = models.tenant_id").
 		Where("models.project_id = ? AND mas.status = ?", projectID, status)
 	if onlyPublished {
 		q = q.Where("models.is_published = true")

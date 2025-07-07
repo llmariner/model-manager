@@ -185,8 +185,19 @@ func (s *S) ListBaseModelsByActivationStatusWithPagination(
 	limit int,
 	includeLoadingModels bool,
 ) ([]*BaseModel, bool, error) {
+	return ListBaseModelsByActivationStatusWithPaginationInTransaction(s.db, tenantID, status, afterModelID, limit, includeLoadingModels)
+}
+
+func ListBaseModelsByActivationStatusWithPaginationInTransaction(
+	tx *gorm.DB,
+	tenantID string,
+	status v1.ActivationStatus,
+	afterModelID string,
+	limit int,
+	includeLoadingModels bool,
+) ([]*BaseModel, bool, error) {
 	var ms []*BaseModel
-	q := s.db.Joins("JOIN model_activation_statuses ON model_activation_statuses.model_id = base_models.model_id AND model_activation_statuses.tenant_id = base_models.tenant_id").
+	q := tx.Joins("JOIN model_activation_statuses ON model_activation_statuses.model_id = base_models.model_id AND model_activation_statuses.tenant_id = base_models.tenant_id").
 		Where("base_models.tenant_id = ? AND model_activation_statuses.status = ?", tenantID, status)
 	if afterModelID != "" {
 		q = q.Where("base_models.model_id > ?", afterModelID)

@@ -252,6 +252,8 @@ func (s *S) ListModels(
 	var modelProtos []*v1.Model
 	hasMore := false
 	endCat := -1
+
+	// Determine what models to list in a transaction in case models change state
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
 		for idx := startCat; idx < len(categories); idx++ {
 			cat := categories[idx]
@@ -267,7 +269,7 @@ func (s *S) ListModels(
 			}
 
 			if cat.isBase {
-				bms, more, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
+				bms, more, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
 				if err != nil {
 					return status.Errorf(codes.Internal, "list base models: %s", err)
 				}
@@ -283,7 +285,7 @@ func (s *S) ListModels(
 					break
 				}
 			} else {
-				ms, more, err := s.store.ListModelsByActivationStatusWithPagination(userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
+				ms, more, err := store.ListModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
 				if err != nil {
 					return status.Errorf(codes.Internal, "list models: %s", err)
 				}
@@ -296,35 +298,36 @@ func (s *S) ListModels(
 				}
 			}
 		}
-		return nil
-	}); err != nil {
-		return nil, err
-	}
 
-	// If we set the endCat, that means we hit the limit above and need to see if there are more models in future categories
-	if !hasMore && endCat >= 0 {
-		for i := endCat; i < len(categories); i++ {
-			cat := categories[i]
-			if cat.isBase {
-				bms, _, err := s.store.ListBaseModelsByActivationStatusWithPagination(userInfo.TenantID, cat.status, "", 1, req.IncludeLoadingModels)
-				if err != nil {
-					return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-				}
-				if len(bms) > 0 {
-					hasMore = true
-					break
-				}
-			} else {
-				ms, _, err := s.store.ListModelsByActivationStatusWithPagination(userInfo.ProjectID, true, cat.status, "", 1, req.IncludeLoadingModels)
-				if err != nil {
-					return nil, status.Errorf(codes.Internal, "list models: %s", err)
-				}
-				if len(ms) > 0 {
-					hasMore = true
-					break
+		// If we set the endCat, that means we hit the limit above and need to see if there are more models in future categories
+		if !hasMore && endCat >= 0 {
+			for i := endCat; i < len(categories); i++ {
+				cat := categories[i]
+				if cat.isBase {
+					bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, "", 1, req.IncludeLoadingModels)
+					if err != nil {
+						return status.Errorf(codes.Internal, "list base models: %s", err)
+					}
+					if len(bms) > 0 {
+						hasMore = true
+						break
+					}
+				} else {
+					ms, _, err := store.ListModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.ProjectID, true, cat.status, "", 1, req.IncludeLoadingModels)
+					if err != nil {
+						return status.Errorf(codes.Internal, "list models: %s", err)
+					}
+					if len(ms) > 0 {
+						hasMore = true
+						break
+					}
 				}
 			}
 		}
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return &v1.ListModelsResponse{
