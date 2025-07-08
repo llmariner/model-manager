@@ -230,15 +230,18 @@ func (s *S) ListModels(
 	}
 
 	// Declare output variables before transaction scope
-	var modelProtos []*v1.Model
-	hasMore := false
+	var (
+		modelProtos []*v1.Model
+		hasMore     bool
+	)
 
 	// Determine what models to list in a transaction in case models change state
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
-
 		// Starting category for sorting
-		startCat := 0
-		afterID := ""
+		var (
+			startCat int
+			afterID  string
+		)
 		if req.After != "" {
 			if afterBase != nil {
 				as, err := getModelActivationStatusInTransaction(tx, afterBase.ModelID, afterBase.TenantID)
@@ -257,22 +260,19 @@ func (s *S) ListModels(
 		}
 
 		endCat := -1
-		for idx := startCat; idx < len(categories); idx++ {
-			cat := categories[idx]
-			after := ""
-			if idx == startCat {
-				after = afterID
-			}
-			remain := int(limit) - len(modelProtos)
-			if remain <= 0 {
-				// Filled the limit
-				endCat = idx
-				break
-			}
-
+		for i := startCat; i < len(categories); i++ {
 			// TODO: Investigate a possible speed up by using orderby activation status on both queries up to the max number, then layering the results
-			if cat.isBase {
-				bms, more, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
+			var more bool
+			if cat := categories[i]; cat.isBase {
+				var bms []*store.BaseModel
+				bms, more, err = store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
+					tx,
+					userInfo.TenantID,
+					cat.status,
+					afterID,
+					int(limit)-len(modelProtos),
+					req.IncludeLoadingModels,
+				)
 				if err != nil {
 					return status.Errorf(codes.Internal, "list base models: %s", err)
 				}
@@ -283,47 +283,76 @@ func (s *S) ListModels(
 					}
 					modelProtos = append(modelProtos, mp)
 				}
-				if more {
-					hasMore = true
-					break
-				}
 			} else {
-				ms, more, err := store.ListModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
+				var ms []*store.Model
+				ms, more, err = store.ListModelsByActivationStatusWithPaginationInTransaction(
+					tx,
+					userInfo.ProjectID,
+					true, /* onlyPublished */
+					cat.status,
+					afterID,
+					int(limit)-len(modelProtos),
+					req.IncludeLoadingModels,
+				)
 				if err != nil {
 					return status.Errorf(codes.Internal, "list models: %s", err)
 				}
 				for _, m := range ms {
 					modelProtos = append(modelProtos, toModelProto(m, cat.status))
 				}
-				if more {
+			}
+			if more {
+				hasMore = true
+				break
+			}
+
+			if len(modelProtos) == int(limit) {
+				endCat = i
+				break
+			}
+
+			// Reset afterID for the next category.
+			afterID = ""
+		}
+
+		if hasMore || endCat == -1 {
+			return nil
+		}
+
+		// See if there are more models in future categories.
+		for i := endCat; i < len(categories); i++ {
+			if cat := categories[i]; cat.isBase {
+				bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
+					tx,
+					userInfo.TenantID,
+					cat.status,
+					"", /* afterModelID */
+					1,  /* limit */
+					req.IncludeLoadingModels,
+				)
+				if err != nil {
+					return status.Errorf(codes.Internal, "list base models: %s", err)
+				}
+				if len(bms) > 0 {
 					hasMore = true
 					break
 				}
-			}
-		}
-
-		// If we set the endCat, that means we hit the limit above and need to see if there are more models in future categories
-		if !hasMore && endCat >= 0 {
-			for i := endCat; i < len(categories); i++ {
-				cat := categories[i]
-				if cat.isBase {
-					bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, "", 1, req.IncludeLoadingModels)
-					if err != nil {
-						return status.Errorf(codes.Internal, "list base models: %s", err)
-					}
-					if len(bms) > 0 {
-						hasMore = true
-						break
-					}
-				} else {
-					ms, _, err := store.ListModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.ProjectID, true, cat.status, "", 1, req.IncludeLoadingModels)
-					if err != nil {
-						return status.Errorf(codes.Internal, "list models: %s", err)
-					}
-					if len(ms) > 0 {
-						hasMore = true
-						break
-					}
+			} else {
+				ms, _, err := store.ListModelsByActivationStatusWithPaginationInTransaction(
+					tx,
+					userInfo.ProjectID,
+					true, /* onlyPublished */
+					cat.status,
+					"", /* afterModelID */
+					1,  /* limit */
+					req.IncludeLoadingModels,
+				)
+				if err != nil {
+					return status.Errorf(codes.Internal, "list models: %s", err)
+				}
+				if len(ms) > 0 {
+					hasMore = true
+					break
 				}
 			}
 		}
