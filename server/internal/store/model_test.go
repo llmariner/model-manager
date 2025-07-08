@@ -279,3 +279,45 @@ func TestLoadingStatus(t *testing.T) {
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, got.LoadingStatus)
 	assert.Equal(t, "fake-error", got.LoadingFailureReason)
 }
+
+func TestListModelsByActivationStatusWithPagination(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		tenantID  = "tid0"
+		orgID     = "org0"
+		projectID = "project0"
+	)
+
+	ids := []string{"m0", "m1", "m2"}
+	for i, id := range ids {
+		_, err := st.CreateModel(ModelSpec{
+			ModelID:        id,
+			TenantID:       tenantID,
+			OrganizationID: orgID,
+			ProjectID:      projectID,
+			Path:           "path",
+			IsPublished:    true,
+		})
+		assert.NoError(t, err)
+		status := v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE
+		if i == 2 {
+			status = v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE
+		}
+		err = st.CreateModelActivationStatus(&ModelActivationStatus{ModelID: id, TenantID: tenantID, Status: status})
+		assert.NoError(t, err)
+	}
+
+	got, hasMore, err := ListModelsByActivationStatusWithPaginationInTransaction(st.db, projectID, true, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.True(t, hasMore)
+	assert.Equal(t, []string{ids[0]}, []string{got[0].ModelID})
+
+	got, hasMore, err = ListModelsByActivationStatusWithPaginationInTransaction(st.db, projectID, true, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, ids[0], 2, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.False(t, hasMore)
+	assert.Equal(t, []string{ids[1]}, []string{got[0].ModelID})
+}

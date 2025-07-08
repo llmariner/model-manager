@@ -190,14 +190,14 @@ func (s *S) ListModels(
 		limit = maxPageSize
 	}
 
+	// Validate the "after" parameter if provided.
 	var (
-		afterBaseModel *store.BaseModel
-		afterModel     *store.Model
+		afterBase  *store.BaseModel
+		afterModel *store.Model
 	)
 	if req.After != "" {
-		// Find a corresponding base model or a fine-tuned model
 		var err error
-		afterBaseModel, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
+		afterBase, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
 		if err != nil {
 			return nil, err
 		}
@@ -208,75 +208,129 @@ func (s *S) ListModels(
 		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
 	}
 
+	// Categories for sorting models
+	categories := []struct {
+		isBase bool
+		status v1.ActivationStatus
+	}{
+		{true, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE},
+		{false, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE},
+		{true, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE},
+		{false, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE},
+	}
+
+	// Returns the index of the category based on whether it's a base model and its activation status.
+	var activationCategory = func(isBase bool, status v1.ActivationStatus) int {
+		for i, cat := range categories {
+			if cat.isBase == isBase && cat.status == status {
+				return i
+			}
+		}
+		return -1 // or return error
+	}
+
+	// Declare output variables before transaction scope
 	var modelProtos []*v1.Model
+	hasMore := false
 
-	if req.After == "" || afterBaseModel != nil {
-		// First include base models.
-		var afterModelID string
-		if afterBaseModel != nil {
-			afterModelID = afterBaseModel.ModelID
-		}
+	// Determine what models to list in a transaction in case models change state
+	if err := s.store.Transaction(func(tx *gorm.DB) error {
 
-		bms, hasMore, err := s.store.ListBaseModelsWithPagination(userInfo.TenantID, afterModelID, int(limit), req.IncludeLoadingModels)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "list base models: %s", err)
-		}
-		for _, m := range bms {
-			as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-			if err != nil {
-				return nil, err
+		// Starting category for sorting
+		startCat := 0
+		afterID := ""
+		if req.After != "" {
+			if afterBase != nil {
+				as, err := getModelActivationStatusInTransaction(tx, afterBase.ModelID, afterBase.TenantID)
+				if err != nil {
+					return status.Errorf(codes.Internal, "get model activation status: %s", err)
+				}
+				startCat = activationCategory(true, as)
+			} else {
+				as, err := getModelActivationStatusInTransaction(tx, afterModel.ModelID, afterModel.TenantID)
+				if err != nil {
+					return status.Errorf(codes.Internal, "get model activation status: %s", err)
+				}
+				startCat = activationCategory(false, as)
 			}
-			mp, err := baseToModelProto(m, as)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+			afterID = req.After
+		}
+
+		endCat := -1
+		for idx := startCat; idx < len(categories); idx++ {
+			cat := categories[idx]
+			after := ""
+			if idx == startCat {
+				after = afterID
 			}
-			modelProtos = append(modelProtos, mp)
-		}
-
-		if hasMore {
-			// No need to query fine-tuned models.
-			return &v1.ListModelsResponse{
-				Object:     "list",
-				Data:       modelProtos,
-				HasMore:    hasMore,
-				TotalItems: totalItems,
-			}, nil
-		}
-
-		if len(modelProtos) == int(limit) {
-			// No need to query fine-tuned models. Just check if there is at least one fine-tuned model to know the value of `HasMore`.
-			ms, _, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, "", 1, req.IncludeLoadingModels)
-			if err != nil {
-				return nil, status.Errorf(codes.Internal, "list models: %s", err)
+			remain := int(limit) - len(modelProtos)
+			if remain <= 0 {
+				// Filled the limit
+				endCat = idx
+				break
 			}
-			return &v1.ListModelsResponse{
-				Object:     "list",
-				Data:       modelProtos,
-				HasMore:    len(ms) > 0,
-				TotalItems: totalItems,
-			}, nil
+
+			// TODO: Investigate a possible speed up by using orderby activation status on both queries up to the max number, then layering the results
+			if cat.isBase {
+				bms, more, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
+				if err != nil {
+					return status.Errorf(codes.Internal, "list base models: %s", err)
+				}
+				for _, m := range bms {
+					mp, err := baseToModelProto(m, cat.status)
+					if err != nil {
+						return status.Errorf(codes.Internal, "to proto: %s", err)
+					}
+					modelProtos = append(modelProtos, mp)
+				}
+				if more {
+					hasMore = true
+					break
+				}
+			} else {
+				ms, more, err := store.ListModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.ProjectID, true, cat.status, after, remain, req.IncludeLoadingModels)
+				if err != nil {
+					return status.Errorf(codes.Internal, "list models: %s", err)
+				}
+				for _, m := range ms {
+					modelProtos = append(modelProtos, toModelProto(m, cat.status))
+				}
+				if more {
+					hasMore = true
+					break
+				}
+			}
 		}
-	}
 
-	// Next include fine-tuned models.
-
-	var afterModelID string
-	if afterModel != nil {
-		afterModelID = afterModel.ModelID
-	}
-
-	// Then add generated models owned by the project.
-	ms, hasMore, err := s.store.ListModelsByProjectIDWithPagination(userInfo.ProjectID, true, afterModelID, int(limit)-len(modelProtos), req.IncludeLoadingModels)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "list models: %s", err)
-	}
-
-	for _, m := range ms {
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
-		if err != nil {
-			return nil, err
+		// If we set the endCat, that means we hit the limit above and need to see if there are more models in future categories
+		if !hasMore && endCat >= 0 {
+			for i := endCat; i < len(categories); i++ {
+				cat := categories[i]
+				if cat.isBase {
+					bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, "", 1, req.IncludeLoadingModels)
+					if err != nil {
+						return status.Errorf(codes.Internal, "list base models: %s", err)
+					}
+					if len(bms) > 0 {
+						hasMore = true
+						break
+					}
+				} else {
+					ms, _, err := store.ListModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.ProjectID, true, cat.status, "", 1, req.IncludeLoadingModels)
+					if err != nil {
+						return status.Errorf(codes.Internal, "list models: %s", err)
+					}
+					if len(ms) > 0 {
+						hasMore = true
+						break
+					}
+				}
+			}
 		}
-		modelProtos = append(modelProtos, toModelProto(m, as))
+
+		return nil
+	}); err != nil {
+		return nil, err
 	}
 
 	return &v1.ListModelsResponse{
@@ -401,6 +455,14 @@ func getModelActivationStatus(st *store.S, modelID, tenantID string) (v1.Activat
 		}
 		// For backward compatibility.
 		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, nil
+	}
+	return status.Status, nil
+}
+
+func getModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) (v1.ActivationStatus, error) {
+	status, err := store.GetModelActivationStatusInTransaction(tx, modelID, tenantID)
+	if err != nil {
+		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
 	}
 	return status.Status, nil
 }

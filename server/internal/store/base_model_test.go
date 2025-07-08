@@ -341,3 +341,33 @@ func TestUpdateBaseModel(t *testing.T) {
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, m.LoadingStatus)
 	assert.Equal(t, "error", m.LoadingFailureReason)
 }
+
+func TestListBaseModelsByActivationStatusWithPagination(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const tenantID = "t0"
+
+	ids := []string{"bm0", "bm1", "bm2"}
+	for i, id := range ids {
+		_, err := st.CreateBaseModel(id, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
+		assert.NoError(t, err)
+		status := v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE
+		if i == 2 {
+			status = v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE
+		}
+		err = st.CreateModelActivationStatus(&ModelActivationStatus{ModelID: id, TenantID: tenantID, Status: status})
+		assert.NoError(t, err)
+	}
+
+	got, hasMore, err := ListBaseModelsByActivationStatusWithPaginationInTransaction(st.db, tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.True(t, hasMore)
+	assert.Equal(t, []string{"bm0"}, []string{got[0].ModelID})
+
+	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(st.db, tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm0", 2, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.False(t, hasMore)
+}

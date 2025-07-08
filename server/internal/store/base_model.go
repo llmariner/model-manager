@@ -176,6 +176,37 @@ func (s *S) ListBaseModelsWithPagination(tenantID string, afterModelID string, l
 	return ms, hasMore, nil
 }
 
+// ListBaseModelsByActivationStatusWithPaginationInTransaction finds base models filtered by activation status with pagination in a transaction.
+// Models are returned with an ascending order of model IDs.
+func ListBaseModelsByActivationStatusWithPaginationInTransaction(
+	tx *gorm.DB,
+	tenantID string,
+	status v1.ActivationStatus,
+	afterModelID string,
+	limit int,
+	includeLoadingModels bool,
+) ([]*BaseModel, bool, error) {
+	var ms []*BaseModel
+	q := tx.Joins("JOIN model_activation_statuses AS mas ON mas.model_id = base_models.model_id AND mas.tenant_id = base_models.tenant_id").
+		Where("base_models.tenant_id = ? AND mas.status = ?", tenantID, status)
+	if afterModelID != "" {
+		q = q.Where("base_models.model_id > ?", afterModelID)
+	}
+	if !includeLoadingModels {
+		q = q.Where("(base_models.loading_status is null OR base_models.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	}
+	if err := q.Order("base_models.model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
+		return nil, false, err
+	}
+
+	var hasMore bool
+	if len(ms) > limit {
+		ms = ms[:limit]
+		hasMore = true
+	}
+	return ms, hasMore, nil
+}
+
 // ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
 func (s *S) ListUnloadedBaseModels(tenantID string) ([]*BaseModel, error) {
 	var ms []*BaseModel
