@@ -229,10 +229,6 @@ func (s *S) ListModels(
 		return -1 // or return error
 	}
 
-	// Starting category for sorting
-	startCat := 0
-	afterID := ""
-
 	// Declare output variables before transaction scope
 	var modelProtos []*v1.Model
 	hasMore := false
@@ -240,6 +236,9 @@ func (s *S) ListModels(
 	// Determine what models to list in a transaction in case models change state
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
 
+		// Starting category for sorting
+		startCat := 0
+		afterID := ""
 		if req.After != "" {
 			if afterBase != nil {
 				as, err := getModelActivationStatusInTransaction(tx, afterBase.ModelID, afterBase.TenantID)
@@ -271,6 +270,7 @@ func (s *S) ListModels(
 				break
 			}
 
+			// TODO: Investigate a possible speed up by using orderby activation status on both queries up to the max number, then layering the results
 			if cat.isBase {
 				bms, more, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(tx, userInfo.TenantID, cat.status, after, remain, req.IncludeLoadingModels)
 				if err != nil {
@@ -462,11 +462,7 @@ func getModelActivationStatus(st *store.S, modelID, tenantID string) (v1.Activat
 func getModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) (v1.ActivationStatus, error) {
 	status, err := store.GetModelActivationStatusInTransaction(tx, modelID, tenantID)
 	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
-		}
-		// For backward compatibility.
-		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, nil
+		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
 	}
 	return status.Status, nil
 }

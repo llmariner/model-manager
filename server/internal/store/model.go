@@ -131,19 +131,6 @@ func (s *S) ListModelsByProjectIDWithPagination(
 	return ms, hasMore, nil
 }
 
-// ListModelsByActivationStatusWithPagination finds models filtered by activation status with pagination.
-// Models are returned with an ascending order of model IDs.
-func (s *S) ListModelsByActivationStatusWithPagination(
-	projectID string,
-	onlyPublished bool,
-	status v1.ActivationStatus,
-	afterModelID string,
-	limit int,
-	includeLoadingModels bool,
-) ([]*Model, bool, error) {
-	return ListModelsByActivationStatusWithPaginationInTransaction(s.db, projectID, onlyPublished, status, afterModelID, limit, includeLoadingModels)
-}
-
 // ListModelsByActivationStatusWithPaginationInTransaction finds models filtered by activation status with pagination in a transaction.
 // Models are returned with an ascending order of model IDs.
 func ListModelsByActivationStatusWithPaginationInTransaction(

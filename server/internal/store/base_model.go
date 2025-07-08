@@ -176,18 +176,6 @@ func (s *S) ListBaseModelsWithPagination(tenantID string, afterModelID string, l
 	return ms, hasMore, nil
 }
 
-// ListBaseModelsByActivationStatusWithPagination finds base models filtered by activation status with pagination.
-// Models are returned with an ascending order of model IDs.
-func (s *S) ListBaseModelsByActivationStatusWithPagination(
-	tenantID string,
-	status v1.ActivationStatus,
-	afterModelID string,
-	limit int,
-	includeLoadingModels bool,
-) ([]*BaseModel, bool, error) {
-	return ListBaseModelsByActivationStatusWithPaginationInTransaction(s.db, tenantID, status, afterModelID, limit, includeLoadingModels)
-}
-
 // ListBaseModelsByActivationStatusWithPaginationInTransaction finds base models filtered by activation status with pagination in a transaction.
 // Models are returned with an ascending order of model IDs.
 func ListBaseModelsByActivationStatusWithPaginationInTransaction(
@@ -199,8 +187,8 @@ func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 	includeLoadingModels bool,
 ) ([]*BaseModel, bool, error) {
 	var ms []*BaseModel
-	q := tx.Joins("JOIN model_activation_statuses ON model_activation_statuses.model_id = base_models.model_id AND model_activation_statuses.tenant_id = base_models.tenant_id").
-		Where("base_models.tenant_id = ? AND model_activation_statuses.status = ?", tenantID, status)
+	q := tx.Joins("JOIN model_activation_statuses AS mas ON mas.model_id = base_models.model_id AND mas.tenant_id = base_models.tenant_id").
+		Where("base_models.tenant_id = ? AND mas.status = ?", tenantID, status)
 	if afterModelID != "" {
 		q = q.Where("base_models.model_id > ?", afterModelID)
 	}
