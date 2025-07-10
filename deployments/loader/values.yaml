@@ -339,16 +339,10 @@ persistentVolume:
 # volumeMounts: []
 
 # Additional environment variables to add to the model-manager-loader container.
-# Example:
-# env:
-#   - name: HTTP_PROXY
-#     value: "http://proxy.example.com:8080"
-#   - name: HTTPS_PROXY
-#     value: "http://proxy.example.com:8080"
-#   - name: NO_PROXY
-#     value: "localhost,127.0.0.1,.local"
 # +docs:property
-# env: []
+# modelManagerLoader:
+#   env: []
+#   envFrom: []
 
 # This field can be used as a condition when using it as a dependency.
 # This definition is only here as a placeholder such that it is
