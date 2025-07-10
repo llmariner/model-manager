@@ -57,12 +57,14 @@ spec:
             secretKeyRef:
               name: {{ .Values.global.databaseSecret.name }}
               key: {{ .Values.global.databaseSecret.key }}
-        {{- with .Values.modelManagerServer.env }}
+        {{- with index .Values "model-manager-server" }}
+          {{- with .env }}
         {{- toYaml . | nindent 8 }}
-        {{- end }}
-        {{- with .Values.modelManagerServer.envFrom }}
+          {{- end }}
+          {{- with .envFrom }}
         envFrom:
         {{- toYaml . | nindent 8 }}
+          {{- end }}
         {{- end }}
         {{- if .Values.livenessProbe.enabled }}
         livenessProbe:

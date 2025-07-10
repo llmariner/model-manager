@@ -88,7 +88,12 @@ spec:
               key: {{ .key }}
         {{- end }}
         {{- end }}
-        {{- with .Values.env }}
+        # We have to do this because the container names can have '-' characters
+        {{- with index .Values "model-manager-loader"  "env" }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+        {{- with index .Values "model-manager-loader"  "envFrom" }}
+        envFrom:
         {{- toYaml . | nindent 8 }}
         {{- end }}
         resources:
