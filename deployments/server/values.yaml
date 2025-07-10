@@ -267,7 +267,7 @@ securityContext:
 
 # Additional environment variables for the model-manager-server container.
 # +docs:property
-# model-manager-server:
+# modelManagerServer:
 #   env: []
 #   envFrom: []
 

@@ -33,7 +33,7 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-      - name: model-manager-loader
+      - name: modelManagerLoader
         securityContext:
           {{- toYaml .Values.securityContext | nindent 10 }}
         image: "{{ .Values.image.repository }}:{{ default .Chart.Version .Values.version }}"
@@ -89,12 +89,14 @@ spec:
         {{- end }}
         {{- end }}
         # We have to do this because the container names can have '-' characters
-        {{- with index .Values "model-manager-loader"  "env" }}
+        {{- with .Values.modelManagerLoader }}
+          {{- with .env }}
         {{- toYaml . | nindent 8 }}
-        {{- end }}
-        {{- with index .Values "model-manager-loader"  "envFrom" }}
+          {{- end }}
+          {{- with .envFrom }}
         envFrom:
         {{- toYaml . | nindent 8 }}
+          {{- end }}
         {{- end }}
         resources:
           {{- toYaml .Values.resources | nindent 10 }}
