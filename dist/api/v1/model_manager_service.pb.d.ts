@@ -47,7 +47,7 @@ export type ModelFormats = {
     formats?: ModelFormat[];
 };
 export type ModelConfigRuntimeConfigResources = {
-    gpus?: number;
+    gpu?: number;
 };
 export type ModelConfigRuntimeConfig = {
     resources?: ModelConfigRuntimeConfigResources;
