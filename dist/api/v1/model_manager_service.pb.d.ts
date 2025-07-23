@@ -46,6 +46,21 @@ export declare enum QuantizationType {
 export type ModelFormats = {
     formats?: ModelFormat[];
 };
+export type ModelConfigRuntimeConfigResources = {
+    gpus?: number;
+};
+export type ModelConfigRuntimeConfig = {
+    resources?: ModelConfigRuntimeConfigResources;
+    replicas?: number;
+    extra_args?: string[];
+};
+export type ModelConfigClusterAllocationPolicy = {
+    allowed_cluster_ids?: string[];
+};
+export type ModelConfig = {
+    runtime_config?: ModelConfigRuntimeConfig;
+    cluster_allocation_policy?: ModelConfigClusterAllocationPolicy;
+};
 export type Model = {
     id?: string;
     created?: string;
@@ -58,6 +73,7 @@ export type Model = {
     is_base_model?: boolean;
     base_model_id?: string;
     activation_status?: ActivationStatus;
+    config?: ModelConfig;
 };
 export type CreateModelRequest = {
     id?: string;
@@ -66,6 +82,7 @@ export type CreateModelRequest = {
     base_model_id?: string;
     suffix?: string;
     model_file_location?: string;
+    config?: ModelConfig;
 };
 export type ListModelsRequest = {
     include_loading_models?: boolean;
