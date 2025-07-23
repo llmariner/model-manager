@@ -259,7 +259,7 @@
     "RuntimeConfigResources": {
       "type": "object",
       "properties": {
-        "gpus": {
+        "gpu": {
           "type": "integer",
           "format": "int32"
         }

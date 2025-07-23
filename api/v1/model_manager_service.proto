@@ -53,7 +53,7 @@ enum ActivationStatus {
 message ModelConfig {
   message RuntimeConfig {
     message Resources {
-      int32 gpus = 1;
+      int32 gpu = 1;
     }
 
     // resources is the resources required to run the model.
