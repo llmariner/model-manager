@@ -50,6 +50,35 @@ enum ActivationStatus {
   ACTIVATION_STATUS_INACTIVE = 2;
 }
 
+message ModelConfig {
+  message RuntimeConfig {
+    message Resources {
+      int32 gpus = 1;
+    }
+
+    // resources is the resources required to run the model.
+    Resources resources = 1;
+
+    // replicas is the number of replicas to run the model.
+    int32 replicas = 2;
+
+    // extra_args is a list of extra arguments to pass to the model runtime.
+    repeated string extra_args = 3;
+  }
+
+  message ClusterAllocationPolicy {
+    // allowed_cluster_ids is a list of cluster IDs where the model can be allocated.
+    // If this field is empty, the model can be allocated to any cluster.
+    repeated string allowed_cluster_ids = 1;
+  }
+
+  // runtime_config is the runtime configuration of the model.
+  RuntimeConfig runtime_config = 1;
+
+  // cluster_allocation_policy defines the policy to allocate the model to clusters.
+  ClusterAllocationPolicy cluster_allocation_policy = 2;
+}
+
 message Model {
   string id = 1;
   int64 created = 2;
@@ -79,6 +108,8 @@ message Model {
   string base_model_id = 10;
 
   ActivationStatus activation_status = 11;
+
+  ModelConfig config = 12;
 }
 
 message CreateModelRequest {
@@ -92,6 +123,8 @@ message CreateModelRequest {
   // suffix is the suffix of the model. Only set if the model is a fine-tuned model.
   string suffix = 5;
   string model_file_location = 6;
+
+  ModelConfig config = 7;
 }
 
 message ListModelsRequest {
@@ -191,6 +224,8 @@ service ModelsService {
       body: "*"
     };
   }
+
+  // TODO(kenji): Add UpdateModel(Config).
 
   rpc ActivateModel(ActivateModelRequest) returns (ActivateModelResponse) {
     option (google.api.http) = {

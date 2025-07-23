@@ -223,6 +223,48 @@
     }
   },
   "definitions": {
+    "ModelConfigClusterAllocationPolicy": {
+      "type": "object",
+      "properties": {
+        "allowedClusterIds": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "allowed_cluster_ids is a list of cluster IDs where the model can be allocated.\nIf this field is empty, the model can be allocated to any cluster."
+        }
+      }
+    },
+    "ModelConfigRuntimeConfig": {
+      "type": "object",
+      "properties": {
+        "resources": {
+          "$ref": "#/definitions/RuntimeConfigResources",
+          "description": "resources is the resources required to run the model."
+        },
+        "replicas": {
+          "type": "integer",
+          "format": "int32",
+          "description": "replicas is the number of replicas to run the model."
+        },
+        "extraArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "description": "extra_args is a list of extra arguments to pass to the model runtime."
+        }
+      }
+    },
+    "RuntimeConfigResources": {
+      "type": "object",
+      "properties": {
+        "gpus": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
     "protobufAny": {
       "type": "object",
       "properties": {
@@ -341,6 +383,9 @@
         },
         "modelFileLocation": {
           "type": "string"
+        },
+        "config": {
+          "$ref": "#/definitions/v1ModelConfig"
         }
       }
     },
@@ -464,6 +509,9 @@
         },
         "activationStatus": {
           "$ref": "#/definitions/v1ActivationStatus"
+        },
+        "config": {
+          "$ref": "#/definitions/v1ModelConfig"
         }
       }
     },
@@ -481,6 +529,19 @@
         },
         "quantization": {
           "$ref": "#/definitions/v1QuantizationType"
+        }
+      }
+    },
+    "v1ModelConfig": {
+      "type": "object",
+      "properties": {
+        "runtimeConfig": {
+          "$ref": "#/definitions/ModelConfigRuntimeConfig",
+          "description": "runtime_config is the runtime configuration of the model."
+        },
+        "clusterAllocationPolicy": {
+          "$ref": "#/definitions/ModelConfigClusterAllocationPolicy",
+          "description": "cluster_allocation_policy defines the policy to allocate the model to clusters."
         }
       }
     },
