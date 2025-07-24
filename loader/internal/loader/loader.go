@@ -225,7 +225,7 @@ func (l *L) pullAndLoadModels(ctx context.Context) error {
 			continue
 		}
 
-		l.log.Info("Successfully loaded base model", "modelID", resp.ModelId)
+		l.log.Info("Successfully loaded model", "modelID", resp.ModelId)
 		if _, err := l.modelClient.UpdateModelLoadingStatus(actx, &v1.UpdateModelLoadingStatusRequest{
 			Id:            resp.ModelId,
 			LoadingResult: &v1.UpdateModelLoadingStatusRequest_Success_{},
