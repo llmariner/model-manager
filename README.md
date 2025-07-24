@@ -23,11 +23,10 @@ When receiving a `CreateModel` request, `model-manager-server` takes the followi
    When there is such a model, it starts downloading the model files and uploads them to an object store.
 3. Once the upload completes, `model-manager-loader` makes a `CreateBaseModel` RPC call to `model-manager-server`.
 4. `model-manager-server` receives the `CreateBaseModel` RPC call and creates a base model in the database.
-5.  `model-manager-loader` makes an `UpdateModelLoadingStatus` RPC call to `model-manager-server`. The model's loading
-   status is updated to `SUCCEEDED`.
-
- Please note that the base model ID at step 4 can be different from the ID used in the original request as we convert
- "/" to "-" (e.g., `openai/whisper-large` to `openai-whisper-large`).
+   Please note that the base model ID at this step can be different from the ID used in the original request as we convert
+   "/" to "-" (e.g., `openai/whisper-large` to `openai-whisper-large`).
+5.  `model-manager-loader` makes an `UpdateModelLoadingStatus` RPC call to `model-manager-server`. The original
+   base model is deleted from the database.
 
 ## Running with Docker Compose
 
