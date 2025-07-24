@@ -11,6 +11,7 @@ import (
 
 	"github.com/go-logr/logr"
 	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/common/pkg/id"
 	"github.com/llmariner/model-manager/loader/internal/config"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc"
@@ -235,7 +236,7 @@ func (l *L) pullAndLoadModels(ctx context.Context) error {
 }
 
 func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository v1.SourceRepository) error {
-	convertedModelID := toLLMarinerModelID(modelID)
+	convertedModelID := id.ToLLMarinerModelID(modelID)
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
@@ -276,7 +277,7 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 	}
 
 	for _, mi := range modelInfos {
-		modelID := toLLMarinerModelID(mi.id)
+		modelID := id.ToLLMarinerModelID(mi.id)
 		_, err := l.modelClient.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{Id: modelID})
 		if err == nil {
 			l.log.Info("Already model exists", "modelID", modelID)
@@ -319,7 +320,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 		return err
 	}
 
-	convertedModelID := toLLMarinerModelID(model.Model)
+	convertedModelID := id.ToLLMarinerModelID(model.Model)
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
@@ -345,7 +346,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 
 	if _, err := l.modelClient.RegisterModel(ctx, &v1.RegisterModelRequest{
 		Id:           convertedModelID,
-		BaseModel:    toLLMarinerModelID(model.BaseModel),
+		BaseModel:    id.ToLLMarinerModelID(model.BaseModel),
 		Adapter:      config.ToAdapterType(model.AdapterType),
 		Quantization: config.ToQuantizationType(model.QuantizationType),
 		Path:         mi.path,
@@ -547,12 +548,6 @@ func extractFileNameFromGGUFPath(path string) string {
 func toKeyModelID(modelID string) string {
 	// Ollama uses ':' as a separator, but it cannot be used for bucket name. Use '-' instead.
 	return strings.ReplaceAll(modelID, ":", "-")
-}
-
-func toLLMarinerModelID(id string) string {
-	// HuggingFace uses '/' as a separator, but Ollama does not accept. Use '-' instead for now.
-	// TODO(kenji): Revisit this.
-	return strings.ReplaceAll(id, "/", "-")
 }
 
 // splitHFRepoAndFile returns the HuggingFace repo name and the filename to be downloaded.
