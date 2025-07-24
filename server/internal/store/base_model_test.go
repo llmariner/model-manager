@@ -281,6 +281,33 @@ func TestListUnloadedBaseModels(t *testing.T) {
 	assert.Equal(t, "m1", ms[0].ModelID)
 }
 
+func TestListLoadingBaseModels(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	_, err := st.CreateBaseModelWithLoadingRequested("m0", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	assert.NoError(t, err)
+	_, err = st.CreateBaseModelWithLoadingRequested("m1", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	assert.NoError(t, err)
+	_, err = st.CreateBaseModelWithLoadingRequested("m2", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t1")
+	assert.NoError(t, err)
+
+	err = st.UpdateBaseModelToLoadingStatus("m0", "t0")
+	assert.NoError(t, err)
+	err = st.UpdateBaseModelToLoadingStatus("m2", "t1")
+	assert.NoError(t, err)
+
+	ms, err := st.ListLoadingBaseModels("t0")
+	assert.NoError(t, err)
+	assert.Len(t, ms, 1)
+	assert.Equal(t, "m0", ms[0].ModelID)
+
+	ms, err = st.ListLoadingBaseModels("t1")
+	assert.NoError(t, err)
+	assert.Len(t, ms, 1)
+	assert.Equal(t, "m2", ms[0].ModelID)
+}
+
 func TestUpdateBaseModel(t *testing.T) {
 	st, tearDown := NewTest(t)
 	defer tearDown()
