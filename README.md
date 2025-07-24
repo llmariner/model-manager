@@ -18,7 +18,7 @@ We initially had former flow and later introduced the latter flow.
 
 When receiving a `CreateModel` request, `model-manager-server` takes the following steps:
 
-1. `model-manager-server` create a new base model in the database. The model's loading status is `REQUESTED`.
+1. `model-manager-server` creates a new base model in the database. The model's loading status is `REQUESTED`.
 2. `model-manager-loader` lists models in the `REQUESTED` loading status from `model-manager-server`.
    When there is such a model, it starts downloading the model files and uploads them to a object store.
 3. Once the upload completes, `model-manager-loader` makes a `CreateBaseModel` RPC call to `model-manager-server`.
