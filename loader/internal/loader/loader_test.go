@@ -384,23 +384,6 @@ func TestExtractFileNameFromGGUFPath(t *testing.T) {
 	}
 }
 
-func TestToLLMarinerModelID(t *testing.T) {
-	tcs := []struct {
-		id   string
-		want string
-	}{
-		{
-			id:   "meta-llama/Llama-3.3-70B-Instruct",
-			want: "meta-llama-Llama-3.3-70B-Instruct",
-		},
-	}
-
-	for _, tc := range tcs {
-		got := toLLMarinerModelID(tc.id)
-		assert.Equal(t, tc.want, got)
-	}
-}
-
 func TestSplitHFRepoAndFile(t *testing.T) {
 	tcs := []struct {
 		modelID  string
