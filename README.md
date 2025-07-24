@@ -7,6 +7,28 @@ Model Manager consists of the following components;
 
 `loader` currently loads open models from Hugging Face, but we can extend that to support other locations.
 
+## Base Model Creation Flow
+
+Currently we have two flows to create new base models.
+
+- Specify base models to be loaded in the configuration of `model-manager-loader`.
+- Send `CreateModel` RPC calls to `model-manager-server`.
+
+We initially had former flow and later introduced the latter flow.
+
+When receiving a `CreateModel` request, `model-manager-server` takes the following steps:
+
+1. `model-manager-server` creates a new base model in the database. The model's loading status is `REQUESTED`.
+2. `model-manager-loader` lists models in the `REQUESTED` loading status from `model-manager-server`.
+   When there is such a model, it starts downloading the model files and uploads them to an object store.
+3. Once the upload completes, `model-manager-loader` makes a `CreateBaseModel` RPC call to `model-manager-server`.
+4. `model-manager-server` receives the `CreateBaseModel` RPC call and creates a base model in the database.
+5.  `model-manager-loader` makes an `UpdateModelLoadingStatus` RPC call to `model-manager-server`. The model's loading
+   status is updated to `SUCCEEDED`.
+
+ Please note that the base model ID at step 4 can be different from the ID used in the original request as we convert
+ "/" to "-" (e.g., `openai/whisper-large` to `openai-whisper-large`).
+
 ## Running with Docker Compose
 
 Run the following command:
