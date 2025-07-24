@@ -9,7 +9,7 @@ Model Manager consists of the following components;
 
 ## Base Model Creation Flow
 
-Currently we have two flows to create new base model creation.
+Currently we have two flows to create new base models.
 
 - Specify base models to be loaded in the configuration of `model-manager-loader`.
 - Send `CreateModel` RPC calls to `model-manager-server`.
