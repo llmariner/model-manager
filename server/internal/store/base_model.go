@@ -217,6 +217,16 @@ func (s *S) ListUnloadedBaseModels(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
+// ListLoadingBaseModels returns all base models with the loading status.
+func (s *S) ListLoadingBaseModels(tenantID string) ([]*BaseModel, error) {
+	var ms []*BaseModel
+	if err := s.db.Where("tenant_id = ? AND loading_status = ?", tenantID, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING).
+		Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
 // updateBaseModel updates the model if the current status matches with the given one.
 func (s *S) updateBaseModel(
 	modelID string,
