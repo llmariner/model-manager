@@ -1171,8 +1171,9 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 	}
 
 	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: clusterInfo.TenantID,
+		ModelID:   req.Id,
+		ProjectID: req.ProjectId,
+		TenantID:  clusterInfo.TenantID,
 	}
 
 	bm, err := s.store.GetBaseModel(k)
@@ -1248,11 +1249,6 @@ func (s *WS) UpdateModelLoadingStatus(
 
 	if req.LoadingResult == nil {
 		return nil, status.Error(codes.InvalidArgument, "loading_result is required")
-	}
-
-	// TODO(kenji): Remove once this RPC supports both a base model and a fine-tuned model.
-	if req.IsBaseModel {
-		return nil, status.Error(codes.InvalidArgument, "only accept fine-tuned models")
 	}
 
 	if _, err := s.store.GetModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID); err != nil {

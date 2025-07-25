@@ -199,6 +199,7 @@ export type UpdateBaseModelLoadingStatusRequestFailure = {
 };
 type BaseUpdateBaseModelLoadingStatusRequest = {
     id?: string;
+    project_id?: string;
 };
 export type UpdateBaseModelLoadingStatusRequest = BaseUpdateBaseModelLoadingStatusRequest & OneOf<{
     success: UpdateBaseModelLoadingStatusRequestSuccess;
@@ -219,7 +220,6 @@ export type UpdateModelLoadingStatusRequestFailure = {
 };
 type BaseUpdateModelLoadingStatusRequest = {
     id?: string;
-    is_base_model?: boolean;
 };
 export type UpdateModelLoadingStatusRequest = BaseUpdateModelLoadingStatusRequest & OneOf<{
     success: UpdateModelLoadingStatusRequestSuccess;

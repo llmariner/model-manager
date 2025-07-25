@@ -378,6 +378,7 @@ message AcquireUnloadedBaseModelResponse {
 
 message UpdateBaseModelLoadingStatusRequest {
   string id = 1;
+  string project_id = 4;
 
   message Success {
   }
@@ -410,7 +411,6 @@ message AcquireUnloadedModelResponse {
 
 message UpdateModelLoadingStatusRequest {
   string id = 1;
-  bool is_base_model = 2;
 
   message Success {
   }
