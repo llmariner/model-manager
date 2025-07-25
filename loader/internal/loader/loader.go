@@ -304,6 +304,7 @@ func (l *L) loadBaseModel(
 			Formats:          mi.formats,
 			GgufModelPath:    mi.ggufModelPath,
 			SourceRepository: mi.sourceRepository,
+			ProjectId:        projectID,
 		}); err != nil {
 			return err
 		}

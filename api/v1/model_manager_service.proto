@@ -328,7 +328,7 @@ message CreateBaseModelRequest {
 
   SourceRepository source_repository = 5;
 
-  // Next ID: 6
+  string project_id = 6;
 }
 
 message BaseModel {

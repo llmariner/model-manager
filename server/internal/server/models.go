@@ -985,8 +985,9 @@ func (s *WS) CreateBaseModel(
 
 	// Note: We skip the validation of source repository for backward compatibility.
 	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: clusterInfo.TenantID,
+		ModelID:   req.Id,
+		ProjectID: req.ProjectId,
+		TenantID:  clusterInfo.TenantID,
 	}
 	existing, err := s.store.GetBaseModel(k)
 	if err != nil {
@@ -997,10 +998,6 @@ func (s *WS) CreateBaseModel(
 		// Create a new base model.
 		var m *store.BaseModel
 		if err := s.store.Transaction(func(tx *gorm.DB) error {
-			k := store.ModelKey{
-				ModelID:  req.Id,
-				TenantID: clusterInfo.TenantID,
-			}
 			var err error
 			m, err = store.CreateBaseModelInTransaction(tx, k, req.Path, formats, req.GgufModelPath, req.SourceRepository)
 			if err != nil {
@@ -1008,9 +1005,10 @@ func (s *WS) CreateBaseModel(
 			}
 
 			if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
-				ModelID:  req.Id,
-				TenantID: clusterInfo.TenantID,
-				Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+				ModelID:   k.ModelID,
+				ProjectID: k.ProjectID,
+				TenantID:  k.TenantID,
+				Status:    v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
 			}); err != nil {
 				return status.Errorf(codes.Internal, "create model activation status: %s", err)
 			}
