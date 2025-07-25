@@ -18,20 +18,11 @@ type HFModelRepo struct {
 }
 
 // CreateHFModelRepo creates a model repo.
-func (s *S) CreateHFModelRepo(
-	name string,
-	modelID string,
-	tenantID string,
-) (*HFModelRepo, error) {
-	r := &HFModelRepo{
-		Name:     name,
-		ModelID:  modelID,
-		TenantID: tenantID,
-	}
+func (s *S) CreateHFModelRepo(r *HFModelRepo) error {
 	if err := s.db.Create(r).Error; err != nil {
-		return nil, err
+		return err
 	}
-	return r, nil
+	return nil
 }
 
 // GetHFModelRepo returns a repo by the repo namen and tenant ID.

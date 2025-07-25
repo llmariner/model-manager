@@ -300,7 +300,12 @@ func TestDeleteModel_BaseModelAndHFModelRepo(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	_, err = st.CreateHFModelRepo(hfRepoName, modelID, defaultTenantID)
+	r := &store.HFModelRepo{
+		Name:     hfRepoName,
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	err = st.CreateHFModelRepo(r)
 	assert.NoError(t, err)
 
 	srv := New(st, testr.New(t))
