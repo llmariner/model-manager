@@ -41,10 +41,9 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, tenantID, gotM.TenantID)
 
-	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, true)
+	gotMs, err := st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
-	assert.False(t, hasMore)
 
 	_, err = st.CreateModel(ModelSpec{
 		ModelID:        "m1",
@@ -56,10 +55,9 @@ func TestModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
-	assert.False(t, hasMore)
 
 	a1, err := st.CreateModel(ModelSpec{
 		ModelID:        "a1",
@@ -71,29 +69,22 @@ func TestModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", 1, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
-	assert.Len(t, gotMs, 1)
-	assert.True(t, hasMore)
+	assert.Len(t, gotMs, 2)
 	assert.Equal(t, a1.ID, gotMs[0].ID)
+	assert.Equal(t, m0.ID, gotMs[1].ID)
 
 	c, err := st.CountModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), c)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, a1.ModelID, 1, true)
-	assert.NoError(t, err)
-	assert.Len(t, gotMs, 1)
-	assert.False(t, hasMore)
-	assert.Equal(t, m0.ID, gotMs[0].ID)
-
 	err = st.DeleteModel(modelID, tenantID)
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
-	assert.False(t, hasMore)
 
 	gotMs, err = st.ListModelsByTenantID(tenantID)
 	assert.NoError(t, err)
@@ -135,15 +126,13 @@ func TestModel_Unpublished(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, false, "", defaultPageSize, true)
+	gotMs, err := st.ListModelsByProjectID(projectID, false)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
-	assert.False(t, hasMore)
 
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, true)
+	gotMs, err = st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 0)
-	assert.False(t, hasMore)
 }
 
 func TestListModels_LoadingStatus(t *testing.T) {
@@ -169,15 +158,9 @@ func TestListModels_LoadingStatus(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	gotMs, hasMore, err := st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, true)
+	gotMs, err := st.ListModelsByProjectID(projectID, true)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
-	assert.False(t, hasMore)
-
-	gotMs, hasMore, err = st.ListModelsByProjectIDWithPagination(projectID, true, "", defaultPageSize, false)
-	assert.NoError(t, err)
-	assert.Len(t, gotMs, 0)
-	assert.False(t, hasMore)
 }
 
 func TestUpdateModelPublishingStatus(t *testing.T) {
