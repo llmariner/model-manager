@@ -126,7 +126,8 @@ func ListModelsByActivationStatusWithPaginationInTransaction(
 ) ([]*Model, bool, error) {
 	var ms []*Model
 	q := tx.Joins("JOIN model_activation_statuses AS mas ON mas.model_id = models.model_id AND mas.tenant_id = models.tenant_id").
-		Where("models.project_id = ? AND mas.status = ?", projectID, status)
+		Where("models.project_id = ?", projectID).
+		Where("mas.status = ?", status)
 	if onlyPublished {
 		q = q.Where("models.is_published = true")
 	}
@@ -134,7 +135,7 @@ func ListModelsByActivationStatusWithPaginationInTransaction(
 		q = q.Where("models.model_id > ?", afterModelID)
 	}
 	if !includeLoadingModels {
-		q = q.Where("(models.loading_status is null OR models.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+		q = q.Where("(models.loading_status IS NULL OR models.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	}
 	if err := q.Order("models.model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
 		return nil, false, err
