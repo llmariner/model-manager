@@ -1094,8 +1094,9 @@ func (s *WS) AcquireUnloadedBaseModel(
 
 	m := ms[0]
 	k := store.ModelKey{
-		ModelID:  m.ModelID,
-		TenantID: clusterInfo.TenantID,
+		ModelID:   m.ModelID,
+		ProjectID: m.ProjectID,
+		TenantID:  m.TenantID,
 	}
 	if err := s.store.UpdateBaseModelToLoadingStatus(k); err != nil {
 		if errors.Is(err, store.ErrConcurrentUpdate) {
@@ -1108,6 +1109,7 @@ func (s *WS) AcquireUnloadedBaseModel(
 	return &v1.AcquireUnloadedBaseModelResponse{
 		BaseModelId:      m.ModelID,
 		SourceRepository: m.SourceRepository,
+		ProjectId:        m.ProjectID,
 	}, nil
 }
 
@@ -1146,6 +1148,7 @@ func (s *WS) AcquireUnloadedModel(
 		SourceRepository:  m.SourceRepository,
 		ModelFileLocation: m.ModelFileLocation,
 		DestPath:          m.Path,
+		ProjectId:         m.ProjectID,
 	}, nil
 }
 

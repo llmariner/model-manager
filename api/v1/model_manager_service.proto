@@ -406,6 +406,8 @@ message AcquireUnloadedModelResponse {
   string model_file_location = 4;
 
   string dest_path = 5;
+
+  string project_id = 6;
 }
 
 message UpdateModelLoadingStatusRequest {
