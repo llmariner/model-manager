@@ -43,33 +43,30 @@ func UnmarshalModelFormats(b []byte) ([]v1.ModelFormat, error) {
 
 // CreateBaseModel creates a model.
 func (s *S) CreateBaseModel(
-	modelID string,
+	k ModelKey,
 	path string,
 	formats []v1.ModelFormat,
 	ggufModelPath string,
 	sourceRepository v1.SourceRepository,
-	tenantID string,
 ) (*BaseModel, error) {
 	return CreateBaseModelInTransaction(
 		s.db,
-		modelID,
+		k,
 		path,
 		formats,
 		ggufModelPath,
 		sourceRepository,
-		tenantID,
 	)
 }
 
 // CreateBaseModelInTransaction creates a model in a transaction.
 func CreateBaseModelInTransaction(
 	tx *gorm.DB,
-	modelID string,
+	k ModelKey,
 	path string,
 	formats []v1.ModelFormat,
 	ggufModelPath string,
 	sourceRepository v1.SourceRepository,
-	tenantID string,
 ) (*BaseModel, error) {
 	b, err := marshalFormats(formats)
 	if err != nil {
@@ -77,13 +74,14 @@ func CreateBaseModelInTransaction(
 	}
 
 	m := &BaseModel{
-		ModelID:          modelID,
+		ModelID:          k.ModelID,
+		ProjectID:        k.ProjectID,
 		Path:             path,
 		Formats:          b,
 		GGUFModelPath:    ggufModelPath,
 		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
 		SourceRepository: sourceRepository,
-		TenantID:         tenantID,
+		TenantID:         k.TenantID,
 	}
 	if err := tx.Create(m).Error; err != nil {
 		return nil, err

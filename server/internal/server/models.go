@@ -997,8 +997,12 @@ func (s *WS) CreateBaseModel(
 		// Create a new base model.
 		var m *store.BaseModel
 		if err := s.store.Transaction(func(tx *gorm.DB) error {
+			k := store.ModelKey{
+				ModelID:  req.Id,
+				TenantID: clusterInfo.TenantID,
+			}
 			var err error
-			m, err = store.CreateBaseModelInTransaction(tx, req.Id, req.Path, formats, req.GgufModelPath, req.SourceRepository, clusterInfo.TenantID)
+			m, err = store.CreateBaseModelInTransaction(tx, k, req.Path, formats, req.GgufModelPath, req.SourceRepository)
 			if err != nil {
 				return status.Errorf(codes.Internal, "create base model: %s", err)
 			}

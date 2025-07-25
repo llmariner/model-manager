@@ -27,7 +27,7 @@ func TestBaseModel(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	_, err = st.CreateBaseModel(modelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
+	_, err = st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	gotM, err := st.GetBaseModel(k)
@@ -76,14 +76,22 @@ func TestBaseModel_UniqueConstraint(t *testing.T) {
 	st, tearDown := NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	k0 := ModelKey{
+		ModelID:  "m0",
+		TenantID: "t0",
+	}
+	_, err := st.CreateBaseModel(k0, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel("m0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	_, err = st.CreateBaseModel(k0, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.Error(t, err)
 	assert.True(t, gerrors.IsUniqueConstraintViolation(err))
 
-	_, err = st.CreateBaseModel("m1", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	k1 := ModelKey{
+		ModelID:  "m1",
+		TenantID: "t0",
+	}
+	_, err = st.CreateBaseModel(k1, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 }
 
@@ -96,13 +104,13 @@ func TestDeleteBaseModel(t *testing.T) {
 		tenantID = "t0"
 	)
 
-	_, err := st.CreateBaseModel(modelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
-	assert.NoError(t, err)
-
 	k := ModelKey{
 		ModelID:  modelID,
 		TenantID: tenantID,
 	}
+	_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	assert.NoError(t, err)
+
 	err = st.DeleteBaseModel(k)
 	assert.NoError(t, err)
 
@@ -133,7 +141,11 @@ func TestListUnloadedBaseModels(t *testing.T) {
 	_, err = st.CreateBaseModelWithLoadingRequested(k1, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel("m2", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	k2 := ModelKey{
+		ModelID:  "m2",
+		TenantID: "t0",
+	}
+	_, err = st.CreateBaseModel(k2, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	ms, err := st.ListUnloadedBaseModels("t0")
@@ -256,7 +268,11 @@ func TestListBaseModelsByActivationStatusWithPagination(t *testing.T) {
 
 	ids := []string{"bm0", "bm1", "bm2"}
 	for i, id := range ids {
-		_, err := st.CreateBaseModel(id, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
+		k := ModelKey{
+			ModelID:  id,
+			TenantID: tenantID,
+		}
+		_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 		assert.NoError(t, err)
 		status := v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE
 		if i == 2 {
