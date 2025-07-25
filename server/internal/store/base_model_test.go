@@ -330,14 +330,21 @@ func TestListBaseModelsByModelIDAndTenantID(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	got, err := st.ListBaseModelsByModelIDAndTenantID("bm0", tenantID)
-	assert.NoError(t, err)
-	assert.Len(t, got, 3)
-	assert.Equal(t, "p1", got[0].ProjectID)
-	assert.Equal(t, "p0", got[1].ProjectID)
-	assert.Equal(t, "", got[2].ProjectID)
-
-	got, err = st.ListBaseModelsByModelIDAndTenantID("bm1", tenantID)
-	assert.NoError(t, err)
-	assert.Len(t, got, 1)
+	tcs := []struct {
+		modelID        string
+		tenantID       string
+		wantProjectIDs []string
+	}{
+		{"bm0", tenantID, []string{"p1", "p0", ""}},
+		{"bm1", tenantID, []string{""}},
+		{"bm0", "t1", []string{""}},
+	}
+	for _, tc := range tcs {
+		got, err := st.ListBaseModelsByModelIDAndTenantID(tc.modelID, tc.tenantID)
+		assert.NoError(t, err)
+		assert.Len(t, got, len(tc.wantProjectIDs))
+		for i, projectID := range tc.wantProjectIDs {
+			assert.Equal(t, projectID, got[i].ProjectID)
+		}
+	}
 }
