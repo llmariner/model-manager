@@ -18,8 +18,6 @@ func TestModel(t *testing.T) {
 		tenantID  = "tid0"
 		orgID     = "org0"
 		projectID = "project0"
-
-		defaultPageSize = 10
 	)
 
 	_, err := st.GetPublishedModelByModelIDAndTenantID(modelID, tenantID)
