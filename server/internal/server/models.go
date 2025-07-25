@@ -9,6 +9,7 @@ import (
 	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
 	"github.com/llmariner/common/pkg/id"
 	v1 "github.com/llmariner/model-manager/api/v1"
+	mid "github.com/llmariner/model-manager/common/pkg/id"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc/codes"
@@ -1213,8 +1214,7 @@ func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error)
 	const randomLength = 10
 	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
 	// TODO(kenji): Revisit this.
-	// Replace "/" with "-'. HuggingFace model contains "/", but that doesn't work for Ollama.
-	base := fmt.Sprintf("ft:%s:%s-", strings.ReplaceAll(baseModel, "/", "-"), suffix)
+	base := fmt.Sprintf("ft:%s:%s-", mid.ToLLMarinerModelID(baseModel), suffix)
 
 	// Randomly create an ID and retry if it already exists.
 	for {
