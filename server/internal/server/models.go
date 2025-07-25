@@ -157,7 +157,7 @@ func (s *S) createBaseModel(
 	var m *store.BaseModel
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
 		var err error
-		m, err = store.CreateBaseModelWithLoadingRequestedInTransaction(tx, req.Id, req.SourceRepository, userInfo.TenantID)
+		m, err = store.CreateBaseModelWithLoadingRequestedInTransaction(tx, k, req.SourceRepository)
 		if err != nil {
 			return status.Errorf(codes.Internal, "create base model: %s", err)
 		}
