@@ -605,7 +605,7 @@ func (s *S) deleteBaseModel(
 		// the Hugging Face repo name and the model ID does not match.
 		//
 		// Also, deleting a HFModelRepo can trigger downloading the remaining undeleted models again, which is not ideal.
-		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, k.ModelID, k.TenantID); err != nil {
+		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, k); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", k.ModelID, err)
 			}

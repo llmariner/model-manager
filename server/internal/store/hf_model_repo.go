@@ -26,9 +26,19 @@ func (s *S) CreateHFModelRepo(r *HFModelRepo) error {
 }
 
 // GetHFModelRepo returns a repo by the repo namen and tenant ID.
-func (s *S) GetHFModelRepo(name, tenantID string) (*HFModelRepo, error) {
+func (s *S) GetHFModelRepo(name, projectID string, tenantID string) (*HFModelRepo, error) {
+	q := s.db.
+		Where("name = ?", name).
+		Where("tenant_id = ?", tenantID)
+
+	if projectID != "" {
+		q = q.Where("project_id = ?", projectID)
+	} else {
+		q = q.Where("(project_id IS NULL OR project_id = '')")
+	}
+
 	var r HFModelRepo
-	if err := s.db.Where("name = ? AND tenant_id = ?", name, tenantID).Take(&r).Error; err != nil {
+	if err := q.Take(&r).Error; err != nil {
 		return nil, err
 	}
 	return &r, nil
@@ -44,8 +54,8 @@ func (s *S) ListHFModelRepos(tenantID string) ([]*HFModelRepo, error) {
 }
 
 // DeleteHFModelRepoInTransactionByModelID deletes a model repo.
-func DeleteHFModelRepoInTransactionByModelID(tx *gorm.DB, modelID, tenantID string) error {
-	res := tx.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&HFModelRepo{})
+func DeleteHFModelRepoInTransactionByModelID(tx *gorm.DB, k ModelKey) error {
+	res := k.buildQuery(tx.Unscoped()).Delete(&HFModelRepo{})
 	if err := res.Error; err != nil {
 		return err
 	}
