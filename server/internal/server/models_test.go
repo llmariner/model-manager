@@ -450,11 +450,12 @@ func TestIncludeLoadingModels(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModelWithLoadingRequested(
-		"bm1",
-		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
-	)
+	k := store.ModelKey{
+		ModelID:  "bm1",
+		TenantID: defaultTenantID,
+	}
+	_, err = st.CreateBaseModelWithLoadingRequested(k, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+
 	assert.NoError(t, err)
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)

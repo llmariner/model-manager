@@ -119,10 +119,18 @@ func TestListUnloadedBaseModels(t *testing.T) {
 	st, tearDown := NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModelWithLoadingRequested("m0", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
+	k0 := ModelKey{
+		ModelID:  "m0",
+		TenantID: "t0",
+	}
+	_, err := st.CreateBaseModelWithLoadingRequested(k0, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModelWithLoadingRequested("m1", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t1")
+	k1 := ModelKey{
+		ModelID:  "m1",
+		TenantID: "t1",
+	}
+	_, err = st.CreateBaseModelWithLoadingRequested(k1, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	_, err = st.CreateBaseModel("m2", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
@@ -143,24 +151,30 @@ func TestListLoadingBaseModels(t *testing.T) {
 	st, tearDown := NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModelWithLoadingRequested("m0", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
-	assert.NoError(t, err)
-	_, err = st.CreateBaseModelWithLoadingRequested("m1", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t0")
-	assert.NoError(t, err)
-	_, err = st.CreateBaseModelWithLoadingRequested("m2", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t1")
-	assert.NoError(t, err)
-
 	k0 := ModelKey{
 		ModelID:  "m0",
 		TenantID: "t0",
 	}
-	err = st.UpdateBaseModelToLoadingStatus(k0)
+	_, err := st.CreateBaseModelWithLoadingRequested(k0, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
+
 	k1 := ModelKey{
+		ModelID:  "m1",
+		TenantID: "t0",
+	}
+	_, err = st.CreateBaseModelWithLoadingRequested(k1, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	assert.NoError(t, err)
+
+	k2 := ModelKey{
 		ModelID:  "m2",
 		TenantID: "t1",
 	}
-	err = st.UpdateBaseModelToLoadingStatus(k1)
+	_, err = st.CreateBaseModelWithLoadingRequested(k2, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	assert.NoError(t, err)
+
+	err = st.UpdateBaseModelToLoadingStatus(k0)
+	assert.NoError(t, err)
+	err = st.UpdateBaseModelToLoadingStatus(k2)
 	assert.NoError(t, err)
 
 	ms, err := st.ListLoadingBaseModels("t0")
@@ -183,13 +197,13 @@ func TestUpdateBaseModel(t *testing.T) {
 		tenantID = "t0"
 	)
 
-	_, err := st.CreateBaseModelWithLoadingRequested(modelID, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
-	assert.NoError(t, err)
-
 	k := ModelKey{
 		ModelID:  modelID,
 		TenantID: tenantID,
 	}
+	_, err := st.CreateBaseModelWithLoadingRequested(k, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	assert.NoError(t, err)
+
 	m, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)

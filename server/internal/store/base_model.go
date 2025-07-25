@@ -93,30 +93,28 @@ func CreateBaseModelInTransaction(
 
 // CreateBaseModelWithLoadingRequested creates a model with the requested loading status.
 func (s *S) CreateBaseModelWithLoadingRequested(
-	modelID string,
+	k ModelKey,
 	sourceRepository v1.SourceRepository,
-	tenantID string,
 ) (*BaseModel, error) {
 	return CreateBaseModelWithLoadingRequestedInTransaction(
 		s.db,
-		modelID,
+		k,
 		sourceRepository,
-		tenantID,
 	)
 }
 
 // CreateBaseModelWithLoadingRequestedInTransaction creates a model with the requested loading status in a transaction.
 func CreateBaseModelWithLoadingRequestedInTransaction(
 	tx *gorm.DB,
-	modelID string,
+	k ModelKey,
 	sourceRepository v1.SourceRepository,
-	tenantID string,
 ) (*BaseModel, error) {
 	m := &BaseModel{
-		ModelID:          modelID,
+		ModelID:          k.ModelID,
+		ProjectID:        k.ProjectID,
 		SourceRepository: sourceRepository,
 		LoadingStatus:    v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
-		TenantID:         tenantID,
+		TenantID:         k.TenantID,
 	}
 	if err := tx.Create(m).Error; err != nil {
 		return nil, err
