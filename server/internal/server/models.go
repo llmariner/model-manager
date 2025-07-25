@@ -65,14 +65,9 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.InvalidArgument, "model file location must start with s3://, but got %s", req.ModelFileLocation)
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.BaseModelId,
-		TenantID: userInfo.TenantID,
-	}
-	if _, err := s.store.GetBaseModel(k); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
-		}
+	if _, found, err := getVisibleBaseModel(s.store, req.BaseModelId, userInfo, true /* includeLoadingModel */); err != nil {
+		return nil, status.Errorf(codes.Internal, "%s", err)
+	} else if !found {
 		return nil, status.Errorf(codes.NotFound, "base model %q not found", req.BaseModelId)
 	}
 
@@ -109,7 +104,8 @@ func (s *S) createFineTunedModel(
 		}
 
 		if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
-			ModelID:  id,
+			ModelID: id,
+			// ProjectID is empty for fine-tuned models for backward compatibility.
 			TenantID: userInfo.TenantID,
 			Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
 		}); err != nil {
@@ -143,9 +139,15 @@ func (s *S) createBaseModel(
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
+	var projectID string
+	if req.IsProjectScoped {
+		projectID = userInfo.ProjectID
+	}
+
 	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: userInfo.TenantID,
+		ModelID:   req.Id,
+		ProjectID: projectID,
+		TenantID:  userInfo.TenantID,
 	}
 	if _, err := s.store.GetBaseModel(k); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -213,7 +215,7 @@ func (s *S) ListModels(
 	if req.After != "" {
 		var found bool
 		var err error
-		afterBase, afterModel, found, err = findBaseModelOrModel(s.store, req.After, userInfo.TenantID, req.IncludeLoadingModels)
+		afterBase, afterModel, found, err = getVisibleModel(s.store, req.After, userInfo, req.IncludeLoadingModels)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "find model by ID %q: %s", req.After, err)
 		}
@@ -262,27 +264,26 @@ func (s *S) ListModels(
 			afterID  string
 		)
 		if req.After != "" {
+			var k store.ModelKey
 			if afterBase != nil {
-				k := store.ModelKey{
-					ModelID:  afterBase.ModelID,
-					TenantID: afterBase.TenantID,
+				k = store.ModelKey{
+					ModelID:   afterBase.ModelID,
+					ProjectID: afterBase.ProjectID,
+					TenantID:  afterBase.TenantID,
 				}
-				as, err := getModelActivationStatusInTransaction(tx, k)
-				if err != nil {
-					return status.Errorf(codes.Internal, "get model activation status: %s", err)
-				}
-				startCat = activationCategory(true, as)
 			} else {
-				k := store.ModelKey{
-					ModelID:  afterModel.ModelID,
+				k = store.ModelKey{
+					ModelID: afterModel.ModelID,
+					// ProjectID is empty for fine-tuned models (for backward compatibility).
 					TenantID: afterModel.TenantID,
 				}
-				as, err := getModelActivationStatusInTransaction(tx, k)
-				if err != nil {
-					return status.Errorf(codes.Internal, "get model activation status: %s", err)
-				}
-				startCat = activationCategory(false, as)
 			}
+
+			as, err := getModelActivationStatusInTransaction(tx, k)
+			if err != nil {
+				return status.Errorf(codes.Internal, "get model activation status: %s", err)
+			}
+			startCat = activationCategory(afterBase != nil, as)
 			afterID = req.After
 		}
 
@@ -294,7 +295,7 @@ func (s *S) ListModels(
 				var bms []*store.BaseModel
 				bms, more, err = store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
 					tx,
-					"", /* projectID */
+					userInfo.ProjectID,
 					userInfo.TenantID,
 					cat.status,
 					afterID,
@@ -352,7 +353,7 @@ func (s *S) ListModels(
 			if cat := categories[i]; cat.isBase {
 				bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
 					tx,
-					"", /* projectID */
+					userInfo.ProjectID,
 					userInfo.TenantID,
 					cat.status,
 					"", /* afterModelID */
@@ -405,8 +406,7 @@ func (s *S) getTotalItems(userInfo *auth.UserInfo) (int32, error) {
 		return 0, err
 	}
 
-	// TODO(kenji): Pass userInfo.ProjectID.
-	totalBaseModels, err := s.store.CountBaseModels("" /* projectID */, userInfo.TenantID)
+	totalBaseModels, err := s.store.CountBaseModels(userInfo.ProjectID, userInfo.TenantID)
 	if err != nil {
 		return 0, err
 	}
@@ -427,11 +427,7 @@ func (s *S) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: userInfo.TenantID,
-	}
-	m, err := getModel(s.store, k, req.IncludeLoadingModel)
+	m, err := getVisibleModelProto(s.store, req.Id, userInfo, req.IncludeLoadingModel)
 	if err != nil {
 		return nil, err
 	}
@@ -452,10 +448,11 @@ func (s *S) DeleteModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: userInfo.TenantID,
+	k, err := getKeyForVisibleModel(s.store, req.Id, userInfo, true /* includeLoadingModel */)
+	if err != nil {
+		return nil, err
 	}
+
 	if as, err := getModelActivationStatus(s.store, k); err != nil {
 		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	} else if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
@@ -558,11 +555,8 @@ func (s *S) ActivateModel(ctx context.Context, req *v1.ActivateModelRequest) (*v
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: userInfo.TenantID,
-	}
-	if _, err := getModel(s.store, k, false /* includeLoadingModel */); err != nil {
+	k, err := getKeyForVisibleModel(s.store, req.Id, userInfo, false /* includeLoadingModel */)
+	if err != nil {
 		return nil, err
 	}
 
@@ -584,11 +578,8 @@ func (s *S) DeactivateModel(ctx context.Context, req *v1.DeactivateModelRequest)
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: userInfo.TenantID,
-	}
-	if _, err := getModel(s.store, k, false /* includeLoadingModel */); err != nil {
+	k, err := getKeyForVisibleModel(s.store, req.Id, userInfo, false /* includeLoadingModel */)
+	if err != nil {
 		return nil, err
 	}
 
@@ -610,16 +601,28 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: clusterInfo.TenantID,
-	}
-	m, err := getModel(s.store, k, true /* includeLoadingModel */)
+	bm, found, err := s.getLoadedBaseModel(req.Id, clusterInfo.TenantID)
 	if err != nil {
-		return nil, err
+		return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
+	}
+	if found {
+		return convertBaseModelToProtoWithActivationStatus(s.store, bm)
 	}
 
-	return m, nil
+	// Try a fine-tuned model next.
+	fm, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get model by model ID: %s", err)
+		}
+		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	}
+
+	if !isModelLoaded(fm) {
+		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	}
+
+	return convertFineTunedModelToProtoWithActivationStatus(s.store, fm)
 }
 
 // ListModels lists models.
@@ -634,11 +637,20 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 	}
 
+	found := map[string]bool{}
 	var modelProtos []*v1.Model
 	for _, m := range bms {
 		if !isBaseModelLoaded(m) {
 			continue
 		}
+
+		if found[m.ModelID] {
+			// The same model is already found (with different project IDs or global scope).
+			// TODO(kenji): Prefer project-scoped models over global ones?
+			continue
+		}
+
+		found[m.ModelID] = true
 
 		mp, err := convertBaseModelToProtoWithActivationStatus(s.store, m)
 		if err != nil {
@@ -666,7 +678,6 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "model to proto: %s", err)
 		}
-
 		modelProtos = append(modelProtos, mp)
 	}
 
@@ -938,19 +949,11 @@ func (s *WS) GetBaseModelPath(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	k := store.ModelKey{
-		ModelID:  req.Id,
-		TenantID: clusterInfo.TenantID,
-	}
-	m, err := s.store.GetBaseModel(k)
+	m, found, err := s.getLoadedBaseModel(req.Id, clusterInfo.TenantID)
 	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
-		}
-		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+		return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
 	}
-
-	if !isBaseModelLoaded(m) {
+	if !found {
 		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 	}
 
@@ -1188,6 +1191,22 @@ func (s *WS) UpdateModelLoadingStatus(
 	return &v1.UpdateModelLoadingStatusResponse{}, nil
 }
 
+func (s *WS) getLoadedBaseModel(modelID, tenantID string) (*store.BaseModel, bool, error) {
+	// Find all base models regardless of the project.
+	bms, err := s.store.ListBaseModelsByModelIDAndTenantID(modelID, tenantID)
+	if err != nil {
+		return nil, false, fmt.Errorf("list base models by model ID and tenant ID: %w", err)
+	}
+
+	for _, bm := range bms {
+		if isBaseModelLoaded(bm) {
+			return bm, true, nil
+		}
+	}
+
+	return nil, false, nil
+}
+
 func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error) {
 	const randomLength = 10
 	// OpenAI uses ':" as a separator, but Ollama does not accept. Use '-' instead for now.
@@ -1207,13 +1226,47 @@ func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error)
 	}
 }
 
-func getModel(st *store.S, k store.ModelKey, includeLoadingModel bool) (*v1.Model, error) {
-	bm, fm, found, err := findBaseModelOrModel(st, k.ModelID, k.TenantID, includeLoadingModel)
+func getKeyForVisibleModel(
+	st *store.S,
+	modelID string,
+	userInfo *auth.UserInfo,
+	includeLoadingModel bool,
+) (store.ModelKey, error) {
+	bm, fm, found, err := getVisibleModel(st, modelID, userInfo, includeLoadingModel)
+	if err != nil {
+		return store.ModelKey{}, status.Errorf(codes.Internal, "%s", err)
+	}
+	if !found {
+		return store.ModelKey{}, status.Errorf(codes.NotFound, "model %q not found", modelID)
+	}
+
+	if bm != nil {
+		return store.ModelKey{
+			ModelID:   bm.ModelID,
+			ProjectID: bm.ProjectID,
+			TenantID:  bm.TenantID,
+		}, nil
+	}
+
+	return store.ModelKey{
+		ModelID: fm.ModelID,
+		// ProjectID is empty for backward compatibility.
+		TenantID: fm.TenantID,
+	}, nil
+}
+
+func getVisibleModelProto(
+	st *store.S,
+	modelID string,
+	userInfo *auth.UserInfo,
+	includeLoadingModel bool,
+) (*v1.Model, error) {
+	bm, fm, found, err := getVisibleModel(st, modelID, userInfo, includeLoadingModel)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "%s", err)
 	}
 	if !found {
-		return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
+		return nil, status.Errorf(codes.NotFound, "model %q not found", modelID)
 	}
 
 	if bm != nil {
@@ -1286,27 +1339,22 @@ func getModelActivationStatusInTransaction(tx *gorm.DB, k store.ModelKey) (v1.Ac
 	return status.Status, nil
 }
 
-func findBaseModelOrModel(st *store.S, modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, bool, error) {
-	// Find a corresponding base model or a fine-tuned model
-	var err error
-	k := store.ModelKey{
-		ModelID:  modelID,
-		TenantID: tenantID,
+func getVisibleModel(
+	st *store.S,
+	modelID string,
+	userInfo *auth.UserInfo,
+	includeLoadingModels bool,
+) (*store.BaseModel, *store.Model, bool, error) {
+	bm, found, err := getVisibleBaseModel(st, modelID, userInfo, includeLoadingModels)
+	if err != nil {
+		return nil, nil, false, err
 	}
-	bm, err := st.GetBaseModel(k)
-	if err == nil {
-		if !isBaseModelLoaded(bm) && !includeLoadingModels {
-			return nil, nil, false, nil
-		}
+	if found {
 		return bm, nil, true, nil
 	}
 
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil, false, err
-	}
-
 	// Try a fine-tuned model next.
-	m, err := st.GetPublishedModelByModelIDAndTenantID(modelID, tenantID)
+	m, err := st.GetPublishedModelByModelIDAndTenantID(modelID, userInfo.TenantID)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil, false, err
@@ -1320,6 +1368,42 @@ func findBaseModelOrModel(st *store.S, modelID, tenantID string, includeLoadingM
 	}
 
 	return nil, m, true, nil
+}
+
+func getVisibleBaseModel(
+	st *store.S,
+	modelID string,
+	userInfo *auth.UserInfo,
+	includeLoadingModel bool,
+) (*store.BaseModel, bool, error) {
+	k := store.ModelKey{
+		ModelID:   modelID,
+		ProjectID: userInfo.ProjectID,
+		TenantID:  userInfo.TenantID,
+	}
+	if bm, err := st.GetBaseModel(k); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, fmt.Errorf("get base model: %s", err)
+		}
+	} else if isBaseModelLoaded(bm) || includeLoadingModel {
+		return bm, true, nil
+	}
+
+	// Check the global-scoped model.
+	k.ProjectID = ""
+	bm, err := st.GetBaseModel(k)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, false, fmt.Errorf("get base model: %s", err)
+		}
+		return nil, false, nil
+	}
+
+	if isBaseModelLoaded(bm) || includeLoadingModel {
+		return bm, true, nil
+	}
+
+	return nil, false, nil
 }
 
 func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {

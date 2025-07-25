@@ -187,6 +187,132 @@ func TestModels_Pagination(t *testing.T) {
 	}
 }
 
+func TestModels_Pagination_ProjectScoped(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	keys := []store.ModelKey{
+		{
+			ModelID:  "bm0",
+			TenantID: defaultTenantID,
+		},
+		{
+			ModelID:   "bm0",
+			ProjectID: defaultProjectID,
+			TenantID:  defaultTenantID,
+		},
+		{
+			ModelID:   "bm1",
+			ProjectID: defaultProjectID,
+			TenantID:  defaultTenantID,
+		},
+		{
+			ModelID:   "bm2",
+			ProjectID: "different project",
+			TenantID:  defaultTenantID,
+		},
+	}
+	for _, k := range keys {
+		_, err := st.CreateBaseModel(
+			k,
+			"path",
+			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+			"gguf-path",
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		)
+		assert.NoError(t, err)
+		err = st.CreateModelActivationStatus(&store.ModelActivationStatus{
+			ModelID:   k.ModelID,
+			ProjectID: k.ProjectID,
+			TenantID:  k.TenantID,
+			Status:    v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+		})
+		assert.NoError(t, err)
+	}
+
+	const orgID = "o0"
+	modelIDs := []string{"m0", "m1", "m2"}
+	for _, id := range modelIDs {
+		_, err := st.CreateModel(store.ModelSpec{
+			ModelID:        id,
+			OrganizationID: orgID,
+			ProjectID:      defaultProjectID,
+			TenantID:       defaultTenantID,
+			IsPublished:    true,
+			LoadingStatus:  v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED,
+		})
+		assert.NoError(t, err)
+		err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: id, TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
+		assert.NoError(t, err)
+	}
+
+	tcs := []struct {
+		name         string
+		req          *v1.ListModelsRequest
+		wantModelIDs []string
+		wantHasMore  bool
+	}{
+		{
+			name: "page 0 with limit 2",
+			req: &v1.ListModelsRequest{
+				Limit: 2,
+			},
+			wantModelIDs: []string{
+				"bm0", "bm1",
+			},
+			wantHasMore: true,
+		},
+		{
+			name: "page 1 with limit 2",
+			req: &v1.ListModelsRequest{
+				Limit: 2,
+				After: "bm1",
+			},
+			wantModelIDs: []string{
+				"m0", "m1",
+			},
+			wantHasMore: true,
+		},
+		{
+			name: "page 2 with limit 2",
+			req: &v1.ListModelsRequest{
+				Limit: 2,
+				After: "m1",
+			},
+			wantModelIDs: []string{
+				"m2",
+			},
+			wantHasMore: false,
+		},
+		{
+			name: "page 0 with limit 3",
+			req: &v1.ListModelsRequest{
+				Limit: 3,
+			},
+			wantModelIDs: []string{
+				"bm0", "bm1", "m0",
+			},
+			wantHasMore: true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			srv := New(st, testr.New(t))
+			ctx := fakeAuthInto(context.Background())
+
+			got, err := srv.ListModels(ctx, tc.req)
+			assert.NoError(t, err)
+			assert.Len(t, got.Data, len(tc.wantModelIDs))
+			for i, g := range got.Data {
+				assert.Equal(t, tc.wantModelIDs[i], g.Id)
+			}
+			assert.Equal(t, tc.wantHasMore, got.HasMore)
+			assert.Equal(t, int32(5), got.TotalItems)
+		})
+	}
+}
+
 func TestListModels_ActivationOrder(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
@@ -898,6 +1024,79 @@ func TestBaseModelCreation_CreateModelOfDifferentID(t *testing.T) {
 	_, err = st.GetBaseModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
+}
+
+func TestBaseModelCreation_ProjectScoped(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	// No model to be acquired.
+	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
+	const modelID = "r/m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+		IsProjectScoped:  true,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	k := store.ModelKey{
+		ModelID:   modelID,
+		ProjectID: defaultProjectID,
+		TenantID:  defaultTenantID,
+	}
+	as, err := st.GetModelActivationStatus(k)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
+
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, resp.BaseModelId)
+	assert.Equal(t, defaultProjectID, resp.ProjectId)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
+
+	got, err := st.GetBaseModel(k)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	// No model to be acquired as the model has already been acquired.
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
+	// Create a base model.
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            modelID,
+		Path:          "path",
+		GgufModelPath: "gguf-path",
+		ProjectId:     defaultProjectID,
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id:        modelID,
+		ProjectId: defaultProjectID,
+		LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{
+			Success: &v1.UpdateBaseModelLoadingStatusRequest_Success{},
+		},
+	})
+	assert.NoError(t, err)
+
+	got, err = st.GetBaseModel(k)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, got.LoadingStatus)
+	assert.Equal(t, "path", got.Path)
+	assert.Equal(t, "gguf-path", got.GGUFModelPath)
 }
 
 func TestBaseModelCreation_Failure(t *testing.T) {
