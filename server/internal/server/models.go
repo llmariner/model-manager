@@ -244,13 +244,21 @@ func (s *S) ListModels(
 		)
 		if req.After != "" {
 			if afterBase != nil {
-				as, err := getModelActivationStatusInTransaction(tx, afterBase.ModelID, afterBase.TenantID)
+				k := store.ModelKey{
+					ModelID:  afterBase.ModelID,
+					TenantID: afterBase.TenantID,
+				}
+				as, err := getModelActivationStatusInTransaction(tx, k)
 				if err != nil {
 					return status.Errorf(codes.Internal, "get model activation status: %s", err)
 				}
 				startCat = activationCategory(true, as)
 			} else {
-				as, err := getModelActivationStatusInTransaction(tx, afterModel.ModelID, afterModel.TenantID)
+				k := store.ModelKey{
+					ModelID:  afterModel.ModelID,
+					TenantID: afterModel.TenantID,
+				}
+				as, err := getModelActivationStatusInTransaction(tx, k)
 				if err != nil {
 					return status.Errorf(codes.Internal, "get model activation status: %s", err)
 				}
@@ -429,22 +437,26 @@ func (s *S) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := getModel(s.store, req.Id, userInfo.TenantID, req.IncludeLoadingModel)
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: userInfo.TenantID,
+	}
+	m, err := getModel(s.store, k, req.IncludeLoadingModel)
 	if err != nil {
 		return nil, err
 	}
 	return m, nil
 }
 
-func getModel(st *store.S, modelID, tenantID string, includeLoadingModel bool) (*v1.Model, error) {
+func getModel(st *store.S, k store.ModelKey, includeLoadingModel bool) (*v1.Model, error) {
 	// First check if it's a base model.
-	bm, err := st.GetBaseModel(modelID, tenantID)
+	bm, err := st.GetBaseModel(k.ModelID, k.TenantID)
 	if err == nil {
 		if !isBaseModelLoaded(bm) && !includeLoadingModel {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", modelID)
+			return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
 		}
 
-		as, err := getModelActivationStatus(st, modelID, tenantID)
+		as, err := getModelActivationStatus(st, k)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 		}
@@ -460,15 +472,15 @@ func getModel(st *store.S, modelID, tenantID string, includeLoadingModel bool) (
 	}
 
 	// Then check if it's a generated model.
-	m, err := st.GetPublishedModelByModelIDAndTenantID(modelID, tenantID)
+	m, err := st.GetPublishedModelByModelIDAndTenantID(k.ModelID, k.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", modelID)
+			return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
 		}
 		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
 	}
 
-	as, err := getModelActivationStatus(st, modelID, tenantID)
+	as, err := getModelActivationStatus(st, k)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	}
@@ -476,8 +488,8 @@ func getModel(st *store.S, modelID, tenantID string, includeLoadingModel bool) (
 	return toModelProto(m, as), nil
 }
 
-func getModelActivationStatus(st *store.S, modelID, tenantID string) (v1.ActivationStatus, error) {
-	status, err := st.GetModelActivationStatus(modelID, tenantID)
+func getModelActivationStatus(st *store.S, k store.ModelKey) (v1.ActivationStatus, error) {
+	status, err := st.GetModelActivationStatus(k)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
@@ -488,8 +500,8 @@ func getModelActivationStatus(st *store.S, modelID, tenantID string) (v1.Activat
 	return status.Status, nil
 }
 
-func getModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) (v1.ActivationStatus, error) {
-	status, err := store.GetModelActivationStatusInTransaction(tx, modelID, tenantID)
+func getModelActivationStatusInTransaction(tx *gorm.DB, k store.ModelKey) (v1.ActivationStatus, error) {
+	status, err := store.GetModelActivationStatusInTransaction(tx, k)
 	if err != nil {
 		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
 	}
@@ -510,7 +522,11 @@ func (s *S) DeleteModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if as, err := getModelActivationStatus(s.store, req.Id, userInfo.TenantID); err != nil {
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: userInfo.TenantID,
+	}
+	if as, err := getModelActivationStatus(s.store, k); err != nil {
 		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	} else if as == v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE {
 		return nil, status.Errorf(codes.FailedPrecondition, "model %q is active", req.Id)
@@ -523,30 +539,29 @@ func (s *S) DeleteModel(
 
 		// The specified model is not a base-model or the base-model has already been deleted.
 		// Try deleting a fine-tuned model of the specified ID.
-		return s.deleteFineTunedModel(ctx, req.Id, userInfo.TenantID)
+		return s.deleteFineTunedModel(ctx, k)
 	}
 
 	// The specified model is a base-model. Delete it.
 
-	return s.deleteBaseModel(ctx, req.Id, userInfo.TenantID)
+	return s.deleteBaseModel(ctx, k)
 }
 
 func (s *S) deleteFineTunedModel(
 	ctx context.Context,
-	modelID string,
-	tenantID string,
+	k store.ModelKey,
 ) (*v1.DeleteModelResponse, error) {
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
-		if err := store.DeleteModelInTransaction(tx, modelID, tenantID); err != nil {
+		if err := store.DeleteModelInTransaction(tx, k.ModelID, k.TenantID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.NotFound, "model %q not found", modelID)
+				return status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
 			}
 			return status.Errorf(codes.Internal, "delete model: %s", err)
 		}
-		if err := store.DeleteModelActivationStatusInTransaction(tx, modelID, tenantID); err != nil {
+		if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
 			// Gracefully handle a not found error for backward compatibility.
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.NotFound, "model activation status %q not found", modelID)
+				return status.Errorf(codes.NotFound, "model activation status %q not found", k.ModelID)
 			}
 		}
 		return nil
@@ -555,7 +570,7 @@ func (s *S) deleteFineTunedModel(
 	}
 
 	return &v1.DeleteModelResponse{
-		Id:      modelID,
+		Id:      k.ModelID,
 		Object:  "model",
 		Deleted: true,
 	}, nil
@@ -563,17 +578,16 @@ func (s *S) deleteFineTunedModel(
 
 func (s *S) deleteBaseModel(
 	ctx context.Context,
-	modelID string,
-	tenantID string,
+	k store.ModelKey,
 ) (*v1.DeleteModelResponse, error) {
 	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
 	// so we should have additional check here.
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
-		if err := store.DeleteBaseModelInTransaction(tx, modelID, tenantID); err != nil {
+		if err := store.DeleteBaseModelInTransaction(tx, k.ModelID, k.TenantID); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Errorf(codes.Internal, "delete model: %s", err)
 			}
-			return status.Errorf(codes.NotFound, "model %q not found", modelID)
+			return status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
 		}
 
 		// Delete the HFModelRepo if the model is from Hugging Face. Otherwise the same
@@ -583,17 +597,17 @@ func (s *S) deleteBaseModel(
 		// the Hugging Face repo name and the model ID does not match.
 		//
 		// Also, deleting a HFModelRepo can trigger downloading the remaining undeleted models again, which is not ideal.
-		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, modelID, tenantID); err != nil {
+		if err := store.DeleteHFModelRepoInTransactionByModelID(tx, k.ModelID, k.TenantID); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", modelID, err)
+				return status.Errorf(codes.Internal, "delete hf model repo (id: %q): %s", k.ModelID, err)
 			}
 			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
 		}
 
-		if err := store.DeleteModelActivationStatusInTransaction(tx, modelID, tenantID); err != nil {
+		if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
 			// Gracefully handle a not found error for backward compatibility.
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.NotFound, "model activation status for %q not found", modelID)
+				return status.Errorf(codes.NotFound, "model activation status for %q not found", k.ModelID)
 			}
 		}
 
@@ -603,7 +617,7 @@ func (s *S) deleteBaseModel(
 	}
 
 	return &v1.DeleteModelResponse{
-		Id:      modelID,
+		Id:      k.ModelID,
 		Object:  "model",
 		Deleted: true,
 	}, nil
@@ -623,15 +637,15 @@ func (s *S) ActivateModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if _, err := getModel(s.store, req.Id, userInfo.TenantID, false /* includeLoadingModel */); err != nil {
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: userInfo.TenantID,
+	}
+	if _, err := getModel(s.store, k, false /* includeLoadingModel */); err != nil {
 		return nil, err
 	}
 
-	if err := s.store.UpdateModelActivationStatus(
-		req.Id,
-		userInfo.TenantID,
-		v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE,
-	); err != nil {
+	if err := s.store.UpdateModelActivationStatus(k, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE); err != nil {
 		return nil, status.Errorf(codes.Internal, "update model activation status: %s", err)
 	}
 
@@ -652,15 +666,15 @@ func (s *S) DeactivateModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if _, err := getModel(s.store, req.Id, userInfo.TenantID, false /* includeLoadingModel */); err != nil {
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: userInfo.TenantID,
+	}
+	if _, err := getModel(s.store, k, false /* includeLoadingModel */); err != nil {
 		return nil, err
 	}
 
-	if err := s.store.UpdateModelActivationStatus(
-		req.Id,
-		userInfo.TenantID,
-		v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
-	); err != nil {
+	if err := s.store.UpdateModelActivationStatus(k, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE); err != nil {
 		return nil, status.Errorf(codes.Internal, "update model activation status: %s", err)
 	}
 
@@ -681,7 +695,11 @@ func (s *WS) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := getModel(s.store, req.Id, clusterInfo.TenantID, true /* includeLoadingModel */)
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: clusterInfo.TenantID,
+	}
+	m, err := getModel(s.store, k, true /* includeLoadingModel */)
 	if err != nil {
 		return nil, err
 	}
@@ -707,7 +725,11 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		k := store.ModelKey{
+			ModelID:  m.ModelID,
+			TenantID: m.TenantID,
+		}
+		as, err := getModelActivationStatus(s.store, k)
 		if err != nil {
 			return nil, err
 		}
@@ -732,7 +754,11 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		as, err := getModelActivationStatus(s.store, m.ModelID, m.TenantID)
+		k := store.ModelKey{
+			ModelID:  m.ModelID,
+			TenantID: m.TenantID,
+		}
+		as, err := getModelActivationStatus(s.store, k)
 		if err != nil {
 			return nil, err
 		}
@@ -1124,7 +1150,12 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		return nil, status.Error(codes.InvalidArgument, "loading_result is required")
 	}
 
-	bm, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: clusterInfo.TenantID,
+	}
+
+	bm, err := s.store.GetBaseModel(k.ModelID, k.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -1144,11 +1175,11 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		if bm.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING {
 			s.log.Info("Delete the model as a new base model has been successfully created", "modelID", req.Id)
 			if err := s.store.Transaction(func(tx *gorm.DB) error {
-				if err := store.DeleteBaseModelInTransaction(tx, req.Id, clusterInfo.TenantID); err != nil {
+				if err := store.DeleteBaseModelInTransaction(tx, k.ModelID, k.TenantID); err != nil {
 					return status.Errorf(codes.Internal, "delete model: %s", err)
 				}
 
-				if err := store.DeleteModelActivationStatusInTransaction(tx, req.Id, clusterInfo.TenantID); err != nil {
+				if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
 					// Gracefully handle a not-found error for backward compatibility.
 					if !errors.Is(err, gorm.ErrRecordNotFound) {
 						return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
@@ -1165,8 +1196,8 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 			return nil, status.Error(codes.InvalidArgument, "reason is required")
 		}
 		err = s.store.UpdateBaseModelToFailedStatus(
-			req.Id,
-			clusterInfo.TenantID,
+			k.ModelID,
+			k.TenantID,
 			failure.Reason,
 		)
 	default:
