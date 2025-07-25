@@ -142,21 +142,31 @@ func (s *S) createBaseModel(
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: userInfo.TenantID,
+	}
+	if _, err := s.store.GetBaseModel(k); err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+		}
+	} else {
+		return nil, status.Errorf(codes.AlreadyExists, "base model %q already exists", req.Id)
+	}
+
 	var m *store.BaseModel
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
 		var err error
 		m, err = store.CreateBaseModelWithLoadingRequestedInTransaction(tx, req.Id, req.SourceRepository, userInfo.TenantID)
 		if err != nil {
-			if gerrors.IsUniqueConstraintViolation(err) {
-				return status.Errorf(codes.AlreadyExists, "model %q already exists", req.Id)
-			}
 			return status.Errorf(codes.Internal, "create base model: %s", err)
 		}
 
 		if err := store.CreateModelActivationStatusInTransaction(tx, &store.ModelActivationStatus{
-			ModelID:  req.Id,
-			TenantID: userInfo.TenantID,
-			Status:   v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
+			ModelID:   k.ModelID,
+			ProjectID: k.ProjectID,
+			TenantID:  k.TenantID,
+			Status:    v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
 		}); err != nil {
 			return status.Errorf(codes.Internal, "create model activation status: %s", err)
 		}
