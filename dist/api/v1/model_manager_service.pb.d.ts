@@ -178,17 +178,20 @@ export type GetBaseModelPathResponse = {
 };
 export type CreateHFModelRepoRequest = {
     name?: string;
+    project_id?: string;
 };
 export type HFModelRepo = {
     name?: string;
 };
 export type GetHFModelRepoRequest = {
     name?: string;
+    project_id?: string;
 };
 export type AcquireUnloadedBaseModelRequest = {};
 export type AcquireUnloadedBaseModelResponse = {
     base_model_id?: string;
     source_repository?: SourceRepository;
+    project_id?: string;
 };
 export type UpdateBaseModelLoadingStatusRequestSuccess = {};
 export type UpdateBaseModelLoadingStatusRequestFailure = {

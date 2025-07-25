@@ -301,6 +301,9 @@
         },
         "sourceRepository": {
           "$ref": "#/definitions/v1SourceRepository"
+        },
+        "projectId": {
+          "type": "string"
         }
       }
     },

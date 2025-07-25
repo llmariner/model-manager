@@ -354,6 +354,7 @@ message GetBaseModelPathResponse {
 
 message CreateHFModelRepoRequest {
   string name = 1;
+  string project_id = 2;
 }
 
 message HFModelRepo {
@@ -362,6 +363,7 @@ message HFModelRepo {
 
 message GetHFModelRepoRequest {
   string name = 1;
+  string project_id = 2;
 }
 
 message AcquireUnloadedBaseModelRequest {
@@ -371,6 +373,7 @@ message AcquireUnloadedBaseModelResponse {
   // base_model_id is ID of the acquired base model. Empty if there is no unloaded base model.
   string base_model_id = 1;
   SourceRepository source_repository = 2;
+  string project_id = 3;
 }
 
 message UpdateBaseModelLoadingStatusRequest {
