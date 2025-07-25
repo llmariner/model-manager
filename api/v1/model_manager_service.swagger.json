@@ -324,9 +324,6 @@
         },
         "destPath": {
           "type": "string"
-        },
-        "projectId": {
-          "type": "string"
         }
       }
     },

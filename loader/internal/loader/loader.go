@@ -137,7 +137,7 @@ func (l *L) LoadModels(
 	sourceRepository v1.SourceRepository,
 ) error {
 	for _, baseModel := range baseModels {
-		if err := l.loadBaseModel(ctx, baseModel, sourceRepository); err != nil {
+		if err := l.loadBaseModel(ctx, baseModel, "" /* projectID */, sourceRepository); err != nil {
 			return err
 		}
 	}
@@ -166,10 +166,11 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 			return nil
 		}
 
-		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.SourceRepository); err != nil {
+		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.ProjectId, resp.SourceRepository); err != nil {
 			l.log.Error(err, "Failed to load base model", "modelID", resp.BaseModelId)
 			if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
 				Id: resp.BaseModelId,
+				// TODO(kenji): Set projectID.
 				LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Failure_{
 					Failure: &v1.UpdateBaseModelLoadingStatusRequest_Failure{
 						Reason: err.Error(),
@@ -184,7 +185,8 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 
 		l.log.Info("Successfully loaded base model", "modelID", resp.BaseModelId)
 		if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
-			Id:            resp.BaseModelId,
+			Id: resp.BaseModelId,
+			// TODO(kenji): Set projectID.
 			LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{},
 		}); err != nil {
 			return err
@@ -209,7 +211,7 @@ func (l *L) pullAndLoadModels(ctx context.Context) error {
 			return nil
 		}
 
-		if _, err := l.downloadAndUploadModel(ctx, resp.ModelId, resp.ModelFileLocation, "", resp.SourceRepository, resp.DestPath); err != nil {
+		if _, err := l.downloadAndUploadModel(ctx, resp.ModelId, resp.ModelFileLocation, "" /* filename */, resp.SourceRepository, resp.DestPath); err != nil {
 			l.log.Error(err, "Failed to load model", "modelID", resp.ModelId)
 			if _, err := l.modelClient.UpdateModelLoadingStatus(actx, &v1.UpdateModelLoadingStatusRequest{
 				Id: resp.ModelId,
@@ -235,7 +237,12 @@ func (l *L) pullAndLoadModels(ctx context.Context) error {
 	}
 }
 
-func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository v1.SourceRepository) error {
+func (l *L) loadBaseModel(
+	ctx context.Context,
+	modelID string,
+	projectID string,
+	sourceRepository v1.SourceRepository,
+) error {
 	convertedModelID := id.ToLLMarinerModelID(modelID)
 
 	// First check if the model exists in the database.
@@ -260,7 +267,11 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 	isDownloadingFromHuggingFace := sourceRepository == v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE
 	if isDownloadingFromHuggingFace && filename == "" {
 		// Check if the corresponding HuggingFace repo has already been downloaded.
-		_, err := l.modelClient.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: modelID})
+		req := &v1.GetHFModelRepoRequest{
+			Name:      modelID,
+			ProjectId: projectID,
+		}
+		_, err := l.modelClient.GetHFModelRepo(ctx, req)
 		if err == nil {
 			l.log.Info("Already HuggingFace model repo exists", "modelID", modelID)
 			return nil
@@ -301,7 +312,11 @@ func (l *L) loadBaseModel(ctx context.Context, modelID string, sourceRepository 
 	}
 
 	if isDownloadingFromHuggingFace && filename == "" {
-		if _, err := l.modelClient.CreateHFModelRepo(ctx, &v1.CreateHFModelRepoRequest{Name: modelID}); err != nil {
+		req := &v1.CreateHFModelRepoRequest{
+			Name:      modelID,
+			ProjectId: projectID,
+		}
+		if _, err := l.modelClient.CreateHFModelRepo(ctx, req); err != nil {
 			return err
 		}
 	}
@@ -316,7 +331,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 		organizationID = "default"
 		tenantID       = "default-tenant-id"
 	)
-	if err := l.loadBaseModel(ctx, model.BaseModel, sourceRepository); err != nil {
+	if err := l.loadBaseModel(ctx, model.BaseModel, projectID, sourceRepository); err != nil {
 		return err
 	}
 
@@ -335,7 +350,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
 	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID, toKeyModelID(model.Model))
-	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, model.Model, "", sourceRepository, pathPrefix)
+	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, model.Model, "" /* filename */, sourceRepository, pathPrefix)
 	if err != nil {
 		return err
 	}
