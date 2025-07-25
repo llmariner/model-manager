@@ -11,10 +11,15 @@ import (
 type BaseModel struct {
 	gorm.Model
 
-	TenantID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id"`
+	TenantID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id_project_id"`
 
-	ModelID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id"`
-	Path    string
+	ModelID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id_project_id"`
+
+	// ProjectID is the ID of the project to which the model belongs. It is empty if
+	// the model is globally scoped and it is not associated with any project.
+	ProjectID string `gorm:"uniqueIndex:idx_base_model_model_id_tenant_id_project_id"`
+
+	Path string
 
 	Formats []byte
 
