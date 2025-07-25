@@ -210,10 +210,14 @@ func (s *S) ListModels(
 		afterModel *store.Model
 	)
 	if req.After != "" {
+		var found bool
 		var err error
-		afterBase, afterModel, err = s.findBaseModelOrModel(req.After, userInfo.TenantID, req.IncludeLoadingModels)
+		afterBase, afterModel, found, err = findBaseModelOrModel(s.store, req.After, userInfo.TenantID, req.IncludeLoadingModels)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "find model by ID %q: %s", req.After, err)
+		}
+		if !found {
+			return nil, status.Errorf(codes.InvalidArgument, "after parameter %q is not a valid model ID", req.After)
 		}
 	}
 
@@ -392,42 +396,6 @@ func (s *S) ListModels(
 	}, nil
 }
 
-func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, error) {
-	// Find a corresponding base model or a fine-tuned model
-	var err error
-	k := store.ModelKey{
-		ModelID:  modelID,
-		TenantID: tenantID,
-	}
-	bm, err := s.store.GetBaseModel(k)
-	if err == nil {
-		if !isBaseModelLoaded(bm) && !includeLoadingModels {
-			return nil, nil, status.Errorf(codes.InvalidArgument, "base model is not loaded")
-		}
-		return bm, nil, nil
-	}
-
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, nil, status.Errorf(codes.Internal, "get base model: %s", err)
-	}
-
-	// Try a fine-tuned model next.
-	m, err := s.store.GetModelByModelIDAndTenantID(modelID, tenantID)
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil, status.Errorf(codes.Internal, "get model: %s", err)
-		}
-
-		return nil, nil, status.Errorf(codes.InvalidArgument, "invalid after: %s", err)
-	}
-
-	if !isModelLoaded(m) && !includeLoadingModels {
-		return nil, nil, status.Errorf(codes.InvalidArgument, "model is not loaded")
-	}
-
-	return nil, m, nil
-}
-
 func (s *S) getTotalItems(userInfo *auth.UserInfo) (int32, error) {
 	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
 	if err != nil {
@@ -464,66 +432,6 @@ func (s *S) GetModel(
 		return nil, err
 	}
 	return m, nil
-}
-
-func getModel(st *store.S, k store.ModelKey, includeLoadingModel bool) (*v1.Model, error) {
-	// First check if it's a base model.
-	bm, err := st.GetBaseModel(k)
-	if err == nil {
-		if !isBaseModelLoaded(bm) && !includeLoadingModel {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
-		}
-
-		as, err := getModelActivationStatus(st, k)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
-		}
-
-		mp, err := baseToModelProto(bm, as)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-		}
-		return mp, nil
-	}
-	if !errors.Is(err, gorm.ErrRecordNotFound) {
-		return nil, status.Errorf(codes.Internal, "get base model: %s", err)
-	}
-
-	// Then check if it's a generated model.
-	m, err := st.GetPublishedModelByModelIDAndTenantID(k.ModelID, k.TenantID)
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
-		}
-		return nil, status.Errorf(codes.Internal, "get published model by model id and tenant id: %s", err)
-	}
-
-	as, err := getModelActivationStatus(st, k)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
-	}
-
-	return toModelProto(m, as), nil
-}
-
-func getModelActivationStatus(st *store.S, k store.ModelKey) (v1.ActivationStatus, error) {
-	status, err := st.GetModelActivationStatus(k)
-	if err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
-		}
-		// For backward compatibility.
-		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, nil
-	}
-	return status.Status, nil
-}
-
-func getModelActivationStatusInTransaction(tx *gorm.DB, k store.ModelKey) (v1.ActivationStatus, error) {
-	status, err := store.GetModelActivationStatusInTransaction(tx, k)
-	if err != nil {
-		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
-	}
-	return status.Status, nil
 }
 
 // DeleteModel deletes a model.
@@ -1319,6 +1227,87 @@ func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error)
 			return id, nil
 		}
 	}
+}
+
+func getModel(st *store.S, k store.ModelKey, includeLoadingModel bool) (*v1.Model, error) {
+	bm, fm, found, err := findBaseModelOrModel(st, k.ModelID, k.TenantID, includeLoadingModel)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "%s", err)
+	}
+	if !found {
+		return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
+	}
+
+	as, err := getModelActivationStatus(st, k)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
+	}
+
+	if bm != nil {
+		mp, err := baseToModelProto(bm, as)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+		}
+		return mp, nil
+	}
+
+	return toModelProto(fm, as), nil
+}
+
+func getModelActivationStatus(st *store.S, k store.ModelKey) (v1.ActivationStatus, error) {
+	status, err := st.GetModelActivationStatus(k)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
+		}
+		// For backward compatibility.
+		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, nil
+	}
+	return status.Status, nil
+}
+
+func getModelActivationStatusInTransaction(tx *gorm.DB, k store.ModelKey) (v1.ActivationStatus, error) {
+	status, err := store.GetModelActivationStatusInTransaction(tx, k)
+	if err != nil {
+		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
+	}
+	return status.Status, nil
+}
+
+func findBaseModelOrModel(st *store.S, modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, bool, error) {
+	// Find a corresponding base model or a fine-tuned model
+	var err error
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	bm, err := st.GetBaseModel(k)
+	if err == nil {
+		if !isBaseModelLoaded(bm) && !includeLoadingModels {
+			return nil, nil, false, nil
+		}
+		return bm, nil, true, nil
+	}
+
+	if !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, nil, false, err
+	}
+
+	// Try a fine-tuned model next.
+	m, err := st.GetPublishedModelByModelIDAndTenantID(modelID, tenantID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil, false, err
+		}
+
+		return nil, nil, false, nil
+	}
+
+	if !isModelLoaded(m) && !includeLoadingModels {
+		return nil, nil, false, nil
+	}
+
+	return nil, m, true, nil
 }
 
 func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {
