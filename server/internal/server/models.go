@@ -474,10 +474,7 @@ func (s *S) DeleteModel(
 	return s.deleteBaseModel(ctx, k)
 }
 
-func (s *S) deleteFineTunedModel(
-	ctx context.Context,
-	k store.ModelKey,
-) (*v1.DeleteModelResponse, error) {
+func (s *S) deleteFineTunedModel(ctx context.Context, k store.ModelKey) (*v1.DeleteModelResponse, error) {
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
 		if err := store.DeleteModelInTransaction(tx, k.ModelID, k.TenantID); err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -503,10 +500,7 @@ func (s *S) deleteFineTunedModel(
 	}, nil
 }
 
-func (s *S) deleteBaseModel(
-	ctx context.Context,
-	k store.ModelKey,
-) (*v1.DeleteModelResponse, error) {
+func (s *S) deleteBaseModel(ctx context.Context, k store.ModelKey) (*v1.DeleteModelResponse, error) {
 	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
 	// so we should have additional check here.
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
@@ -551,10 +545,7 @@ func (s *S) deleteBaseModel(
 }
 
 // ActivateModel activates a model.
-func (s *S) ActivateModel(
-	ctx context.Context,
-	req *v1.ActivateModelRequest,
-) (*v1.ActivateModelResponse, error) {
+func (s *S) ActivateModel(ctx context.Context, req *v1.ActivateModelRequest) (*v1.ActivateModelResponse, error) {
 	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("failed to extract user info from context")
@@ -580,10 +571,7 @@ func (s *S) ActivateModel(
 }
 
 // DeactivateModel deactivates a model.
-func (s *S) DeactivateModel(
-	ctx context.Context,
-	req *v1.DeactivateModelRequest,
-) (*v1.DeactivateModelResponse, error) {
+func (s *S) DeactivateModel(ctx context.Context, req *v1.DeactivateModelRequest) (*v1.DeactivateModelResponse, error) {
 	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
 	if !ok {
 		return nil, fmt.Errorf("failed to extract user info from context")
@@ -609,10 +597,7 @@ func (s *S) DeactivateModel(
 }
 
 // GetModel gets a model.
-func (s *WS) GetModel(
-	ctx context.Context,
-	req *v1.GetModelRequest,
-) (*v1.Model, error) {
+func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, error) {
 	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
 	if err != nil {
 		return nil, err
@@ -652,18 +637,11 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		k := store.ModelKey{
-			ModelID:  m.ModelID,
-			TenantID: m.TenantID,
-		}
-		as, err := getModelActivationStatus(s.store, k)
+		mp, err := convertBaseModelToProtoWithActivationStatus(s.store, m)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 		}
-		mp, err := baseToModelProto(m, as)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-		}
+
 		modelProtos = append(modelProtos, mp)
 	}
 
@@ -681,15 +659,12 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		k := store.ModelKey{
-			ModelID:  m.ModelID,
-			TenantID: m.TenantID,
-		}
-		as, err := getModelActivationStatus(s.store, k)
+		mp, err := convertFineTunedModelToProtoWithActivationStatus(s.store, m)
 		if err != nil {
-			return nil, err
+			return nil, status.Errorf(codes.Internal, "model to proto: %s", err)
 		}
-		modelProtos = append(modelProtos, toModelProto(m, as))
+
+		modelProtos = append(modelProtos, mp)
 	}
 
 	return &v1.ListModelsResponse{
@@ -1238,20 +1213,54 @@ func getModel(st *store.S, k store.ModelKey, includeLoadingModel bool) (*v1.Mode
 		return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
 	}
 
+	if bm != nil {
+		return convertBaseModelToProtoWithActivationStatus(st, bm)
+	}
+
+	return convertFineTunedModelToProtoWithActivationStatus(st, fm)
+}
+
+func convertBaseModelToProtoWithActivationStatus(
+	st *store.S,
+	m *store.BaseModel,
+) (*v1.Model, error) {
+	var projectID string
+	if m.ProjectID != "" {
+		projectID = m.ProjectID
+	}
+
+	k := store.ModelKey{
+		ModelID:   m.ModelID,
+		ProjectID: projectID,
+		TenantID:  m.TenantID,
+	}
 	as, err := getModelActivationStatus(st, k)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	}
 
-	if bm != nil {
-		mp, err := baseToModelProto(bm, as)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "to proto: %s", err)
-		}
-		return mp, nil
+	mp, err := baseToModelProto(m, as)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "to proto: %s", err)
+	}
+	return mp, nil
+}
+
+func convertFineTunedModelToProtoWithActivationStatus(
+	st *store.S,
+	m *store.Model,
+) (*v1.Model, error) {
+	k := store.ModelKey{
+		ModelID: m.ModelID,
+		// ProjectID is empty for fine-tuned models for backward compatibility.
+		TenantID: m.TenantID,
+	}
+	as, err := getModelActivationStatus(st, k)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	}
 
-	return toModelProto(fm, as), nil
+	return toModelProto(m, as), nil
 }
 
 func getModelActivationStatus(st *store.S, k store.ModelKey) (v1.ActivationStatus, error) {
