@@ -386,6 +386,10 @@
         },
         "config": {
           "$ref": "#/definitions/v1ModelConfig"
+        },
+        "isProjectScoped": {
+          "type": "boolean",
+          "description": "is_project_scoped is true if the model has a project scope. Only meaningful for\nbase models."
         }
       }
     },

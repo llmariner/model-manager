@@ -103,6 +103,7 @@ export type CreateModelRequest = {
   suffix?: string
   model_file_location?: string
   config?: ModelConfig
+  is_project_scoped?: boolean
 }
 
 export type ListModelsRequest = {

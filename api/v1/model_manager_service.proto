@@ -125,6 +125,10 @@ message CreateModelRequest {
   string model_file_location = 6;
 
   ModelConfig config = 7;
+
+  // is_project_scoped is true if the model has a project scope. Only meaningful for
+  // base models.
+  bool is_project_scoped = 8;
 }
 
 message ListModelsRequest {
