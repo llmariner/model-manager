@@ -916,6 +916,30 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 	assert.Equal(t, "error", got.LoadingFailureReason)
 }
 
+func TestBaseModelCreation_Duplicate(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	const modelID = "r/m0"
+
+	_, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+
+	// Send the RPC again.
+	_, err = srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.Error(t, err)
+	assert.Equal(t, codes.AlreadyExists, status.Code(err))
+}
+
 func TestFineTunedModelCreation(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
