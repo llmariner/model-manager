@@ -63,7 +63,7 @@ func TestBaseModel(t *testing.T) {
 	assert.Equal(t, "path", gotMs[0].Path)
 	assert.Equal(t, "gguf_model_path", gotMs[0].GGUFModelPath)
 
-	c, err := st.CountBaseModels(tenantID)
+	c, err := st.CountBaseModels("", tenantID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), c)
 
@@ -346,5 +346,74 @@ func TestListBaseModelsByModelIDAndTenantID(t *testing.T) {
 		for i, projectID := range tc.wantProjectIDs {
 			assert.Equal(t, projectID, got[i].ProjectID)
 		}
+	}
+}
+
+func TestCountBaseModels(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const tenantID = "t0"
+
+	keys := []ModelKey{
+		{
+			ModelID:  "bm0",
+			TenantID: tenantID,
+		},
+		{
+			ModelID:  "bm1",
+			TenantID: tenantID,
+		},
+		{
+			ModelID:   "bm0",
+			ProjectID: "p0",
+			TenantID:  tenantID,
+		},
+		{
+			ModelID:   "bm2",
+			ProjectID: "p0",
+			TenantID:  tenantID,
+		},
+		{
+			ModelID:  "bm3",
+			TenantID: "t1",
+		},
+	}
+
+	for _, k := range keys {
+		_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+		assert.NoError(t, err)
+	}
+
+	tcs := []struct {
+		projectID string
+		tenantID  string
+		want      int64
+	}{
+		{
+			projectID: "",
+			tenantID:  tenantID,
+			want:      2, // bm0 and bm1
+		},
+		{
+			projectID: "p0",
+			tenantID:  tenantID,
+			want:      3, // bm0, bm1, and bm2
+		},
+		{
+			projectID: "p1",
+			tenantID:  tenantID,
+			want:      2, // bm0 and bm1
+		},
+		{
+			projectID: "",
+			tenantID:  "t1",
+			want:      1,
+		},
+	}
+	for _, tc := range tcs {
+		got, err := st.CountBaseModels(tc.projectID, tc.tenantID)
+		assert.NoError(t, err)
+		assert.Equal(t, tc.want, got)
 	}
 }
