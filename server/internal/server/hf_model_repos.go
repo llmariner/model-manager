@@ -29,9 +29,10 @@ func (s *WS) CreateHFModelRepo(
 	modelID := id.ToLLMarinerModelID(req.Name)
 
 	r := &store.HFModelRepo{
-		Name:     req.Name,
-		ModelID:  modelID,
-		TenantID: clusterInfo.TenantID,
+		Name:      req.Name,
+		ModelID:   modelID,
+		ProjectID: req.ProjectId,
+		TenantID:  clusterInfo.TenantID,
 	}
 	if err := s.store.CreateHFModelRepo(r); err != nil {
 		return nil, status.Errorf(codes.Internal, "get hugging-face model repo: %s", err)
@@ -56,7 +57,7 @@ func (s *WS) GetHFModelRepo(
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	r, err := s.store.GetHFModelRepo(req.Name, "" /* projectID */, clusterInfo.TenantID)
+	r, err := s.store.GetHFModelRepo(req.Name, req.ProjectId, clusterInfo.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "hugging-face model repo %q not found", req.Name)

@@ -354,6 +354,7 @@ message GetBaseModelPathResponse {
 
 message CreateHFModelRepoRequest {
   string name = 1;
+  string project_id = 2;
 }
 
 message HFModelRepo {
@@ -362,6 +363,7 @@ message HFModelRepo {
 
 message GetHFModelRepoRequest {
   string name = 1;
+  string project_id = 2;
 }
 
 message AcquireUnloadedBaseModelRequest {
