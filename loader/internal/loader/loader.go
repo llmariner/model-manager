@@ -169,8 +169,8 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.ProjectId, resp.SourceRepository); err != nil {
 			l.log.Error(err, "Failed to load base model", "modelID", resp.BaseModelId)
 			if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
-				Id: resp.BaseModelId,
-				// TODO(kenji): Set projectID.
+				Id:        resp.BaseModelId,
+				ProjectId: resp.ProjectId,
 				LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Failure_{
 					Failure: &v1.UpdateBaseModelLoadingStatusRequest_Failure{
 						Reason: err.Error(),
@@ -185,8 +185,8 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 
 		l.log.Info("Successfully loaded base model", "modelID", resp.BaseModelId)
 		if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
-			Id: resp.BaseModelId,
-			// TODO(kenji): Set projectID.
+			Id:            resp.BaseModelId,
+			ProjectId:     resp.ProjectId,
 			LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{},
 		}); err != nil {
 			return err
