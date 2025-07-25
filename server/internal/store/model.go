@@ -100,35 +100,17 @@ func (s *S) ListModelsByTenantID(tenantID string,
 	return ms, nil
 }
 
-// ListModelsByProjectIDWithPagination finds models with pagination. Models are returned with an ascending order of ID.
-func (s *S) ListModelsByProjectIDWithPagination(
-	projectID string,
-	onlyPublished bool,
-	afterModelID string,
-	limit int,
-	includeLoadingModels bool,
-) ([]*Model, bool, error) {
+// ListModelsByProjectID returns all models by project ID.
+func (s *S) ListModelsByProjectID(projectID string, onlyPublished bool) ([]*Model, error) {
 	var ms []*Model
 	q := s.db.Where("project_id = ?", projectID)
 	if onlyPublished {
 		q = q.Where("is_published = true")
 	}
-	if afterModelID != "" {
-		q = q.Where("model_id > ?", afterModelID)
+	if err := q.Order("model_id").Find(&ms).Error; err != nil {
+		return nil, err
 	}
-	if !includeLoadingModels {
-		q = q.Where("(loading_status is null OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
-	}
-	if err := q.Order("model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
-		return nil, false, err
-	}
-
-	var hasMore bool
-	if len(ms) > limit {
-		ms = ms[:limit]
-		hasMore = true
-	}
-	return ms, hasMore, nil
+	return ms, nil
 }
 
 // ListModelsByActivationStatusWithPaginationInTransaction finds models filtered by activation status with pagination in a transaction.

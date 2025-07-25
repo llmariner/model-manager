@@ -159,28 +159,6 @@ func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
-// ListBaseModelsWithPagination finds base models with pagination. Models are returned with an ascending order of model IDs.
-func (s *S) ListBaseModelsWithPagination(tenantID string, afterModelID string, limit int, includeLoadingModels bool) ([]*BaseModel, bool, error) {
-	var ms []*BaseModel
-	q := s.db.Where("tenant_id = ?", tenantID)
-	if afterModelID != "" {
-		q = q.Where("model_id > ?", afterModelID)
-	}
-	if !includeLoadingModels {
-		q = q.Where("(loading_status is null OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
-	}
-	if err := q.Order("model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
-		return nil, false, err
-	}
-
-	var hasMore bool
-	if len(ms) > limit {
-		ms = ms[:limit]
-		hasMore = true
-	}
-	return ms, hasMore, nil
-}
-
 // ListBaseModelsByActivationStatusWithPaginationInTransaction finds base models filtered by activation status with pagination in a transaction.
 // Models are returned with an ascending order of model IDs.
 func ListBaseModelsByActivationStatusWithPaginationInTransaction(
