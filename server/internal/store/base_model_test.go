@@ -63,7 +63,7 @@ func TestBaseModel(t *testing.T) {
 	assert.Equal(t, "path", gotMs[0].Path)
 	assert.Equal(t, "gguf_model_path", gotMs[0].GGUFModelPath)
 
-	c, err := st.CountBaseModels("", tenantID)
+	c, err := st.CountBaseModels(tenantID)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), c)
 
