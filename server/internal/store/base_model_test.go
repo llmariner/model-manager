@@ -293,3 +293,51 @@ func TestListBaseModelsByActivationStatusWithPagination(t *testing.T) {
 	assert.Len(t, got, 1)
 	assert.False(t, hasMore)
 }
+
+func TestListBaseModelsByModelIDAndTenantID(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const tenantID = "t0"
+
+	keys := []ModelKey{
+		{
+			ModelID:  "bm0",
+			TenantID: tenantID,
+		},
+		{
+			ModelID:   "bm0",
+			ProjectID: "p0",
+			TenantID:  tenantID,
+		},
+		{
+			ModelID:   "bm0",
+			ProjectID: "p1",
+			TenantID:  tenantID,
+		},
+		{
+			ModelID:  "bm1",
+			TenantID: tenantID,
+		},
+		{
+			ModelID:  "bm0",
+			TenantID: "t1",
+		},
+	}
+
+	for _, k := range keys {
+		_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+		assert.NoError(t, err)
+	}
+
+	got, err := st.ListBaseModelsByModelIDAndTenantID("bm0", tenantID)
+	assert.NoError(t, err)
+	assert.Len(t, got, 3)
+	assert.Equal(t, "p1", got[0].ProjectID)
+	assert.Equal(t, "p0", got[1].ProjectID)
+	assert.Equal(t, "", got[2].ProjectID)
+
+	got, err = st.ListBaseModelsByModelIDAndTenantID("bm1", tenantID)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+}

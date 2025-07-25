@@ -155,6 +155,19 @@ func (s *S) ListBaseModelsByTenantID(tenantID string) ([]*BaseModel, error) {
 	return ms, nil
 }
 
+// ListBaseModelsByModelIDAndTenantID returns all base models that has a given ID for a tenant,
+// including both global-scoped ones and project-scoped ones.
+func (s *S) ListBaseModelsByModelIDAndTenantID(modelID, tenantID string) ([]*BaseModel, error) {
+	var ms []*BaseModel
+	if err := s.db.
+		Where("model_id = ? AND tenant_id = ? ", modelID, tenantID).
+		Order("project_id DESC").
+		Find(&ms).Error; err != nil {
+		return nil, err
+	}
+	return ms, nil
+}
+
 // ListBaseModelsByActivationStatusWithPaginationInTransaction finds base models filtered by activation status with pagination in a transaction.
 // Models are returned with an ascending order of model IDs.
 func ListBaseModelsByActivationStatusWithPaginationInTransaction(
