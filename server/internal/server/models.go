@@ -696,7 +696,7 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 		return nil, err
 	}
 
-	bms, err := s.store.ListBaseModels(clusterInfo.TenantID)
+	bms, err := s.store.ListBaseModelsByTenantID(clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 	}

@@ -39,7 +39,7 @@ func TestBaseModel(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	gotMs, err := st.ListBaseModels(tenantID)
+	gotMs, err := st.ListBaseModelsByTenantID(tenantID)
 	assert.NoError(t, err)
 	assert.Len(t, gotMs, 1)
 	assert.Equal(t, modelID, gotMs[0].ModelID)
@@ -50,7 +50,7 @@ func TestBaseModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), c)
 
-	gotMs, err = st.ListBaseModels("different_tenant")
+	gotMs, err = st.ListBaseModelsByTenantID("different_tenant")
 	assert.NoError(t, err)
 	assert.Empty(t, gotMs)
 }
