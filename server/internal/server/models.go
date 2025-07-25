@@ -1148,7 +1148,6 @@ func (s *WS) AcquireUnloadedModel(
 		SourceRepository:  m.SourceRepository,
 		ModelFileLocation: m.ModelFileLocation,
 		DestPath:          m.Path,
-		ProjectId:         m.ProjectID,
 	}, nil
 }
 
