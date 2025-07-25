@@ -777,7 +777,7 @@ func TestBaseModelCreation(t *testing.T) {
 	assert.Equal(t, modelID, resp.BaseModelId)
 	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
 
-	got, err := st.GetBaseModel(modelID, defaultTenantID)
+	got, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
 
@@ -802,7 +802,7 @@ func TestBaseModelCreation(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	got, err = st.GetBaseModel(modelID, defaultTenantID)
+	got, err = st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, got.LoadingStatus)
 	assert.Equal(t, "path", got.Path)
@@ -832,7 +832,11 @@ func TestBaseModelCreation_CreateModelOfDifferentID(t *testing.T) {
 	assert.Equal(t, modelID, resp.BaseModelId)
 	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
 
-	got, err := st.GetBaseModel(modelID, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	got, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
 
@@ -860,7 +864,7 @@ func TestBaseModelCreation_CreateModelOfDifferentID(t *testing.T) {
 	assert.NoError(t, err)
 
 	// The requested model has been deleted.
-	_, err = st.GetBaseModel(modelID, defaultTenantID)
+	_, err = st.GetBaseModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }
@@ -888,7 +892,11 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 	assert.Equal(t, modelID, resp.BaseModelId)
 	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
 
-	got, err := st.GetBaseModel(modelID, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	got, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
 
@@ -902,7 +910,7 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	got, err = st.GetBaseModel(modelID, defaultTenantID)
+	got, err = st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, got.LoadingStatus)
 	assert.Equal(t, "error", got.LoadingFailureReason)
@@ -1156,9 +1164,9 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 
 	// Update the loading status to succeeded.
-	err = st.UpdateBaseModelToLoadingStatus(modelID, defaultTenantID)
+	err = st.UpdateBaseModelToLoadingStatus(k)
 	assert.NoError(t, err)
-	err = st.UpdateBaseModelToSucceededStatus(modelID, defaultTenantID, "", nil, "")
+	err = st.UpdateBaseModelToSucceededStatus(k, "", nil, "")
 	assert.NoError(t, err)
 
 	_, err = srv.ActivateModel(ctx, &v1.ActivateModelRequest{

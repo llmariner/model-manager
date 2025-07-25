@@ -125,13 +125,13 @@ func CreateBaseModelWithLoadingRequestedInTransaction(
 }
 
 // DeleteBaseModel deletes a base model by model ID and tenant ID.
-func (s *S) DeleteBaseModel(modelID, tenantID string) error {
-	return DeleteBaseModelInTransaction(s.db, modelID, tenantID)
+func (s *S) DeleteBaseModel(k ModelKey) error {
+	return DeleteBaseModelInTransaction(s.db, k)
 }
 
-// DeleteBaseModelInTransaction deletes a base model by model ID and tenant ID.
-func DeleteBaseModelInTransaction(tx *gorm.DB, modelID, tenantID string) error {
-	res := tx.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&BaseModel{})
+// DeleteBaseModelInTransaction deletes a base model.
+func DeleteBaseModelInTransaction(tx *gorm.DB, k ModelKey) error {
+	res := k.buildQuery(tx.Unscoped()).Delete(&BaseModel{})
 	if err := res.Error; err != nil {
 		return err
 	}
@@ -141,10 +141,10 @@ func DeleteBaseModelInTransaction(tx *gorm.DB, modelID, tenantID string) error {
 	return nil
 }
 
-// GetBaseModel returns a base model by model ID and tenant ID.
-func (s *S) GetBaseModel(modelID, tenantID string) (*BaseModel, error) {
+// GetBaseModel returns a base model by a model key.
+func (s *S) GetBaseModel(k ModelKey) (*BaseModel, error) {
 	var m BaseModel
-	if err := s.db.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Take(&m).Error; err != nil {
+	if err := k.buildQuery(s.db).Take(&m).Error; err != nil {
 		return nil, err
 	}
 	return &m, nil
@@ -212,13 +212,12 @@ func (s *S) ListLoadingBaseModels(tenantID string) ([]*BaseModel, error) {
 
 // updateBaseModel updates the model if the current status matches with the given one.
 func (s *S) updateBaseModel(
-	modelID string,
-	tenantID string,
+	k ModelKey,
 	curr v1.ModelLoadingStatus,
 	updates map[string]interface{},
 ) error {
-	res := s.db.Model(&BaseModel{}).
-		Where("model_id = ? AND tenant_id = ? AND loading_status = ?", modelID, tenantID, curr).
+	res := k.buildQuery(s.db.Model(&BaseModel{})).
+		Where("loading_status = ?", curr).
 		Updates(updates)
 	if err := res.Error; err != nil {
 		return err
@@ -230,10 +229,9 @@ func (s *S) updateBaseModel(
 }
 
 // UpdateBaseModelToLoadingStatus updates the loading status to LOADING.
-func (s *S) UpdateBaseModelToLoadingStatus(modelID string, tenantID string) error {
+func (s *S) UpdateBaseModelToLoadingStatus(k ModelKey) error {
 	return s.updateBaseModel(
-		modelID,
-		tenantID,
+		k,
 		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
 		map[string]interface{}{
 			"loading_status": v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
@@ -243,8 +241,7 @@ func (s *S) UpdateBaseModelToLoadingStatus(modelID string, tenantID string) erro
 
 // UpdateBaseModelToSucceededStatus updates the loading status to SUCCEEDED and updates other relevant information.
 func (s *S) UpdateBaseModelToSucceededStatus(
-	modelID string,
-	tenantID string,
+	k ModelKey,
 	path string,
 	formats []v1.ModelFormat,
 	ggufModelPath string,
@@ -255,8 +252,7 @@ func (s *S) UpdateBaseModelToSucceededStatus(
 	}
 
 	return s.updateBaseModel(
-		modelID,
-		tenantID,
+		k,
 		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
 		map[string]interface{}{
 			"path":            path,
@@ -268,14 +264,9 @@ func (s *S) UpdateBaseModelToSucceededStatus(
 }
 
 // UpdateBaseModelToFailedStatus updates the loading status to FAILED and updates other relevant information.
-func (s *S) UpdateBaseModelToFailedStatus(
-	modelID string,
-	tenantID string,
-	failureReason string,
-) error {
+func (s *S) UpdateBaseModelToFailedStatus(k ModelKey, failureReason string) error {
 	return s.updateBaseModel(
-		modelID,
-		tenantID,
+		k,
 		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
 		map[string]interface{}{
 			"loading_failure_reason": failureReason,

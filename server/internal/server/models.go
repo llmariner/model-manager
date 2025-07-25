@@ -64,7 +64,11 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.InvalidArgument, "model file location must start with s3://, but got %s", req.ModelFileLocation)
 	}
 
-	if _, err := s.store.GetBaseModel(req.BaseModelId, userInfo.TenantID); err != nil {
+	k := store.ModelKey{
+		ModelID:  req.BaseModelId,
+		TenantID: userInfo.TenantID,
+	}
+	if _, err := s.store.GetBaseModel(k); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
@@ -381,7 +385,11 @@ func (s *S) ListModels(
 func (s *S) findBaseModelOrModel(modelID, tenantID string, includeLoadingModels bool) (*store.BaseModel, *store.Model, error) {
 	// Find a corresponding base model or a fine-tuned model
 	var err error
-	bm, err := s.store.GetBaseModel(modelID, tenantID)
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	bm, err := s.store.GetBaseModel(k)
 	if err == nil {
 		if !isBaseModelLoaded(bm) && !includeLoadingModels {
 			return nil, nil, status.Errorf(codes.InvalidArgument, "base model is not loaded")
@@ -450,7 +458,7 @@ func (s *S) GetModel(
 
 func getModel(st *store.S, k store.ModelKey, includeLoadingModel bool) (*v1.Model, error) {
 	// First check if it's a base model.
-	bm, err := st.GetBaseModel(k.ModelID, k.TenantID)
+	bm, err := st.GetBaseModel(k)
 	if err == nil {
 		if !isBaseModelLoaded(bm) && !includeLoadingModel {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", k.ModelID)
@@ -532,7 +540,7 @@ func (s *S) DeleteModel(
 		return nil, status.Errorf(codes.FailedPrecondition, "model %q is active", req.Id)
 	}
 
-	if _, err := s.store.GetBaseModel(req.Id, userInfo.TenantID); err != nil {
+	if _, err := s.store.GetBaseModel(k); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
@@ -583,7 +591,7 @@ func (s *S) deleteBaseModel(
 	// TODO(kenji): Revisit the permission check. The base model is scoped by a tenant, not project,
 	// so we should have additional check here.
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
-		if err := store.DeleteBaseModelInTransaction(tx, k.ModelID, k.TenantID); err != nil {
+		if err := store.DeleteBaseModelInTransaction(tx, k); err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
 				return status.Errorf(codes.Internal, "delete model: %s", err)
 			}
@@ -966,8 +974,11 @@ func (s *WS) CreateBaseModel(
 	}
 
 	// Note: We skip the validation of source repository for backward compatibility.
-
-	existing, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: clusterInfo.TenantID,
+	}
+	existing, err := s.store.GetBaseModel(k)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
@@ -1004,8 +1015,7 @@ func (s *WS) CreateBaseModel(
 
 	// Update the existing model.
 	if err := s.store.UpdateBaseModelToSucceededStatus(
-		req.Id,
-		clusterInfo.TenantID,
+		k,
 		req.Path,
 		formats,
 		req.GgufModelPath,
@@ -1029,7 +1039,11 @@ func (s *WS) GetBaseModelPath(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := s.store.GetBaseModel(req.Id, clusterInfo.TenantID)
+	k := store.ModelKey{
+		ModelID:  req.Id,
+		TenantID: clusterInfo.TenantID,
+	}
+	m, err := s.store.GetBaseModel(k)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -1079,7 +1093,11 @@ func (s *WS) AcquireUnloadedBaseModel(
 	}
 
 	m := ms[0]
-	if err := s.store.UpdateBaseModelToLoadingStatus(m.ModelID, clusterInfo.TenantID); err != nil {
+	k := store.ModelKey{
+		ModelID:  m.ModelID,
+		TenantID: clusterInfo.TenantID,
+	}
+	if err := s.store.UpdateBaseModelToLoadingStatus(k); err != nil {
 		if errors.Is(err, store.ErrConcurrentUpdate) {
 			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
 		}
@@ -1155,7 +1173,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		TenantID: clusterInfo.TenantID,
 	}
 
-	bm, err := s.store.GetBaseModel(k.ModelID, k.TenantID)
+	bm, err := s.store.GetBaseModel(k)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
@@ -1175,7 +1193,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		if bm.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING {
 			s.log.Info("Delete the model as a new base model has been successfully created", "modelID", req.Id)
 			if err := s.store.Transaction(func(tx *gorm.DB) error {
-				if err := store.DeleteBaseModelInTransaction(tx, k.ModelID, k.TenantID); err != nil {
+				if err := store.DeleteBaseModelInTransaction(tx, k); err != nil {
 					return status.Errorf(codes.Internal, "delete model: %s", err)
 				}
 
@@ -1195,11 +1213,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		if failure.Reason == "" {
 			return nil, status.Error(codes.InvalidArgument, "reason is required")
 		}
-		err = s.store.UpdateBaseModelToFailedStatus(
-			k.ModelID,
-			k.TenantID,
-			failure.Reason,
-		)
+		err = s.store.UpdateBaseModelToFailedStatus(k, failure.Reason)
 	default:
 		return nil, status.Error(codes.InvalidArgument, "invalid loading_result")
 	}
