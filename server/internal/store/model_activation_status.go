@@ -13,6 +13,9 @@ type ModelActivationStatus struct {
 	TenantID string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id_project_id"`
 	ModelID  string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id_project_id"`
 
+	// ProjectID is set only for project-scoped base models. This is set to empty
+	// for global-scoped base models and fine-tuned models. (Fine-tuned models have emtpy values
+	// for backward compatibility.)
 	ProjectID string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id_project_id"`
 
 	Status v1.ActivationStatus
