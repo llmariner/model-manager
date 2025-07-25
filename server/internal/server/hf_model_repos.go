@@ -56,7 +56,7 @@ func (s *WS) GetHFModelRepo(
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	r, err := s.store.GetHFModelRepo(req.Name, clusterInfo.TenantID)
+	r, err := s.store.GetHFModelRepo(req.Name, "" /* projectID */, clusterInfo.TenantID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.NotFound, "hugging-face model repo %q not found", req.Name)
