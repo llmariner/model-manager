@@ -19,23 +19,40 @@ func TestBaseModel(t *testing.T) {
 		tenantID = "t0"
 	)
 
-	_, err := st.GetBaseModel(modelID, tenantID)
+	k := ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	_, err := st.GetBaseModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	_, err = st.CreateBaseModel(modelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
 	assert.NoError(t, err)
 
-	gotM, err := st.GetBaseModel(modelID, tenantID)
+	gotM, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, modelID, gotM.ModelID)
 	assert.Equal(t, "path", gotM.Path)
+
+	pk := ModelKey{
+		ModelID:   modelID,
+		TenantID:  tenantID,
+		ProjectID: "p0",
+	}
+	_, err = st.GetBaseModel(pk)
+	assert.Error(t, err)
+	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
 	formats, err := UnmarshalModelFormats(gotM.Formats)
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, formats)
 
-	_, err = st.GetBaseModel(modelID, "different_tenant")
+	dk := ModelKey{
+		ModelID:  modelID,
+		TenantID: "different_tenant",
+	}
+	_, err = st.GetBaseModel(dk)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
@@ -82,14 +99,18 @@ func TestDeleteBaseModel(t *testing.T) {
 	_, err := st.CreateBaseModel(modelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf_model_path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
 	assert.NoError(t, err)
 
-	err = st.DeleteBaseModel(modelID, tenantID)
+	k := ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	err = st.DeleteBaseModel(k)
 	assert.NoError(t, err)
 
-	_, err = st.GetBaseModel(modelID, tenantID)
+	_, err = st.GetBaseModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	err = st.DeleteBaseModel(modelID, tenantID)
+	err = st.DeleteBaseModel(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 }
@@ -129,9 +150,17 @@ func TestListLoadingBaseModels(t *testing.T) {
 	_, err = st.CreateBaseModelWithLoadingRequested("m2", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, "t1")
 	assert.NoError(t, err)
 
-	err = st.UpdateBaseModelToLoadingStatus("m0", "t0")
+	k0 := ModelKey{
+		ModelID:  "m0",
+		TenantID: "t0",
+	}
+	err = st.UpdateBaseModelToLoadingStatus(k0)
 	assert.NoError(t, err)
-	err = st.UpdateBaseModelToLoadingStatus("m2", "t1")
+	k1 := ModelKey{
+		ModelID:  "m2",
+		TenantID: "t1",
+	}
+	err = st.UpdateBaseModelToLoadingStatus(k1)
 	assert.NoError(t, err)
 
 	ms, err := st.ListLoadingBaseModels("t0")
@@ -157,32 +186,35 @@ func TestUpdateBaseModel(t *testing.T) {
 	_, err := st.CreateBaseModelWithLoadingRequested(modelID, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, tenantID)
 	assert.NoError(t, err)
 
-	m, err := st.GetBaseModel(modelID, tenantID)
+	k := ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	m, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
 
-	err = st.UpdateBaseModelToLoadingStatus(modelID, tenantID)
+	err = st.UpdateBaseModelToLoadingStatus(k)
 	assert.NoError(t, err)
 
-	m, err = st.GetBaseModel(modelID, tenantID)
+	m, err = st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, m.LoadingStatus)
 
 	// Failed to update as the current state does not match.
-	err = st.UpdateBaseModelToLoadingStatus(modelID, tenantID)
+	err = st.UpdateBaseModelToLoadingStatus(k)
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, ErrConcurrentUpdate))
 
 	err = st.UpdateBaseModelToSucceededStatus(
-		modelID,
-		tenantID,
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf_model_path",
 	)
 	assert.NoError(t, err)
 
-	m, err = st.GetBaseModel(modelID, tenantID)
+	m, err = st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, m.LoadingStatus)
 	assert.Equal(t, "path", m.Path)
@@ -193,14 +225,10 @@ func TestUpdateBaseModel(t *testing.T) {
 	err = st.db.Save(m).Error
 	assert.NoError(t, err)
 
-	err = st.UpdateBaseModelToFailedStatus(
-		modelID,
-		tenantID,
-		"error",
-	)
+	err = st.UpdateBaseModelToFailedStatus(k, "error")
 	assert.NoError(t, err)
 
-	m, err = st.GetBaseModel(modelID, tenantID)
+	m, err = st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED, m.LoadingStatus)
 	assert.Equal(t, "error", m.LoadingFailureReason)
