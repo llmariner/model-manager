@@ -22,7 +22,12 @@ func TestHFModelRepo(t *testing.T) {
 	assert.Error(t, err)
 	assert.True(t, errors.Is(err, gorm.ErrRecordNotFound))
 
-	_, err = st.CreateHFModelRepo(repoName, modelID, tenantID)
+	r := &HFModelRepo{
+		Name:     repoName,
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+	err = st.CreateHFModelRepo(r)
 	assert.NoError(t, err)
 
 	gotR, err := st.GetHFModelRepo(repoName, tenantID)

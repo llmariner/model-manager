@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/server/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"gorm.io/gorm"
@@ -27,8 +28,12 @@ func (s *WS) CreateHFModelRepo(
 
 	modelID := strings.ReplaceAll(req.Name, "/", "-")
 
-	r, err := s.store.CreateHFModelRepo(req.Name, modelID, clusterInfo.TenantID)
-	if err != nil {
+	r := &store.HFModelRepo{
+		Name:     req.Name,
+		ModelID:  modelID,
+		TenantID: clusterInfo.TenantID,
+	}
+	if err := s.store.CreateHFModelRepo(r); err != nil {
 		return nil, status.Errorf(codes.Internal, "get hugging-face model repo: %s", err)
 	}
 
