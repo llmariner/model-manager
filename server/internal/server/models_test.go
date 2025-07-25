@@ -224,7 +224,11 @@ func TestListModels_ActivationOrder(t *testing.T) {
 	}
 
 	// Activation statuses
-	err = st.UpdateModelActivationStatus("bm0", defaultTenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE)
+	k := store.ModelKey{
+		ModelID:  "bm0",
+		TenantID: defaultTenantID,
+	}
+	err = st.UpdateModelActivationStatus(k, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE)
 	assert.NoError(t, err)
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "m0", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE})
 	assert.NoError(t, err)
@@ -723,7 +727,11 @@ func TestBaseModels(t *testing.T) {
 	assert.Equal(t, "path", getResp.Path)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, getResp.Formats)
 
-	as, err := st.GetModelActivationStatus(modelID, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	as, err := st.GetModelActivationStatus(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 }
@@ -751,7 +759,11 @@ func TestBaseModelCreation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
 
-	as, err := st.GetModelActivationStatus(modelID, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	as, err := st.GetModelActivationStatus(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 
@@ -933,7 +945,11 @@ func TestFineTunedModelCreation(t *testing.T) {
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
 	assert.Equal(t, "ft:bm0:suffix0", m.Id)
 
-	as, err := st.GetModelActivationStatus(m.Id, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  m.Id,
+		TenantID: defaultTenantID,
+	}
+	as, err := st.GetModelActivationStatus(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 
@@ -1126,7 +1142,11 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
 
-	as, err := st.GetModelActivationStatus(modelID, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	as, err := st.GetModelActivationStatus(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 
@@ -1141,7 +1161,7 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	as, err = st.GetModelActivationStatus(modelID, defaultTenantID)
+	as, err = st.GetModelActivationStatus(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, as.Status)
 
@@ -1150,7 +1170,7 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	as, err = st.GetModelActivationStatus(modelID, defaultTenantID)
+	as, err = st.GetModelActivationStatus(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 }

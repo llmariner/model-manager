@@ -33,14 +33,14 @@ func CreateModelActivationStatusInTransaction(tx *gorm.DB, status *ModelActivati
 }
 
 // GetModelActivationStatus retrieves the model activation status.
-func (s *S) GetModelActivationStatus(modelID, tenantID string) (*ModelActivationStatus, error) {
-	return GetModelActivationStatusInTransaction(s.db, modelID, tenantID)
+func (s *S) GetModelActivationStatus(k ModelKey) (*ModelActivationStatus, error) {
+	return GetModelActivationStatusInTransaction(s.db, k)
 }
 
 // GetModelActivationStatusInTransaction retrieves the model activation status in a transaction.
-func GetModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) (*ModelActivationStatus, error) {
+func GetModelActivationStatusInTransaction(tx *gorm.DB, k ModelKey) (*ModelActivationStatus, error) {
 	status := &ModelActivationStatus{}
-	if err := tx.Where("model_id = ? AND tenant_id = ?", modelID, tenantID).First(status).Error; err != nil {
+	if err := k.buildQuery(tx).First(status).Error; err != nil {
 		return nil, err
 	}
 
@@ -48,9 +48,8 @@ func GetModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string
 }
 
 // UpdateModelActivationStatus updates the model activation status.
-func (s *S) UpdateModelActivationStatus(modelID, tenantID string, status v1.ActivationStatus) error {
-	res := s.db.Model(&ModelActivationStatus{}).
-		Where("model_id = ? AND tenant_id = ?", modelID, tenantID).
+func (s *S) UpdateModelActivationStatus(k ModelKey, status v1.ActivationStatus) error {
+	res := k.buildQuery(s.db.Model(&ModelActivationStatus{})).
 		Update("status", status)
 	if err := res.Error; err != nil {
 		return err
@@ -62,13 +61,13 @@ func (s *S) UpdateModelActivationStatus(modelID, tenantID string, status v1.Acti
 }
 
 // DeleteModelActivationStatus deletes the model activation status.
-func (s *S) DeleteModelActivationStatus(modelID, tenantID string) error {
-	return DeleteModelActivationStatusInTransaction(s.db, modelID, tenantID)
+func (s *S) DeleteModelActivationStatus(k ModelKey) error {
+	return DeleteModelActivationStatusInTransaction(s.db, k)
 }
 
 // DeleteModelActivationStatusInTransaction deletes the model activation status.
-func DeleteModelActivationStatusInTransaction(tx *gorm.DB, modelID, tenantID string) error {
-	res := tx.Unscoped().Where("model_id = ? AND tenant_id = ?", modelID, tenantID).Delete(&ModelActivationStatus{})
+func DeleteModelActivationStatusInTransaction(tx *gorm.DB, k ModelKey) error {
+	res := k.buildQuery(tx.Unscoped()).Delete(&ModelActivationStatus{})
 	if err := res.Error; err != nil {
 		return err
 	}
