@@ -403,7 +403,8 @@ func (s *S) getTotalItems(userInfo *auth.UserInfo) (int32, error) {
 		return 0, err
 	}
 
-	totalBaseModels, err := s.store.CountBaseModels(userInfo.TenantID)
+	// TODO(kenji): Pass userInfo.ProjectID.
+	totalBaseModels, err := s.store.CountBaseModels("" /* projectID */, userInfo.TenantID)
 	if err != nil {
 		return 0, err
 	}

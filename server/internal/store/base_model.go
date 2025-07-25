@@ -285,9 +285,15 @@ func (s *S) UpdateBaseModelToFailedStatus(k ModelKey, failureReason string) erro
 }
 
 // CountBaseModels counts the total number of base models.
-func (s *S) CountBaseModels(tenantID string) (int64, error) {
+func (s *S) CountBaseModels(projectID, tenantID string) (int64, error) {
 	var count int64
-	if err := s.db.Model(&BaseModel{}).Where("tenant_id = ? ", tenantID).Count(&count).Error; err != nil {
+	if err := s.db.Model(&BaseModel{}).
+		Distinct("model_id").
+		// Find all models that are either globally scoped (project_id is NULL) or
+		// scoped to the given project.
+		Where("(project_id IS NULL OR project_id = '' OR project_id = ?)", projectID).
+		Where("tenant_id = ? ", tenantID).
+		Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil
