@@ -275,6 +275,7 @@ export type AcquireUnloadedModelResponse = {
   source_repository?: SourceRepository
   model_file_location?: string
   dest_path?: string
+  project_id?: string
 }
 
 export type UpdateModelLoadingStatusRequestSuccess = {
