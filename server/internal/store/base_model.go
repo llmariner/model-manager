@@ -150,8 +150,8 @@ func (s *S) GetBaseModel(modelID, tenantID string) (*BaseModel, error) {
 	return &m, nil
 }
 
-// ListBaseModels returns all base models for a tenant.
-func (s *S) ListBaseModels(tenantID string) ([]*BaseModel, error) {
+// ListBaseModelsByTenantID returns all base models for a tenant.
+func (s *S) ListBaseModelsByTenantID(tenantID string) ([]*BaseModel, error) {
 	var ms []*BaseModel
 	if err := s.db.Where("tenant_id = ? ", tenantID).Order("model_id DESC").Find(&ms).Error; err != nil {
 		return nil, err
