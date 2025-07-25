@@ -162,6 +162,7 @@ export type CreateBaseModelRequest = {
     formats?: ModelFormat[];
     gguf_model_path?: string;
     source_repository?: SourceRepository;
+    project_id?: string;
 };
 export type BaseModel = {
     id?: string;
