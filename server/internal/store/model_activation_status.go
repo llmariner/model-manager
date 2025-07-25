@@ -10,8 +10,10 @@ import (
 type ModelActivationStatus struct {
 	gorm.Model
 
-	TenantID string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id"`
-	ModelID  string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id"`
+	TenantID string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id_project_id"`
+	ModelID  string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id_project_id"`
+
+	ProjectID string `gorm:"uniqueIndex:idx_model_activation_status_model_id_tenant_id_project_id"`
 
 	Status v1.ActivationStatus
 }

@@ -11,9 +11,10 @@ import (
 type HFModelRepo struct {
 	gorm.Model
 
-	Name     string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id"`
-	ModelID  string `gorm:"uniqueIndex:idx_hf_model_repo_model_id_tenant_id"`
-	TenantID string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id;uniqueIndex:idx_hf_model_repo_model_id_tenant_id"`
+	Name      string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id_project_id"`
+	ModelID   string `gorm:"uniqueIndex:idx_hf_model_repo_model_id_tenant_id_project_id"`
+	TenantID  string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id_project_id;uniqueIndex:idx_hf_model_repo_model_id_tenant_id_project_id"`
+	ProjectID string `gorm:"uniqueIndex:idx_hf_model_repo_name_tenant_id_project_id;uniqueIndex:idx_hf_model_repo_model_id_tenant_id_project_id"`
 }
 
 // CreateHFModelRepo creates a model repo.
