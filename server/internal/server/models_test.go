@@ -88,13 +88,16 @@ func TestModels_Pagination(t *testing.T) {
 
 	baseModelIDs := []string{"bm0", "bm1"}
 	for _, id := range baseModelIDs {
+		k := store.ModelKey{
+			ModelID:  id,
+			TenantID: defaultTenantID,
+		}
 		_, err := st.CreateBaseModel(
-			id,
+			k,
 			"path",
 			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 			"gguf-path",
 			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-			defaultTenantID,
 		)
 		assert.NoError(t, err)
 		err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: id, TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
@@ -189,24 +192,31 @@ func TestListModels_ActivationOrder(t *testing.T) {
 	defer tearDown()
 
 	// Create base models.
+	k0 := store.ModelKey{
+		ModelID:  "bm0",
+		TenantID: defaultTenantID,
+	}
 	_, err := st.CreateBaseModel(
-		"bm0",
+		k0,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf-path",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm0", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE})
 	assert.NoError(t, err)
+
+	k1 := store.ModelKey{
+		ModelID:  "bm1",
+		TenantID: defaultTenantID,
+	}
 	_, err = st.CreateBaseModel(
-		"bm1",
+		k1,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf-path",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -253,13 +263,16 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
+	k := store.ModelKey{
+		ModelID:  "m0",
+		TenantID: defaultTenantID,
+	}
 	_, err := st.CreateBaseModel(
-		"m0",
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf-path",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -290,13 +303,16 @@ func TestDeleteModel_BaseModelAndHFModelRepo(t *testing.T) {
 		hfRepoName = "meta-llama/Llama-3.2-1B-Instruct"
 	)
 
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
 	_, err := st.CreateBaseModel(
-		modelID,
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf-path",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -330,13 +346,16 @@ func TestDeleteModel_ActiveBaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
+	k := store.ModelKey{
+		ModelID:  "m0",
+		TenantID: defaultTenantID,
+	}
 	_, err := st.CreateBaseModel(
-		"m0",
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf-path",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -408,7 +427,11 @@ func TestGetAndListModels(t *testing.T) {
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: modelID, TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)
 
-	_, err = st.CreateBaseModel(baseModelID, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  baseModelID,
+		TenantID: defaultTenantID,
+	}
+	_, err = st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: baseModelID, TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)
@@ -440,21 +463,24 @@ func TestIncludeLoadingModels(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
+	k0 := store.ModelKey{
+		ModelID:  "bm0",
+		TenantID: defaultTenantID,
+	}
 	_, err := st.CreateBaseModel(
-		"bm0",
+		k0,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 		"gguf-path",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
-	k := store.ModelKey{
+	k1 := store.ModelKey{
 		ModelID:  "bm1",
 		TenantID: defaultTenantID,
 	}
-	_, err = st.CreateBaseModelWithLoadingRequested(k, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	_, err = st.CreateBaseModelWithLoadingRequested(k1, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 
 	assert.NoError(t, err)
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
@@ -514,7 +540,11 @@ func TestInternalGetModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	_, err := st.CreateBaseModel("model0", "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, defaultTenantID)
+	k := store.ModelKey{
+		ModelID:  "model0",
+		TenantID: defaultTenantID,
+	}
+	_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf-path", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
 	assert.NoError(t, err)
 
 	_, err = st.CreateModel(store.ModelSpec{
@@ -962,13 +992,16 @@ func TestFineTunedModelCreation(t *testing.T) {
 	// Create a base model.
 	const baseModelID = "bm0"
 
+	k := store.ModelKey{
+		ModelID:  baseModelID,
+		TenantID: defaultTenantID,
+	}
 	_, err = st.CreateBaseModel(
-		baseModelID,
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		"",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -983,7 +1016,7 @@ func TestFineTunedModelCreation(t *testing.T) {
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
 	assert.Equal(t, "ft:bm0:suffix0", m.Id)
 
-	k := store.ModelKey{
+	k = store.ModelKey{
 		ModelID:  m.Id,
 		TenantID: defaultTenantID,
 	}
@@ -1037,13 +1070,16 @@ func TestFineTunedModelCreation_Failure(t *testing.T) {
 	// Create a base model.
 	const baseModelID = "bm0"
 
+	k := store.ModelKey{
+		ModelID:  baseModelID,
+		TenantID: defaultTenantID,
+	}
 	_, err = st.CreateBaseModel(
-		baseModelID,
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		"",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -1103,13 +1139,16 @@ func TestFineTunedModelCreation_CreateModel(t *testing.T) {
 	// Create a base model.
 	const baseModelID = "bm0"
 
+	k := store.ModelKey{
+		ModelID:  baseModelID,
+		TenantID: defaultTenantID,
+	}
 	_, err = st.CreateBaseModel(
-		baseModelID,
+		k,
 		"path",
 		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		"",
 		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-		defaultTenantID,
 	)
 	assert.NoError(t, err)
 
@@ -1219,13 +1258,16 @@ func TestListModels(t *testing.T) {
 
 	baseModelIDs := []string{"bm0", "bm1"}
 	for _, id := range baseModelIDs {
+		k := store.ModelKey{
+			ModelID:  id,
+			TenantID: defaultTenantID,
+		}
 		_, err := st.CreateBaseModel(
-			id,
+			k,
 			"path",
 			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
 			"gguf-path",
 			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
-			defaultTenantID,
 		)
 		assert.NoError(t, err)
 	}
