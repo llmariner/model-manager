@@ -3,9 +3,9 @@ package server
 import (
 	"context"
 	"errors"
-	"strings"
 
 	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/common/pkg/id"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -26,7 +26,7 @@ func (s *WS) CreateHFModelRepo(
 		return nil, status.Error(codes.InvalidArgument, "name is required")
 	}
 
-	modelID := strings.ReplaceAll(req.Name, "/", "-")
+	modelID := id.ToLLMarinerModelID(req.Name)
 
 	r := &store.HFModelRepo{
 		Name:     req.Name,

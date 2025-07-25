@@ -17,7 +17,7 @@ func TestHFModelRepo(t *testing.T) {
 	defer tearDown()
 
 	const (
-		repoName = "r0"
+		repoName = "r0/m0"
 	)
 
 	wsrv := NewWorkerServiceServer(st, testr.New(t))
@@ -32,6 +32,11 @@ func TestHFModelRepo(t *testing.T) {
 		Name: repoName,
 	})
 	assert.NoError(t, err)
+
+	r, err := st.GetHFModelRepo(repoName, "", defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, r.Name, repoName)
+	assert.Equal(t, r.ModelID, "r0-m0")
 
 	got, err := wsrv.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{
 		Name: repoName,
