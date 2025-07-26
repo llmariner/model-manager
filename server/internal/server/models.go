@@ -294,6 +294,7 @@ func (s *S) ListModels(
 				var bms []*store.BaseModel
 				bms, more, err = store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
 					tx,
+					"", /* projectID */
 					userInfo.TenantID,
 					cat.status,
 					afterID,
@@ -351,6 +352,7 @@ func (s *S) ListModels(
 			if cat := categories[i]; cat.isBase {
 				bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
 					tx,
+					"", /* projectID */
 					userInfo.TenantID,
 					cat.status,
 					"", /* afterModelID */

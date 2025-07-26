@@ -282,16 +282,101 @@ func TestListBaseModelsByActivationStatusWithPagination(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	got, hasMore, err := ListBaseModelsByActivationStatusWithPaginationInTransaction(st.db, tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
+	got, hasMore, err := ListBaseModelsByActivationStatusWithPaginationInTransaction(st.db, "", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
 	assert.NoError(t, err)
 	assert.Len(t, got, 1)
 	assert.True(t, hasMore)
-	assert.Equal(t, []string{"bm0"}, []string{got[0].ModelID})
+	assert.Equal(t, "bm0", got[0].ModelID)
 
-	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(st.db, tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm0", 2, true)
+	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(st.db, "", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm0", 2, true)
 	assert.NoError(t, err)
 	assert.Len(t, got, 1)
 	assert.False(t, hasMore)
+}
+
+func TestListBaseModelsByActivationStatusWithPagination_ProjectScoped(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const tenantID = "t0"
+
+	keys := []ModelKey{
+		{
+			ModelID:  "bm0",
+			TenantID: tenantID,
+		},
+		{
+			ModelID:  "bm1",
+			TenantID: tenantID,
+		},
+		{
+			ModelID:   "bm0",
+			ProjectID: "p0",
+			TenantID:  tenantID,
+		},
+		{
+			ModelID:   "bm2",
+			ProjectID: "p0",
+			TenantID:  tenantID,
+		},
+		{
+			ModelID:  "bm3",
+			TenantID: "t1",
+		},
+	}
+
+	for _, k := range keys {
+		_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+		assert.NoError(t, err)
+
+		err = st.CreateModelActivationStatus(&ModelActivationStatus{
+			ModelID:   k.ModelID,
+			ProjectID: k.ProjectID,
+			TenantID:  k.TenantID,
+			Status:    v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE,
+		})
+		assert.NoError(t, err)
+	}
+
+	got, hasMore, err := ListBaseModelsByActivationStatusWithPaginationInTransaction(
+		st.db, "p0", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.True(t, hasMore)
+	assert.Equal(t, "bm0", got[0].ModelID)
+	// Get a project-scoped one instead of a global-scoped one.
+	assert.Equal(t, "p0", got[0].ProjectID)
+
+	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(
+		st.db, "p0", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm0", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.True(t, hasMore)
+	assert.Equal(t, "bm1", got[0].ModelID)
+
+	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(
+		st.db, "p0", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm1", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.False(t, hasMore)
+	assert.Equal(t, "bm2", got[0].ModelID)
+
+	// Query with a different project.
+	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(
+		st.db, "p1", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.True(t, hasMore)
+	assert.Equal(t, "bm0", got[0].ModelID)
+	// Get a global-scoped one.
+	assert.Empty(t, got[0].ProjectID)
+
+	got, hasMore, err = ListBaseModelsByActivationStatusWithPaginationInTransaction(
+		st.db, "p1", tenantID, v1.ActivationStatus_ACTIVATION_STATUS_ACTIVE, "bm0", 1, true)
+	assert.NoError(t, err)
+	assert.Len(t, got, 1)
+	assert.False(t, hasMore)
+	assert.Equal(t, "bm1", got[0].ModelID)
 }
 
 func TestListBaseModelsByModelIDAndTenantID(t *testing.T) {

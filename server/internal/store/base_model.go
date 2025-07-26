@@ -1,6 +1,8 @@
 package store
 
 import (
+	"sort"
+
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
@@ -172,31 +174,89 @@ func (s *S) ListBaseModelsByModelIDAndTenantID(modelID, tenantID string) ([]*Bas
 // Models are returned with an ascending order of model IDs.
 func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 	tx *gorm.DB,
+	projectID string,
 	tenantID string,
 	status v1.ActivationStatus,
 	afterModelID string,
 	limit int,
 	includeLoadingModels bool,
 ) ([]*BaseModel, bool, error) {
-	var ms []*BaseModel
-	q := tx.Joins("JOIN model_activation_statuses AS mas ON mas.model_id = base_models.model_id AND mas.tenant_id = base_models.tenant_id").
-		Where("base_models.tenant_id = ? AND mas.status = ?", tenantID, status)
+	// We need to handle a case where the same base model exists both with a global scope and a project scope.
+	// In that case, we want to return the project-scoped one with the following steps.
+	//
+	// 1. Get distinct model IDs that match the conditions.
+	// 2. Query project-scoped models that have those model IDs.
+	// 3. Query global-scoped models that have those model IDs if no project-scoped models are found.
+
+	var modelIDs []string
+	q := tx.Table("base_models AS bm").
+		Select("bm.model_id").
+		Distinct("bm.model_id").
+		Joins("JOIN model_activation_statuses AS mas ON mas.model_id = bm.model_id AND mas.tenant_id = bm.tenant_id").
+		// Find all models that are either globally scoped (project_id is NULL) or
+		// scoped to the given project.
+		Where("(bm.project_id IS NULL OR bm.project_id = '' OR bm.project_id = ?)", projectID).
+		Where("bm.tenant_id = ?", tenantID).
+		Where("mas.status = ?", status)
 	if afterModelID != "" {
-		q = q.Where("base_models.model_id > ?", afterModelID)
+		q = q.Where("bm.model_id > ?", afterModelID)
 	}
 	if !includeLoadingModels {
-		q = q.Where("(base_models.loading_status is null OR base_models.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+		q = q.Where("(bm.loading_status IS NULL OR bm.loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
 	}
-	if err := q.Order("base_models.model_id").Limit(limit + 1).Find(&ms).Error; err != nil {
+	if err := q.
+		Order("bm.model_id").
+		Limit(limit + 1).
+		Find(&modelIDs).Error; err != nil {
 		return nil, false, err
 	}
 
 	var hasMore bool
-	if len(ms) > limit {
-		ms = ms[:limit]
+	if len(modelIDs) > limit {
+		modelIDs = modelIDs[:limit]
 		hasMore = true
 	}
-	return ms, hasMore, nil
+
+	// Query project-scoped models that have the model IDs.
+	var pmodels []*BaseModel
+	if err := tx.
+		Where("project_id = ?", projectID).
+		Where("model_id IN ?", modelIDs).
+		Where("tenant_id = ?", tenantID).
+		Find(&pmodels).Error; err != nil {
+		return nil, false, err
+	}
+
+	foundIDs := make(map[string]bool)
+	for _, m := range pmodels {
+		foundIDs[m.ModelID] = true
+	}
+	var remainingIDs []string
+	for _, id := range modelIDs {
+		if foundIDs[id] {
+			continue
+		}
+		remainingIDs = append(remainingIDs, id)
+	}
+
+	// Query global-scoped models that have the model IDs.
+	var gmodels []*BaseModel
+	if err := tx.
+		Where("(project_id IS NULL OR project_id = '')").
+		Where("model_id IN ?", remainingIDs).
+		Where("tenant_id = ?", tenantID).
+		Find(&gmodels).Error; err != nil {
+		return nil, false, err
+	}
+
+	// Combine project-scoped and global-scoped models and
+	// sort by model_id.
+	allModels := append(pmodels, gmodels...)
+	sort.Slice(allModels, func(i, j int) bool {
+		return allModels[i].ModelID < allModels[j].ModelID
+	})
+
+	return allModels, hasMore, nil
 }
 
 // ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
