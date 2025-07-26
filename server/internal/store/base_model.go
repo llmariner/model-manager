@@ -1,6 +1,8 @@
 package store
 
 import (
+	"sort"
+
 	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 
@@ -247,10 +249,9 @@ func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 		return nil, false, err
 	}
 
-	// Combine project-scoped and global-scoped models.
+	// Combine project-scoped and global-scoped models and
+	// sort by model_id.
 	allModels := append(pmodels, gmodels...)
-
-	// Sort the combined models by model_id in ascending order.
 	sort.Slice(allModels, func(i, j int) bool {
 		return allModels[i].ModelID < allModels[j].ModelID
 	})
