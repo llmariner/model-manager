@@ -247,7 +247,15 @@ func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 		return nil, false, err
 	}
 
-	return append(pmodels, gmodels...), hasMore, nil
+	// Combine project-scoped and global-scoped models.
+	allModels := append(pmodels, gmodels...)
+
+	// Sort the combined models by model_id in ascending order.
+	sort.Slice(allModels, func(i, j int) bool {
+		return allModels[i].ModelID < allModels[j].ModelID
+	})
+
+	return allModels, hasMore, nil
 }
 
 // ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
