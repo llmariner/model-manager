@@ -949,12 +949,32 @@ func (s *WS) GetBaseModelPath(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, found, err := s.getLoadedBaseModel(req.Id, clusterInfo.TenantID)
-	if err != nil {
-		return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
-	}
-	if !found {
-		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	var m *store.BaseModel
+	if req.ProjectId != "" {
+		var err error
+		m, err = s.store.GetBaseModel(store.ModelKey{
+			ModelID:   req.Id,
+			ProjectID: req.ProjectId,
+			TenantID:  clusterInfo.TenantID,
+		})
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+			}
+			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+		}
+		if !isBaseModelLoaded(m) {
+			return nil, status.Error(codes.FailedPrecondition, "model is not loaded")
+		}
+	} else {
+		var found bool
+		m, found, err = s.getLoadedBaseModel(req.Id, clusterInfo.TenantID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
+		}
+		if !found {
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+		}
 	}
 
 	formats, err := store.UnmarshalModelFormats(m.Formats)

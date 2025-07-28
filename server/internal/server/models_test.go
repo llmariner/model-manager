@@ -898,6 +898,98 @@ func TestBaseModels(t *testing.T) {
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 }
 
+func TestGetBaseModelPath(t *testing.T) {
+	const modelID = "m0"
+
+	tcs := []struct {
+		name       string
+		createReq  *v1.CreateBaseModelRequest
+		getReq     *v1.GetBaseModelPathRequest
+		wantPath   string
+		wantFormat v1.ModelFormat
+		wantErr    bool
+	}{
+		{
+			name: "global-scope model, get without project id",
+			createReq: &v1.CreateBaseModelRequest{
+				Id:            modelID,
+				Path:          "path",
+				GgufModelPath: "gguf-path",
+			},
+			getReq: &v1.GetBaseModelPathRequest{
+				Id: modelID,
+			},
+			wantPath:   "path",
+			wantFormat: v1.ModelFormat_MODEL_FORMAT_GGUF,
+		},
+		{
+			name: "global-scope model, get with project id",
+			createReq: &v1.CreateBaseModelRequest{
+				Id:            modelID,
+				Path:          "path",
+				GgufModelPath: "gguf-path",
+			},
+			getReq: &v1.GetBaseModelPathRequest{
+				Id:        modelID,
+				ProjectId: "p0",
+			},
+			wantErr: true,
+		},
+		{
+			name: "project-scope model, get without project id",
+			createReq: &v1.CreateBaseModelRequest{
+				Id:            modelID,
+				Path:          "path",
+				GgufModelPath: "gguf-path",
+				ProjectId:     "p0",
+			},
+			getReq: &v1.GetBaseModelPathRequest{
+				Id: modelID,
+			},
+			wantPath:   "path",
+			wantFormat: v1.ModelFormat_MODEL_FORMAT_GGUF,
+		},
+		{
+			name: "project-scope model, get with project id",
+			createReq: &v1.CreateBaseModelRequest{
+				Id:            modelID,
+				Path:          "path",
+				GgufModelPath: "gguf-path",
+				ProjectId:     "p0",
+			},
+			getReq: &v1.GetBaseModelPathRequest{
+				Id:        modelID,
+				ProjectId: "p0",
+			},
+			wantPath:   "path",
+			wantFormat: v1.ModelFormat_MODEL_FORMAT_GGUF,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			st, tearDown := store.NewTest(t)
+			defer tearDown()
+
+			ctx := fakeAuthInto(context.Background())
+			wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+			_, err := wsrv.CreateBaseModel(ctx, tc.createReq)
+			assert.NoError(t, err)
+
+			getResp, err := wsrv.GetBaseModelPath(ctx, tc.getReq)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+			assert.Equal(t, tc.wantPath, getResp.Path)
+			assert.Len(t, getResp.Formats, 1)
+			assert.Equal(t, tc.wantFormat, getResp.Formats[0])
+		})
+	}
+}
+
 func TestBaseModelCreation(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
