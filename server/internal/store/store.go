@@ -50,7 +50,7 @@ func autoMigrate(db *gorm.DB) error {
 	m := db.Migrator()
 	for _, idx := range indices {
 		if err := m.DropIndex(idx.table, idx.name); err != nil {
-			// Ignore an error if its message is no such index:" + idx.name
+			// Ignore an error if its message is "no such index: " + idx.name
 			if err.Error() == "no such index: "+idx.name {
 				continue
 			}
