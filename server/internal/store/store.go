@@ -27,11 +27,35 @@ func (s *S) AutoMigrate() error {
 }
 
 func autoMigrate(db *gorm.DB) error {
-	return db.AutoMigrate(
+	if err := db.AutoMigrate(
 		&Model{},
 		&BaseModel{},
 		&HFModelRepo{},
 		&ModelActivationStatus{},
 		&StorageConfig{},
-	)
+	); err != nil {
+		return err
+	}
+
+	// The following indices are dropped with v1.22.0:
+	indices := []struct {
+		table interface{}
+		name  string
+	}{
+		{&BaseModel{}, "idx_base_model_model_id_tenant_id"},
+		{&ModelActivationStatus{}, "idx_model_activation_status_model_id_tenant_id"},
+		{&HFModelRepo{}, "idx_hf_model_repo_model_id_tenant_id"},
+		{&HFModelRepo{}, "idx_hf_model_repo_name_tenant_id"},
+	}
+	m := db.Migrator()
+	for _, idx := range indices {
+		if err := m.DropIndex(idx.table, idx.name); err != nil {
+			// Ignore an error if its message is "no such index: " + idx.name
+			if err.Error() == "no such index: "+idx.name {
+				continue
+			}
+		}
+	}
+
+	return nil
 }
