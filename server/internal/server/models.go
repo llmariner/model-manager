@@ -881,17 +881,23 @@ func (s *WS) CreateBaseModel(
 		}
 	}
 
+	s.log.Info("CreateBaseModel", "req", req)
+
 	// Note: We skip the validation of source repository for backward compatibility.
 	k := store.ModelKey{
 		ModelID:   req.Id,
 		ProjectID: req.ProjectId,
 		TenantID:  clusterInfo.TenantID,
 	}
+
+	s.log.Info("CreateBaseModel", "key", k)
 	existing, err := s.store.GetBaseModel(k)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
+
+		s.log.Info("CreateBaseModel", "base model not found, creating a new one", "key", k)
 
 		// Create a new base model.
 		var m *store.BaseModel
@@ -922,6 +928,8 @@ func (s *WS) CreateBaseModel(
 	if isBaseModelLoaded(existing) {
 		return nil, status.Errorf(codes.AlreadyExists, "model %q already exists", req.Id)
 	}
+
+	s.log.Info("CreateBaseModel", "base model found, updating it", "key", k)
 
 	// Update the existing model.
 	if err := s.store.UpdateBaseModelToSucceededStatus(
