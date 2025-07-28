@@ -218,6 +218,7 @@ export type BaseModel = {
 
 export type GetBaseModelPathRequest = {
   id?: string
+  project_id?: string
 }
 
 export type GetBaseModelPathResponse = {

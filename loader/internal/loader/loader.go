@@ -247,7 +247,13 @@ func (l *L) loadBaseModel(
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
-	_, err := l.modelClient.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{Id: convertedModelID})
+	_, err := l.modelClient.GetBaseModelPath(
+		ctx,
+		&v1.GetBaseModelPathRequest{
+			Id:        convertedModelID,
+			ProjectId: projectID,
+		},
+	)
 	if err == nil {
 		l.log.Info("Already model exists", "modelID", convertedModelID)
 		return nil

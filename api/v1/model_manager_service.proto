@@ -339,6 +339,10 @@ message BaseModel {
 
 message GetBaseModelPathRequest {
   string id = 1;
+
+  // project_id is set to a non-empty value if the project-scoped base model is requested. If emtpy,
+  // the RPC returns either the globally-scoped base model or a project-scoped base model.
+  string project_id = 2;
 }
 
 message GetBaseModelPathResponse {
