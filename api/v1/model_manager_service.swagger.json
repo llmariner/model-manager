@@ -232,6 +232,10 @@
             "type": "string"
           },
           "description": "allowed_cluster_ids is a list of cluster IDs where the model can be allocated.\nIf this field is empty, the model can be allocated to any cluster."
+        },
+        "enableOnDemandAllocation": {
+          "type": "boolean",
+          "description": "enable_on_demand_allocation is set to true if on-demand allocation of the model is enabled."
         }
       }
     },
@@ -544,7 +548,7 @@
       "properties": {
         "runtimeConfig": {
           "$ref": "#/definitions/ModelConfigRuntimeConfig",
-          "description": "runtime_config is the runtime configuration of the model."
+          "description": "runtime_config is the runtime configuration of the model.\nThis can be unset if the configuration is determined by the runtime configuration\nof inference-manager-engine running in the cluster."
         },
         "clusterAllocationPolicy": {
           "$ref": "#/definitions/ModelConfigClusterAllocationPolicy",

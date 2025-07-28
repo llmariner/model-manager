@@ -73,6 +73,7 @@ export type ModelConfigRuntimeConfig = {
 
 export type ModelConfigClusterAllocationPolicy = {
   allowed_cluster_ids?: string[]
+  enable_on_demand_allocation?: boolean
 }
 
 export type ModelConfig = {
