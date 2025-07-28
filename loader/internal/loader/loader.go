@@ -295,7 +295,12 @@ func (l *L) loadBaseModel(
 
 	for _, mi := range modelInfos {
 		modelID := id.ToLLMarinerModelID(mi.id)
-		_, err := l.modelClient.GetBaseModelPath(ctx, &v1.GetBaseModelPathRequest{Id: modelID})
+		_, err := l.modelClient.GetBaseModelPath(
+			ctx,
+			&v1.GetBaseModelPathRequest{
+				Id:        modelID,
+				ProjectId: projectID,
+			})
 		if err == nil {
 			l.log.Info("Already model exists", "modelID", modelID)
 			continue
