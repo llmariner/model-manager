@@ -47,8 +47,8 @@ func autoMigrate(db *gorm.DB) error {
 		{&HFModelRepo{}, "idx_hf_model_repo_model_id_tenant_id"},
 		{&HFModelRepo{}, "idx_hf_model_repo_name_tenant_id"},
 	}
+	m := db.Migrator()
 	for _, idx := range indices {
-		m := db.Migrator()
 		if err := m.DropIndex(idx.table, idx.name); err != nil {
 			// Ignore an error if its message is no such index:" + idx.name
 			if err.Error() == "no such index: "+idx.name {
