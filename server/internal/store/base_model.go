@@ -192,7 +192,7 @@ func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 	q := tx.Table("base_models AS bm").
 		Select("bm.model_id").
 		Distinct("bm.model_id").
-		Joins("JOIN model_activation_statuses AS mas ON mas.model_id = bm.model_id AND mas.tenant_id = bm.tenant_id").
+		Joins("JOIN model_activation_statuses AS mas ON mas.model_id = bm.model_id AND mas.tenant_id = bm.tenant_id AND mas.project_id = bm.project_id").
 		// Find all models that are either globally scoped (project_id is NULL) or
 		// scoped to the given project.
 		Where("(bm.project_id IS NULL OR bm.project_id = '' OR bm.project_id = ?)", projectID).
