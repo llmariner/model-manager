@@ -287,47 +287,24 @@ func (s *S) ListModels(
 
 		endCat := -1
 		for i := startCat; i < len(categories); i++ {
-			// TODO: Investigate a possible speed up by using orderby activation status on both queries up to the max number, then layering the results
-			var more bool
-			if cat := categories[i]; cat.isBase {
-				var bms []*store.BaseModel
-				bms, more, err = store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
-					tx,
-					userInfo.ProjectID,
-					userInfo.TenantID,
-					cat.status,
-					afterID,
-					int(limit)-len(modelProtos),
-					req.IncludeLoadingModels,
-				)
-				if err != nil {
-					return status.Errorf(codes.Internal, "list base models: %s", err)
-				}
-				for _, m := range bms {
-					mp, err := baseToModelProto(m, cat.status)
-					if err != nil {
-						return status.Errorf(codes.Internal, "to proto: %s", err)
-					}
-					modelProtos = append(modelProtos, mp)
-				}
-			} else {
-				var ms []*store.Model
-				ms, more, err = store.ListModelsByActivationStatusWithPaginationInTransaction(
-					tx,
-					userInfo.ProjectID,
-					true, /* onlyPublished */
-					cat.status,
-					afterID,
-					int(limit)-len(modelProtos),
-					req.IncludeLoadingModels,
-				)
-				if err != nil {
-					return status.Errorf(codes.Internal, "list models: %s", err)
-				}
-				for _, m := range ms {
-					modelProtos = append(modelProtos, toModelProto(m, cat.status))
-				}
+			// TODO: Investigate a possible speed up by using orderby activation status on both queries
+			// up to the max number, then layering the results
+			cat := categories[i]
+			mps, more, err := listModelsByActivationStatus(
+				tx,
+				cat.isBase,
+				userInfo.ProjectID,
+				userInfo.TenantID,
+				cat.status,
+				afterID,
+				int(limit)-len(modelProtos),
+				req.IncludeLoadingModels,
+			)
+			if err != nil {
+				return status.Errorf(codes.Internal, "list models: %s", err)
 			}
+			modelProtos = append(modelProtos, mps...)
+
 			if more {
 				hasMore = true
 				break
@@ -348,40 +325,23 @@ func (s *S) ListModels(
 
 		// See if there are more models in future categories.
 		for i := endCat; i < len(categories); i++ {
-			if cat := categories[i]; cat.isBase {
-				bms, _, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
-					tx,
-					userInfo.ProjectID,
-					userInfo.TenantID,
-					cat.status,
-					"", /* afterModelID */
-					1,  /* limit */
-					req.IncludeLoadingModels,
-				)
-				if err != nil {
-					return status.Errorf(codes.Internal, "list base models: %s", err)
-				}
-				if len(bms) > 0 {
-					hasMore = true
-					break
-				}
-			} else {
-				ms, _, err := store.ListModelsByActivationStatusWithPaginationInTransaction(
-					tx,
-					userInfo.ProjectID,
-					true, /* onlyPublished */
-					cat.status,
-					"", /* afterModelID */
-					1,  /* limit */
-					req.IncludeLoadingModels,
-				)
-				if err != nil {
-					return status.Errorf(codes.Internal, "list models: %s", err)
-				}
-				if len(ms) > 0 {
-					hasMore = true
-					break
-				}
+			cat := categories[i]
+			mps, _, err := listModelsByActivationStatus(
+				tx,
+				cat.isBase,
+				userInfo.ProjectID,
+				userInfo.TenantID,
+				cat.status,
+				"", /* afterID */
+				1,  /* limit */
+				req.IncludeLoadingModels,
+			)
+			if err != nil {
+				return status.Errorf(codes.Internal, "list models: %s", err)
+			}
+			if len(mps) > 0 {
+				hasMore = true
+				break
 			}
 		}
 
@@ -621,6 +581,64 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 	}
 
 	return convertFineTunedModelToProtoWithActivationStatus(s.store, fm)
+}
+
+// listModelsByActivationStatus lists models by activation status with pagination.
+// This is a helper function called by ListModels.
+func listModelsByActivationStatus(
+	tx *gorm.DB,
+	isBaseModel bool,
+	projectID string,
+	tenantID string,
+	activationStatus v1.ActivationStatus,
+	afterID string,
+	limit int,
+	includeLoadingModels bool,
+) ([]*v1.Model, bool, error) {
+	if isBaseModel {
+		bms, more, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
+			tx,
+			projectID,
+			tenantID,
+			activationStatus,
+			afterID,
+			limit,
+			includeLoadingModels,
+		)
+		if err != nil {
+			return nil, false, fmt.Errorf("list base models: %s", err)
+		}
+
+		var modelProtos []*v1.Model
+		for _, m := range bms {
+			mp, err := baseToModelProto(m, activationStatus)
+			if err != nil {
+				return nil, false, fmt.Errorf("to proto: %s", err)
+			}
+			modelProtos = append(modelProtos, mp)
+		}
+		return modelProtos, more, nil
+	}
+
+	ms, more, err := store.ListModelsByActivationStatusWithPaginationInTransaction(
+		tx,
+		projectID,
+		true, /* onlyPublished */
+		activationStatus,
+		afterID,
+		limit,
+		includeLoadingModels,
+	)
+	if err != nil {
+		return nil, false, fmt.Errorf("list models: %s", err)
+	}
+
+	var modelProtos []*v1.Model
+	for _, m := range ms {
+		modelProtos = append(modelProtos, toModelProto(m, activationStatus))
+	}
+
+	return modelProtos, more, nil
 }
 
 func getKeyForVisibleModel(
