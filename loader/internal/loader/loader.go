@@ -137,7 +137,7 @@ func (l *L) LoadModels(
 	sourceRepository v1.SourceRepository,
 ) error {
 	for _, baseModel := range baseModels {
-		if err := l.loadBaseModel(ctx, baseModel, "" /* projectID */, sourceRepository); err != nil {
+		if err := l.loadBaseModel(ctx, baseModel, "" /* projectID */, sourceRepository, nil /* statusUpdateClient */); err != nil {
 			return err
 		}
 	}
@@ -166,7 +166,13 @@ func (l *L) pullAndLoadBaseModels(ctx context.Context) error {
 			return nil
 		}
 
-		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.ProjectId, resp.SourceRepository); err != nil {
+		statusUpdateClient := newBaseModelStatusUpdateClient(
+			l.modelClient,
+			resp.BaseModelId,
+			resp.ProjectId,
+		)
+
+		if err := l.loadBaseModel(ctx, resp.BaseModelId, resp.ProjectId, resp.SourceRepository, statusUpdateClient); err != nil {
 			l.log.Error(err, "Failed to load base model", "modelID", resp.BaseModelId)
 			if _, err := l.modelClient.UpdateBaseModelLoadingStatus(actx, &v1.UpdateBaseModelLoadingStatusRequest{
 				Id:        resp.BaseModelId,
@@ -211,7 +217,20 @@ func (l *L) pullAndLoadModels(ctx context.Context) error {
 			return nil
 		}
 
-		if _, err := l.downloadAndUploadModel(ctx, resp.ModelId, resp.ModelFileLocation, "" /* filename */, resp.SourceRepository, resp.DestPath); err != nil {
+		statusUpdateClient := newFineTunedModelStatusUpdateClient(
+			l.modelClient,
+			resp.ModelId,
+		)
+
+		if _, err := l.downloadAndUploadModel(
+			actx,
+			resp.ModelId,
+			resp.ModelFileLocation,
+			"", /* filename */
+			resp.SourceRepository,
+			resp.DestPath,
+			statusUpdateClient,
+		); err != nil {
 			l.log.Error(err, "Failed to load model", "modelID", resp.ModelId)
 			if _, err := l.modelClient.UpdateModelLoadingStatus(actx, &v1.UpdateModelLoadingStatusRequest{
 				Id: resp.ModelId,
@@ -242,6 +261,7 @@ func (l *L) loadBaseModel(
 	modelID string,
 	projectID string,
 	sourceRepository v1.SourceRepository,
+	statusUpdateClient statusUpdateClient,
 ) error {
 	convertedModelID := id.ToLLMarinerModelID(modelID)
 
@@ -288,7 +308,15 @@ func (l *L) loadBaseModel(
 	}
 
 	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix, toKeyModelID(modelIDToDownload))
-	modelInfos, err := l.downloadAndUploadModel(ctx, modelIDToDownload, modelIDToDownload, filename, sourceRepository, pathPrefix)
+	modelInfos, err := l.downloadAndUploadModel(
+		ctx,
+		modelIDToDownload,
+		modelIDToDownload,
+		filename,
+		sourceRepository,
+		pathPrefix,
+		statusUpdateClient,
+	)
 	if err != nil {
 		return err
 	}
@@ -343,7 +371,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 		organizationID = "default"
 		tenantID       = "default-tenant-id"
 	)
-	if err := l.loadBaseModel(ctx, model.BaseModel, projectID, sourceRepository); err != nil {
+	if err := l.loadBaseModel(ctx, model.BaseModel, projectID, sourceRepository, nil /* statusUpdateClient */); err != nil {
 		return err
 	}
 
@@ -362,7 +390,15 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
 	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID, toKeyModelID(model.Model))
-	modelInfos, err := l.downloadAndUploadModel(ctx, model.Model, model.Model, "" /* filename */, sourceRepository, pathPrefix)
+	modelInfos, err := l.downloadAndUploadModel(
+		ctx,
+		model.Model,
+		model.Model,
+		"", /* filename */
+		sourceRepository,
+		pathPrefix,
+		nil, /* statusUpdateClient */
+	)
 	if err != nil {
 		return err
 	}
@@ -406,6 +442,7 @@ func (l *L) downloadAndUploadModel(
 	filename string,
 	sourceRepository v1.SourceRepository,
 	pathPrefix string,
+	statusUpdateClient statusUpdateClient,
 ) ([]*modelInfo, error) {
 	log := l.log.WithValues("modelID", modelID)
 	log.Info("Started loading model")
@@ -416,7 +453,7 @@ func (l *L) downloadAndUploadModel(
 	// For example, suppose that
 	// - /tmp is a symlink to private/tmp
 	// - the temp dir /tmp/base-model0 is created.
-	// - one of the symlinks reated by Hugging Face is .gitattributes, which is linked to ../../Users/kenji/.cache/.
+	// - one of the symlinks created by Hugging Face is .gitattributes, which is linked to ../../Users/kenji/.cache/.
 	//
 	// Then, the link does not work since /private/tmp/base-model0/../../Users/kenji/.cache/ is not a valid path.
 	tmpDir, err := os.MkdirTemp(l.tmpDir, "base-model")
@@ -427,6 +464,18 @@ func (l *L) downloadAndUploadModel(
 	defer func() {
 		_ = os.RemoveAll(tmpDir)
 	}()
+
+	var ssender *statusSender
+	if statusUpdateClient != nil {
+		ssender = newStatusSender(statusUpdateClient, tmpDir)
+		ctx, cancel := context.WithCancel(ctx)
+		defer cancel()
+		go func() {
+			if err := ssender.run(ctx, defaultStatusSenderInterval); err != nil {
+				log.Error(err, "Failed to run status sender")
+			}
+		}()
+	}
 
 	log.Info("Downloading model")
 	downloader, err := l.modelDownloaderFactory.Create(ctx, sourceRepository)
@@ -486,7 +535,7 @@ func (l *L) downloadAndUploadModel(
 	}
 
 	log.Info("Uploading model to the object store")
-	for _, path := range paths {
+	for i, path := range paths {
 		log.Info("Uploading", "path", path)
 		r, err := os.Open(path)
 		if err != nil {
@@ -498,6 +547,10 @@ func (l *L) downloadAndUploadModel(
 		}
 		if err := r.Close(); err != nil {
 			return nil, err
+		}
+
+		if ssender != nil {
+			ssender.setNumUploadedFiles(i + 1)
 		}
 	}
 

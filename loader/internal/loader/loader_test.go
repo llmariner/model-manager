@@ -42,7 +42,7 @@ func TestLoadBaseModel(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, nil)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -82,7 +82,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE)
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, nil)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -123,7 +123,7 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 		mc,
 		testr.New(t),
 	)
-	err := ld.loadBaseModel(context.Background(), "gemma:2b", "", v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA)
+	err := ld.loadBaseModel(context.Background(), "gemma:2b", "", v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA, nil)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -167,7 +167,7 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	err := ld.loadBaseModel(context.Background(), "meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, nil)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -205,7 +205,7 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF", "", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE)
+	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF", "", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, nil)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -256,7 +256,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", "", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE)
+	err := ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", "", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, nil)
 	assert.NoError(t, err)
 
 	want := []string{
@@ -278,7 +278,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 		"phi-4-Q3_K_L.gguf",
 	}
 	s3Client.uploadedKeys = []string{}
-	err = ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	err = ld.loadBaseModel(context.Background(), "lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, nil)
 	assert.NoError(t, err)
 
 	want = []string{
@@ -362,7 +362,7 @@ func TestLoadModel_InvalidFileFormat(t *testing.T) {
 		testr.New(t),
 	)
 	ld.tmpDir = "/tmp"
-	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, nil)
 	assert.Error(t, err)
 }
 
