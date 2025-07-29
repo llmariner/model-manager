@@ -302,3 +302,37 @@ func TestListModelsByActivationStatusWithPagination(t *testing.T) {
 	assert.False(t, hasMore)
 	assert.Equal(t, []string{ids[1]}, []string{got[0].ModelID})
 }
+
+func TestUpdateModelLoadingStatusMessage(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID   = "m0"
+		tenantID  = "tid0"
+		orgID     = "org0"
+		projectID = "project0"
+	)
+
+	_, err := st.CreateModel(ModelSpec{
+		ModelID:        modelID,
+		TenantID:       tenantID,
+		OrganizationID: orgID,
+		ProjectID:      projectID,
+		Path:           "path",
+		IsPublished:    true,
+	})
+	assert.NoError(t, err)
+
+	k := ModelKey{
+		ModelID:   modelID,
+		ProjectID: projectID,
+		TenantID:  tenantID,
+	}
+	err = st.UpdateModelLoadingStatusMessage(k, "current msg")
+	assert.NoError(t, err)
+
+	got, err := st.GetModelByModelIDAndTenantID(modelID, tenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, "current msg", got.LoadingStatusMessage)
+}

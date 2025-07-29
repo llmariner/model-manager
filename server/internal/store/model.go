@@ -22,8 +22,12 @@ type Model struct {
 	Adapter      v1.AdapterType
 	Quantization v1.QuantizationType
 
+	// TODO(kenji): Consider moving loading status related columns to a separate table
+	// to keep track of model downloading per object store.
+
 	LoadingStatus        v1.ModelLoadingStatus
 	LoadingFailureReason string
+	LoadingStatusMessage string
 
 	SourceRepository  v1.SourceRepository
 	ModelFileLocation string
@@ -213,6 +217,21 @@ func (s *S) UpdateModelToFailedStatus(modelID string, tenantID string, failureRe
 			"loading_status":         v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED,
 		},
 	)
+}
+
+// UpdateModelLoadingStatusMessage updates the loading status message of a base model.
+func (s *S) UpdateModelLoadingStatusMessage(k ModelKey, msg string) error {
+	res := k.buildQuery(s.db.Model(&Model{})).
+		Updates(map[string]interface{}{
+			"loading_status_message": msg,
+		})
+	if err := res.Error; err != nil {
+		return err
+	}
+	if res.RowsAffected == 0 {
+		return ErrConcurrentUpdate
+	}
+	return nil
 }
 
 // DeleteModel deletes a model by model ID and tenant ID.

@@ -502,3 +502,34 @@ func TestCountBaseModels(t *testing.T) {
 		assert.Equal(t, tc.want, got)
 	}
 }
+
+func TestUpdateBaseModelLoadingStatusMessage(t *testing.T) {
+	st, tearDown := NewTest(t)
+	defer tearDown()
+
+	const (
+		modelID  = "m0"
+		tenantID = "tid0"
+	)
+
+	k := ModelKey{
+		ModelID:  modelID,
+		TenantID: tenantID,
+	}
+
+	_, err := st.CreateBaseModel(
+		k,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+		"gguf_model_path",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+	)
+	assert.NoError(t, err)
+
+	err = st.UpdateBaseModelLoadingStatusMessage(k, "current msg")
+	assert.NoError(t, err)
+
+	got, err := st.GetBaseModel(k)
+	assert.NoError(t, err)
+	assert.Equal(t, "current msg", got.LoadingStatusMessage)
+}
