@@ -220,8 +220,9 @@ func (s *S) UpdateModelToFailedStatus(modelID string, tenantID string, failureRe
 }
 
 // UpdateModelLoadingStatusMessage updates the loading status message of a base model.
-func (s *S) UpdateModelLoadingStatusMessage(k ModelKey, msg string) error {
-	res := k.buildQuery(s.db.Model(&Model{})).
+func (s *S) UpdateModelLoadingStatusMessage(modelID, tenantID, msg string) error {
+	res := s.db.Model(&Model{}).
+		Where("model_id = ? AND tenant_id = ?", modelID, tenantID).
 		Updates(map[string]interface{}{
 			"loading_status_message": msg,
 		})

@@ -324,12 +324,7 @@ func TestUpdateModelLoadingStatusMessage(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	k := ModelKey{
-		ModelID:   modelID,
-		ProjectID: projectID,
-		TenantID:  tenantID,
-	}
-	err = st.UpdateModelLoadingStatusMessage(k, "current msg")
+	err = st.UpdateModelLoadingStatusMessage(modelID, tenantID, "current msg")
 	assert.NoError(t, err)
 
 	got, err := st.GetModelByModelIDAndTenantID(modelID, tenantID)
