@@ -27,9 +27,13 @@ type BaseModel struct {
 	GGUFModelPath string
 
 	SourceRepository v1.SourceRepository
-	LoadingStatus    v1.ModelLoadingStatus
 
+	// TODO(kenji): Consider moving loading status related columns to a separate table
+	// to keep track of model downloading per object store.
+
+	LoadingStatus        v1.ModelLoadingStatus
 	LoadingFailureReason string
+	LoadingStatusMessage string
 }
 
 // UnmarshalModelFormats unmarshals model formats.
@@ -308,6 +312,21 @@ func (s *S) UpdateBaseModelToFailedStatus(k ModelKey, failureReason string) erro
 			"loading_status":         v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED,
 		},
 	)
+}
+
+// UpdateBaseModelLoadingStatusMessage updates the loading status message of a base model.
+func (s *S) UpdateBaseModelLoadingStatusMessage(k ModelKey, msg string) error {
+	res := k.buildQuery(s.db.Model(&BaseModel{})).
+		Updates(map[string]interface{}{
+			"loading_status_message": msg,
+		})
+	if err := res.Error; err != nil {
+		return err
+	}
+	if res.RowsAffected == 0 {
+		return ErrConcurrentUpdate
+	}
+	return nil
 }
 
 // CountBaseModels counts the total number of base models.
