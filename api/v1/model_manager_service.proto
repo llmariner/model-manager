@@ -101,6 +101,10 @@ message Model {
   // This is not in the Open AI API specification.
   string loading_failure_reason = 7;
 
+  // loading_status_message is a message to show the loading status of the model. It is set
+  // when the loading_status is MODEL_LOADING_STATUS_LOADING or MODEL_LOADING_STATUS_FAILED.
+  string loading_status_message = 13;
+
   // formats is the supported formats of the model.
   // This is not in the Open AI API specification.
   repeated ModelFormat formats = 8;
@@ -115,6 +119,8 @@ message Model {
   ActivationStatus activation_status = 11;
 
   ModelConfig config = 12;
+
+  // Next ID: 14
 }
 
 message CreateModelRequest {
