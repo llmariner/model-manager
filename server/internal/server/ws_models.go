@@ -642,3 +642,46 @@ func (s *WS) generateModelID(baseModel, suffix, tenantID string) (string, error)
 		}
 	}
 }
+
+// GetModel gets a model.
+func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, error) {
+	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if req.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	bm, found, err := s.getLoadedBaseModel(req.Id, clusterInfo.TenantID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
+	}
+	if found {
+		return convertBaseModelToProto(s.store, bm)
+	}
+
+	// Try a fine-tuned model next.
+	fm, err := s.store.GetPublishedModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get model by model ID: %s", err)
+		}
+		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	}
+
+	if !isModelLoaded(fm) {
+		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
+	}
+
+	return convertFineTunedModelToProto(s.store, fm)
+}
+
+func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {
+	return &v1.BaseModel{
+		Id:      m.ModelID,
+		Object:  "basemodel",
+		Created: m.CreatedAt.UTC().Unix(),
+	}
+}
