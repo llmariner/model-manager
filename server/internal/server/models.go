@@ -634,7 +634,7 @@ func listModelsByActivationStatus(
 
 		var modelProtos []*v1.Model
 		for _, m := range bms {
-			mc, err := getModelConfigInTranscation(tx, store.ModelKey{
+			mc, err := getModelConfigInTransaction(tx, store.ModelKey{
 				ModelID:   m.ModelID,
 				ProjectID: m.ProjectID,
 				TenantID:  m.TenantID,
@@ -667,7 +667,7 @@ func listModelsByActivationStatus(
 
 	var modelProtos []*v1.Model
 	for _, m := range ms {
-		mc, err := getModelConfigInTranscation(tx, store.ModelKey{
+		mc, err := getModelConfigInTransaction(tx, store.ModelKey{
 			ModelID: m.ModelID,
 			// ProjectID is empty for fine-tuned models.
 			TenantID: m.TenantID,
