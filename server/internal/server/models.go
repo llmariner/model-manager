@@ -285,20 +285,19 @@ func (s *S) ListModels(
 			afterID = req.After
 		}
 
-		endCat := -1
 		for i := startCat; i < len(categories); i++ {
 			// TODO: Investigate a possible speed up by using orderby activation status on both queries
 			// up to the max number, then layering the results
 			cat := categories[i]
 			mps, more, err := listModelsByActivationStatus(
 				tx,
-				cat.isBase,
 				userInfo.ProjectID,
 				userInfo.TenantID,
+				req.IncludeLoadingModels,
+				cat.isBase,
 				cat.status,
 				afterID,
 				int(limit)-len(modelProtos),
-				req.IncludeLoadingModels,
 			)
 			if err != nil {
 				return status.Errorf(codes.Internal, "list models: %s", err)
@@ -311,38 +310,34 @@ func (s *S) ListModels(
 			}
 
 			if len(modelProtos) == int(limit) {
-				endCat = i
+				// No need to query further but we don't know if hasMore is true or false yet.
+				// See if there are more models in future categories.
+				for j := i; j < len(categories); j++ {
+					cat := categories[j]
+					mps, _, err := listModelsByActivationStatus(
+						tx,
+						userInfo.ProjectID,
+						userInfo.TenantID,
+						req.IncludeLoadingModels,
+						cat.isBase,
+						cat.status,
+						"", /* afterID */
+						1,  /* limit */
+					)
+					if err != nil {
+						return status.Errorf(codes.Internal, "list models: %s", err)
+					}
+					if len(mps) > 0 {
+						hasMore = true
+						break
+					}
+				}
+
 				break
 			}
 
 			// Reset afterID for the next category.
 			afterID = ""
-		}
-
-		if hasMore || endCat == -1 {
-			return nil
-		}
-
-		// See if there are more models in future categories.
-		for i := endCat; i < len(categories); i++ {
-			cat := categories[i]
-			mps, _, err := listModelsByActivationStatus(
-				tx,
-				cat.isBase,
-				userInfo.ProjectID,
-				userInfo.TenantID,
-				cat.status,
-				"", /* afterID */
-				1,  /* limit */
-				req.IncludeLoadingModels,
-			)
-			if err != nil {
-				return status.Errorf(codes.Internal, "list models: %s", err)
-			}
-			if len(mps) > 0 {
-				hasMore = true
-				break
-			}
 		}
 
 		return nil
@@ -587,13 +582,13 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 // This is a helper function called by ListModels.
 func listModelsByActivationStatus(
 	tx *gorm.DB,
-	isBaseModel bool,
 	projectID string,
 	tenantID string,
+	includeLoadingModels bool,
+	isBaseModel bool,
 	activationStatus v1.ActivationStatus,
 	afterID string,
 	limit int,
-	includeLoadingModels bool,
 ) ([]*v1.Model, bool, error) {
 	if isBaseModel {
 		bms, more, err := store.ListBaseModelsByActivationStatusWithPaginationInTransaction(
