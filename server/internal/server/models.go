@@ -1541,3 +1541,25 @@ func validateIDAndSourceRepository(id string, sourceRepository v1.SourceReposito
 	}
 	return nil
 }
+
+func validateModelConfig(c *v1.ModelConfig) error {
+	if c == nil {
+		// Do nothing. ModelConfig is optional.
+		return nil
+	}
+
+	if rc := c.RuntimeConfig; rc != nil {
+		if r := rc.Resources; r != nil {
+			if r.Gpu < 0 {
+				return status.Error(codes.InvalidArgument, "gpu must be greater than or equal to 0")
+			}
+		}
+		if rc.Replicas <= 0 {
+			return status.Error(codes.InvalidArgument, "replicas must be greater than 0")
+		}
+	}
+
+	// TODO(kenji): Validate the specified clusters exist and belong to this tenant.
+
+	return nil
+}

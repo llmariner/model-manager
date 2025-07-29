@@ -1744,3 +1744,59 @@ func TestValidateIdAndSourceRepository(t *testing.T) {
 		})
 	}
 }
+
+func TestValidateModelConfig(t *testing.T) {
+	tcs := []struct {
+		name    string
+		c       *v1.ModelConfig
+		wantErr bool
+	}{
+		{
+			name: "nil",
+			c:    nil,
+		},
+		{
+			name: "valid",
+			c: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: 1,
+					},
+					Replicas: 1,
+				},
+			},
+		},
+		{
+			name: "negative gpu",
+			c: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: -1,
+					},
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "zero replica",
+			c: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 0,
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			err := validateModelConfig(tc.c)
+			if tc.wantErr {
+				assert.Error(t, err)
+				return
+			}
+			assert.NoError(t, err)
+		})
+	}
+
+}
