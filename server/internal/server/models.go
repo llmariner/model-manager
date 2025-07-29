@@ -825,7 +825,7 @@ func getModelConfig(st *store.S, k store.ModelKey) (*v1.ModelConfig, error) {
 	return &config, nil
 }
 
-func getModelConfigInTranscation(tx *gorm.DB, k store.ModelKey) (*v1.ModelConfig, error) {
+func getModelConfigInTransaction(tx *gorm.DB, k store.ModelKey) (*v1.ModelConfig, error) {
 	c, err := store.GetModelConfigInTransaction(tx, k)
 	if err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
