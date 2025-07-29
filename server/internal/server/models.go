@@ -813,8 +813,7 @@ func getModelConfig(st *store.S, k store.ModelKey) (*v1.ModelConfig, error) {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		// Return a default empty config.
-		return &v1.ModelConfig{}, nil
+		return defaultModelConfig(), nil
 	}
 
 	var config v1.ModelConfig
@@ -831,8 +830,7 @@ func getModelConfigInTransaction(tx *gorm.DB, k store.ModelKey) (*v1.ModelConfig
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, err
 		}
-		// Return a default empty config.
-		return &v1.ModelConfig{}, nil
+		return defaultModelConfig(), nil
 	}
 
 	var config v1.ModelConfig
@@ -841,6 +839,20 @@ func getModelConfigInTransaction(tx *gorm.DB, k store.ModelKey) (*v1.ModelConfig
 	}
 
 	return &config, nil
+}
+
+func defaultModelConfig() *v1.ModelConfig {
+	return &v1.ModelConfig{
+		RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+			Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+				Gpu: 1,
+			},
+			Replicas: 1,
+		},
+		ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{
+			EnableOnDemandAllocation: true,
+		},
+	}
 }
 
 func createModelConfigInTransaction(tx *gorm.DB, k store.ModelKey, c *v1.ModelConfig) error {
