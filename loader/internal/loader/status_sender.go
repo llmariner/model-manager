@@ -148,7 +148,7 @@ func (s *statusSender) sendStatus(ctx context.Context) error {
 	}
 
 	statusMsg := fmt.Sprintf("downloaded files: %d, uploaded files: %d", down, up)
-	if s.statusUpdateClient.updateStatus(ctx, statusMsg); err != nil {
+	if err := s.statusUpdateClient.updateStatus(ctx, statusMsg); err != nil {
 		return fmt.Errorf("update status: %w", err)
 	}
 
