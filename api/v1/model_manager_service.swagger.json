@@ -503,6 +503,10 @@
           "type": "string",
           "description": "loading_failure_reason is set when the model loading is failed to show the failure reason.\nThis is not in the Open AI API specification."
         },
+        "loadingStatusMessage": {
+          "type": "string",
+          "description": "loading_status_message is a message to show the loading status of the model. It is set\nwhen the loading_status is MODEL_LOADING_STATUS_LOADING or MODEL_LOADING_STATUS_FAILED."
+        },
         "formats": {
           "type": "array",
           "items": {

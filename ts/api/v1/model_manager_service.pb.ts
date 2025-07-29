@@ -89,6 +89,7 @@ export type Model = {
   loading_status?: ModelLoadingStatus
   source_repository?: SourceRepository
   loading_failure_reason?: string
+  loading_status_message?: string
   formats?: ModelFormat[]
   is_base_model?: boolean
   base_model_id?: string

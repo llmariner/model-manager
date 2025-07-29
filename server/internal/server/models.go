@@ -1429,6 +1429,11 @@ func getVisibleBaseModel(
 }
 
 func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {
+	var statusMsg string
+	if m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED {
+		statusMsg = m.LoadingStatusMessage
+	}
+
 	return &v1.Model{
 		Id:                   m.ModelID,
 		Object:               "model",
@@ -1437,6 +1442,7 @@ func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {
 		LoadingStatus:        toLoadingStatus(m.LoadingStatus),
 		SourceRepository:     v1.SourceRepository_SOURCE_REPOSITORY_FINE_TUNING,
 		LoadingFailureReason: m.LoadingFailureReason,
+		LoadingStatusMessage: statusMsg,
 		// Fine-tuned models always have the Hugging Face format.
 		Formats:     []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
 		IsBaseModel: false,
@@ -1456,6 +1462,11 @@ func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus) (*v1.Model, er
 		formats = []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}
 	}
 
+	var statusMsg string
+	if m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED {
+		statusMsg = m.LoadingStatusMessage
+	}
+
 	return &v1.Model{
 		Id:                   m.ModelID,
 		Object:               "model",
@@ -1464,6 +1475,7 @@ func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus) (*v1.Model, er
 		LoadingStatus:        toLoadingStatus(m.LoadingStatus),
 		SourceRepository:     m.SourceRepository,
 		LoadingFailureReason: m.LoadingFailureReason,
+		LoadingStatusMessage: statusMsg,
 		Formats:              formats,
 		IsBaseModel:          true,
 		BaseModelId:          "",
