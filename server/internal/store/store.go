@@ -32,6 +32,7 @@ func autoMigrate(db *gorm.DB) error {
 		&BaseModel{},
 		&HFModelRepo{},
 		&ModelActivationStatus{},
+		&ModelConfig{},
 		&StorageConfig{},
 	); err != nil {
 		return err
