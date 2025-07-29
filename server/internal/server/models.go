@@ -599,7 +599,7 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 	return convertFineTunedModelToProtoWithActivationStatus(s.store, fm)
 }
 
-func listModelsByactivaiotnStatus(
+func listModelsByActivationStatus(
 	tx *gorm.DB,
 	isBaseModel bool,
 	projectID string,
