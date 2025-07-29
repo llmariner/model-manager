@@ -12,6 +12,7 @@ import (
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
 	"gorm.io/gorm"
 )
 
@@ -63,6 +64,12 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.InvalidArgument, "model file location must start with s3://, but got %s", req.ModelFileLocation)
 	}
 
+	if c := req.Config; c != nil {
+		if err := validateModelConfig(c); err != nil {
+			return nil, err
+		}
+	}
+
 	if _, found, err := getVisibleBaseModel(s.store, req.BaseModelId, userInfo, true /* includeLoadingModel */); err != nil {
 		return nil, status.Errorf(codes.Internal, "%s", err)
 	} else if !found {
@@ -110,12 +117,22 @@ func (s *S) createFineTunedModel(
 			return status.Errorf(codes.Internal, "create model activation status: %s", err)
 		}
 
+		if c := req.Config; c != nil {
+			if err := createModelConfigInTransaction(tx, store.ModelKey{
+				ModelID: id,
+				// ProjectID is empty for fine-tuned models.
+				TenantID: userInfo.TenantID,
+			}, c); err != nil {
+				return status.Errorf(codes.Internal, "create model config: %s", err)
+			}
+		}
+
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE), nil
+	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config), nil
 }
 
 func (s *S) createBaseModel(
@@ -135,6 +152,12 @@ func (s *S) createBaseModel(
 
 	if err := validateIDAndSourceRepository(req.Id, req.SourceRepository); err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+	}
+
+	if c := req.Config; c != nil {
+		if err := validateModelConfig(c); err != nil {
+			return nil, err
+		}
 	}
 
 	var projectID string
@@ -172,12 +195,17 @@ func (s *S) createBaseModel(
 			return status.Errorf(codes.Internal, "create model activation status: %s", err)
 		}
 
+		if c := req.Config; c != nil {
+			if err := createModelConfigInTransaction(tx, k, c); err != nil {
+				return status.Errorf(codes.Internal, "create model config: %s", err)
+			}
+		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE)
+	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 	}
@@ -559,7 +587,7 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 		return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
 	}
 	if found {
-		return convertBaseModelToProtoWithActivationStatus(s.store, bm)
+		return convertBaseModelToProto(s.store, bm)
 	}
 
 	// Try a fine-tuned model next.
@@ -575,7 +603,7 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 	}
 
-	return convertFineTunedModelToProtoWithActivationStatus(s.store, fm)
+	return convertFineTunedModelToProto(s.store, fm)
 }
 
 // listModelsByActivationStatus lists models by activation status with pagination.
@@ -606,7 +634,16 @@ func listModelsByActivationStatus(
 
 		var modelProtos []*v1.Model
 		for _, m := range bms {
-			mp, err := baseToModelProto(m, activationStatus)
+			mc, err := getModelConfigInTranscation(tx, store.ModelKey{
+				ModelID:   m.ModelID,
+				ProjectID: m.ProjectID,
+				TenantID:  m.TenantID,
+			})
+			if err != nil {
+				return nil, false, fmt.Errorf("get model config: %s", err)
+			}
+
+			mp, err := baseToModelProto(m, activationStatus, mc)
 			if err != nil {
 				return nil, false, fmt.Errorf("to proto: %s", err)
 			}
@@ -630,7 +667,15 @@ func listModelsByActivationStatus(
 
 	var modelProtos []*v1.Model
 	for _, m := range ms {
-		modelProtos = append(modelProtos, toModelProto(m, activationStatus))
+		mc, err := getModelConfigInTranscation(tx, store.ModelKey{
+			ModelID: m.ModelID,
+			// ProjectID is empty for fine-tuned models.
+			TenantID: m.TenantID,
+		})
+		if err != nil {
+			return nil, false, fmt.Errorf("get model config: %s", err)
+		}
+		modelProtos = append(modelProtos, toModelProto(m, activationStatus, mc))
 	}
 
 	return modelProtos, more, nil
@@ -680,13 +725,13 @@ func getVisibleModelProto(
 	}
 
 	if bm != nil {
-		return convertBaseModelToProtoWithActivationStatus(st, bm)
+		return convertBaseModelToProto(st, bm)
 	}
 
-	return convertFineTunedModelToProtoWithActivationStatus(st, fm)
+	return convertFineTunedModelToProto(st, fm)
 }
 
-func convertBaseModelToProtoWithActivationStatus(
+func convertBaseModelToProto(
 	st *store.S,
 	m *store.BaseModel,
 ) (*v1.Model, error) {
@@ -705,14 +750,19 @@ func convertBaseModelToProtoWithActivationStatus(
 		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	}
 
-	mp, err := baseToModelProto(m, as)
+	mc, err := getModelConfig(st, k)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get model config: %s", err)
+	}
+
+	mp, err := baseToModelProto(m, as, mc)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "to proto: %s", err)
 	}
 	return mp, nil
 }
 
-func convertFineTunedModelToProtoWithActivationStatus(
+func convertFineTunedModelToProto(
 	st *store.S,
 	m *store.Model,
 ) (*v1.Model, error) {
@@ -726,7 +776,15 @@ func convertFineTunedModelToProtoWithActivationStatus(
 		return nil, status.Errorf(codes.Internal, "get model activation status: %s", err)
 	}
 
-	return toModelProto(m, as), nil
+	// TODO(kenji): Consider using the model config of the base model if the fine-tuned
+	// model doesn't have the model config.
+
+	mc, err := getModelConfig(st, k)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get model config: %s", err)
+	}
+
+	return toModelProto(m, as, mc), nil
 }
 
 func getModelActivationStatus(st *store.S, k store.ModelKey) (v1.ActivationStatus, error) {
@@ -747,6 +805,58 @@ func getModelActivationStatusInTransaction(tx *gorm.DB, k store.ModelKey) (v1.Ac
 		return v1.ActivationStatus_ACTIVATION_STATUS_UNSPECIFIED, err
 	}
 	return status.Status, nil
+}
+
+func getModelConfig(st *store.S, k store.ModelKey) (*v1.ModelConfig, error) {
+	c, err := st.GetModelConfig(k)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		// Return a default empty config.
+		return &v1.ModelConfig{}, nil
+	}
+
+	var config v1.ModelConfig
+	if err := proto.Unmarshal(c.EncodedConfig, &config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
+func getModelConfigInTranscation(tx *gorm.DB, k store.ModelKey) (*v1.ModelConfig, error) {
+	c, err := store.GetModelConfigInTransaction(tx, k)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, err
+		}
+		// Return a default empty config.
+		return &v1.ModelConfig{}, nil
+	}
+
+	var config v1.ModelConfig
+	if err := proto.Unmarshal(c.EncodedConfig, &config); err != nil {
+		return nil, err
+	}
+
+	return &config, nil
+}
+
+func createModelConfigInTransaction(tx *gorm.DB, k store.ModelKey, c *v1.ModelConfig) error {
+	b, err := proto.Marshal(c)
+	if err != nil {
+		return fmt.Errorf("marshal model config: %s", err)
+	}
+	if err := store.CreateModelConfigInTransaction(tx, &store.ModelConfig{
+		ModelID:       k.ModelID,
+		ProjectID:     k.ProjectID,
+		TenantID:      k.TenantID,
+		EncodedConfig: b,
+	}); err != nil {
+		return fmt.Errorf("create model config: %s", err)
+	}
+	return nil
 }
 
 func getVisibleModel(
@@ -816,7 +926,7 @@ func getVisibleBaseModel(
 	return nil, false, nil
 }
 
-func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {
+func toModelProto(m *store.Model, as v1.ActivationStatus, config *v1.ModelConfig) *v1.Model {
 	var statusMsg string
 	if m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED {
 		statusMsg = m.LoadingStatusMessage
@@ -837,10 +947,12 @@ func toModelProto(m *store.Model, as v1.ActivationStatus) *v1.Model {
 		BaseModelId: m.BaseModelID,
 
 		ActivationStatus: as,
+
+		Config: config,
 	}
 }
 
-func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus) (*v1.Model, error) {
+func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus, config *v1.ModelConfig) (*v1.Model, error) {
 	formats, err := store.UnmarshalModelFormats(m.Formats)
 	if err != nil {
 		return nil, err
@@ -869,6 +981,8 @@ func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus) (*v1.Model, er
 		BaseModelId:          "",
 
 		ActivationStatus: as,
+
+		Config: config,
 	}, nil
 }
 

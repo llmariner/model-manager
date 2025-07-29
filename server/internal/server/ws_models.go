@@ -15,6 +15,8 @@ import (
 )
 
 // ListModels lists models.
+//
+// TODO(kenji): Exclude models that shouldn't be loaded in the requesting cluster based on their model config.
 func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.ListModelsResponse, error) {
 	clusterInfo, err := s.extractClusterInfoFromContext(ctx)
 	if err != nil {
@@ -41,7 +43,7 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 
 		found[m.ModelID] = true
 
-		mp, err := convertBaseModelToProtoWithActivationStatus(s.store, m)
+		mp, err := convertBaseModelToProto(s.store, m)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 		}
@@ -63,7 +65,7 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		mp, err := convertFineTunedModelToProtoWithActivationStatus(s.store, m)
+		mp, err := convertFineTunedModelToProto(s.store, m)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "model to proto: %s", err)
 		}
@@ -385,6 +387,8 @@ func (s *WS) GetBaseModelPath(
 
 // AcquireUnloadedBaseModel checks if there is any unloaded base model. If exists,
 // update the loading status to LOADED and return it.
+//
+// TODO(kenji): Exclude models that shouldn't be loaded in the requesting cluster based on their model config.
 func (s *WS) AcquireUnloadedBaseModel(
 	ctx context.Context,
 	req *v1.AcquireUnloadedBaseModelRequest,
@@ -426,6 +430,8 @@ func (s *WS) AcquireUnloadedBaseModel(
 
 // AcquireUnloadedModel checks if there is any unloaded model. If exists,
 // update the loading status to LOADED and return it.
+//
+// TODO(kenji): Exclude models that shouldn't be loaded in the requesting cluster based on their model config.
 func (s *WS) AcquireUnloadedModel(
 	ctx context.Context,
 	req *v1.AcquireUnloadedModelRequest,

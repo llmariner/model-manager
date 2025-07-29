@@ -708,6 +708,102 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	assert.Equal(t, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, as.Status)
 }
 
+func TestModelConfig_BaseModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	const modelID = "r/m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+		Config: &v1.ModelConfig{
+			RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+				Replicas: 2,
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int32(2), m.Config.RuntimeConfig.Replicas)
+
+	_, err = st.GetModelConfig(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	})
+	assert.NoError(t, err)
+
+	resp, err := srv.ListModels(ctx, &v1.ListModelsRequest{
+		Limit:                1,
+		IncludeLoadingModels: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, resp.Data, 1)
+	got := resp.Data[0]
+	assert.Equal(t, modelID, got.Id)
+	assert.NotNil(t, got.Config)
+	assert.NotNil(t, got.Config.RuntimeConfig)
+	assert.Equal(t, int32(2), got.Config.RuntimeConfig.Replicas)
+}
+
+func TestModelConfig_FineTunedModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	ctx := fakeAuthInto(context.Background())
+
+	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
+		PathPrefix: "models",
+	})
+	assert.NoError(t, err)
+
+	const baseModelID = "r/m0"
+
+	bm, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               baseModelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		IsFineTunedModel:  true,
+		BaseModelId:       bm.Id,
+		Suffix:            "test",
+		ModelFileLocation: "s3://test",
+		Config: &v1.ModelConfig{
+			RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+				Replicas: 2,
+			},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int32(2), m.Config.RuntimeConfig.Replicas)
+
+	_, err = st.GetModelConfig(store.ModelKey{
+		ModelID:  m.Id,
+		TenantID: defaultTenantID,
+	})
+	assert.NoError(t, err)
+
+	resp, err := srv.ListModels(ctx, &v1.ListModelsRequest{
+		Limit:                2,
+		IncludeLoadingModels: true,
+	})
+	assert.NoError(t, err)
+	assert.Len(t, resp.Data, 2)
+	got := resp.Data[1]
+	assert.Equal(t, m.Id, got.Id)
+	assert.NotNil(t, got.Config)
+	assert.NotNil(t, got.Config.RuntimeConfig)
+	assert.Equal(t, int32(2), got.Config.RuntimeConfig.Replicas)
+}
+
 func TestValidateIdAndSourceRepository(t *testing.T) {
 	tcs := []struct {
 		name             string
