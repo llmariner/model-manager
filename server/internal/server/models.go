@@ -1088,8 +1088,8 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if req.LoadingResult == nil {
-		return nil, status.Error(codes.InvalidArgument, "loading_result is required")
+	if req.LoadingResult == nil && req.StatusMessage == "" {
+		return nil, status.Error(codes.InvalidArgument, "loading_result or status_message is required")
 	}
 
 	k := store.ModelKey{
@@ -1140,7 +1140,8 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 		}
 		err = s.store.UpdateBaseModelToFailedStatus(k, failure.Reason)
 	default:
-		return nil, status.Error(codes.InvalidArgument, "invalid loading_result")
+		// Loading is still in progress. Just update the status message.
+		err = s.store.UpdateBaseModelLoadingStatusMessage(k, req.StatusMessage)
 	}
 
 	if err != nil {
@@ -1169,8 +1170,8 @@ func (s *WS) UpdateModelLoadingStatus(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if req.LoadingResult == nil {
-		return nil, status.Error(codes.InvalidArgument, "loading_result is required")
+	if req.LoadingResult == nil && req.StatusMessage == "" {
+		return nil, status.Error(codes.InvalidArgument, "loading_result or status_message is required")
 	}
 
 	if _, err := s.store.GetModelByModelIDAndTenantID(req.Id, clusterInfo.TenantID); err != nil {
@@ -1197,7 +1198,8 @@ func (s *WS) UpdateModelLoadingStatus(
 			failure.Reason,
 		)
 	default:
-		return nil, status.Error(codes.InvalidArgument, "invalid loading_result")
+		// Loading is still in progress. Just update the status message.
+		err = s.store.UpdateModelLoadingStatusMessage(req.Id, clusterInfo.TenantID, req.StatusMessage)
 	}
 
 	if err != nil {

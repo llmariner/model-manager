@@ -1589,6 +1589,87 @@ func TestListModels(t *testing.T) {
 	}
 }
 
+func TestBaseModelUpdateLoadingStatusMessage(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	const modelID = "repo/m0"
+
+	_, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id:            modelID,
+		StatusMessage: "msg",
+	})
+	assert.NoError(t, err)
+
+	got, err := st.GetBaseModel(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "msg", got.LoadingStatusMessage)
+}
+
+func TestFineTunedModelUpdateLoadingStatusMessage(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
+		PathPrefix: "models",
+	})
+	assert.NoError(t, err)
+
+	// Create a base model.
+	const baseModelID = "bm0"
+
+	k := store.ModelKey{
+		ModelID:  baseModelID,
+		TenantID: defaultTenantID,
+	}
+	_, err = st.CreateBaseModel(
+		k,
+		"path",
+		[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE},
+		"",
+		v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+	)
+	assert.NoError(t, err)
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		IsFineTunedModel:  true,
+		BaseModelId:       baseModelID,
+		Suffix:            "suffix0",
+		SourceRepository:  v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		ModelFileLocation: "s3://bucket0/path0",
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	_, err = wsrv.UpdateModelLoadingStatus(ctx, &v1.UpdateModelLoadingStatusRequest{
+		Id:            m.Id,
+		StatusMessage: "msg",
+	})
+	assert.NoError(t, err)
+
+	got, err := st.GetModelByModelIDAndTenantID(m.Id, defaultTenantID)
+	assert.NoError(t, err)
+	assert.Equal(t, "msg", got.LoadingStatusMessage)
+}
+
 func TestValidateIdAndSourceRepository(t *testing.T) {
 	tcs := []struct {
 		name             string

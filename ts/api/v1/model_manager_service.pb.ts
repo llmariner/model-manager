@@ -262,6 +262,7 @@ export type UpdateBaseModelLoadingStatusRequestFailure = {
 type BaseUpdateBaseModelLoadingStatusRequest = {
   id?: string
   project_id?: string
+  status_message?: string
 }
 
 export type UpdateBaseModelLoadingStatusRequest = BaseUpdateBaseModelLoadingStatusRequest
@@ -291,6 +292,7 @@ export type UpdateModelLoadingStatusRequestFailure = {
 
 type BaseUpdateModelLoadingStatusRequest = {
   id?: string
+  status_message?: string
 }
 
 export type UpdateModelLoadingStatusRequest = BaseUpdateModelLoadingStatusRequest

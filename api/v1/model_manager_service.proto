@@ -396,10 +396,13 @@ message UpdateBaseModelLoadingStatusRequest {
     string reason = 1;
   }
 
+  // loading_result is the result of the model loading. Unset if the model is still loading.
   oneof loading_result {
     Success success = 2;
     Failure failure = 3;
   }
+
+  string status_message = 5;
 }
 
 message UpdateBaseModelLoadingStatusResponse {
@@ -428,10 +431,13 @@ message UpdateModelLoadingStatusRequest {
     string reason = 1;
   }
 
+  // loading_result is the result of the model loading. Unset if the model is still loading.
   oneof loading_result {
     Success success = 3;
     Failure failure = 4;
   }
+
+  string status_message = 5;
 }
 
 message UpdateModelLoadingStatusResponse {
