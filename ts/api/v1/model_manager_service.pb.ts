@@ -5,6 +5,7 @@
 */
 
 import * as fm from "../../fetch.pb"
+import * as GoogleProtobufField_mask from "../../google/protobuf/field_mask.pb"
 
 type Absent<T, K extends keyof T> = { [k in Exclude<keyof T, K>]?: undefined };
 type OneOf<T> =
@@ -134,6 +135,11 @@ export type DeleteModelResponse = {
   id?: string
   object?: string
   deleted?: boolean
+}
+
+export type UpdateModelRequest = {
+  model?: Model
+  update_mask?: GoogleProtobufField_mask.FieldMask
 }
 
 export type ActivateModelRequest = {
@@ -314,6 +320,9 @@ export class ModelsService {
   }
   static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model> {
     return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})
+  }
+  static UpdateModel(req: UpdateModelRequest, initReq?: fm.InitReq): Promise<Model> {
+    return fm.fetchReq<UpdateModelRequest, Model>(`/v1/models/${req["model.id"]}`, {...initReq, method: "PATCH", body: JSON.stringify(req["model"])})
   }
   static ActivateModel(req: ActivateModelRequest, initReq?: fm.InitReq): Promise<ActivateModelResponse> {
     return fm.fetchReq<ActivateModelRequest, ActivateModelResponse>(`/v1/models/${req["id"]}:activate`, {...initReq, method: "POST"})

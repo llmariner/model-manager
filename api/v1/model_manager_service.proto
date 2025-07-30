@@ -3,6 +3,7 @@ syntax = "proto3";
 package llmariner.models.server.v1;
 
 import "google/api/annotations.proto";
+import "google/protobuf/field_mask.proto";
 
 option go_package = "github.com/llmariner/model-manager/api/v1";
 
@@ -187,6 +188,16 @@ message DeleteModelResponse {
   bool deleted = 3;
 }
 
+message UpdateModelRequest {
+  // model is the model to update.
+  //
+  // The model's id is used to identify the key to update.
+  Model model = 1;
+
+  // The list of fields to update.
+  google.protobuf.FieldMask update_mask = 2;
+}
+
 message ActivateModelRequest {
   string id = 1;
 }
@@ -240,7 +251,12 @@ service ModelsService {
     };
   }
 
-  // TODO(kenji): Add UpdateModel(Config).
+  rpc UpdateModel(UpdateModelRequest) returns (Model) {
+    option (google.api.http) = {
+      patch: "/v1/models/{model.id}"
+      body: "model"
+    };
+  }
 
   rpc ActivateModel(ActivateModelRequest) returns (ActivateModelResponse) {
     option (google.api.http) = {

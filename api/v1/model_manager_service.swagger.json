@@ -220,6 +220,52 @@
           "ModelsService"
         ]
       }
+    },
+    "/v1/models/{model.id}": {
+      "patch": {
+        "operationId": "ModelsService_UpdateModel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1Model"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "model.id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "body",
+            "description": "model is the model to update.\n\nThe model's id is used to identify the key to update.",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1Model"
+            }
+          },
+          {
+            "name": "updateMask",
+            "description": "The list of fields to update.",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ModelsService"
+        ]
+      }
     }
   },
   "definitions": {

@@ -24,6 +24,7 @@ type ModelsServiceClient interface {
 	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
 	CreateModel(ctx context.Context, in *CreateModelRequest, opts ...grpc.CallOption) (*Model, error)
+	UpdateModel(ctx context.Context, in *UpdateModelRequest, opts ...grpc.CallOption) (*Model, error)
 	ActivateModel(ctx context.Context, in *ActivateModelRequest, opts ...grpc.CallOption) (*ActivateModelResponse, error)
 	DeactivateModel(ctx context.Context, in *DeactivateModelRequest, opts ...grpc.CallOption) (*DeactivateModelResponse, error)
 }
@@ -72,6 +73,15 @@ func (c *modelsServiceClient) CreateModel(ctx context.Context, in *CreateModelRe
 	return out, nil
 }
 
+func (c *modelsServiceClient) UpdateModel(ctx context.Context, in *UpdateModelRequest, opts ...grpc.CallOption) (*Model, error) {
+	out := new(Model)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/UpdateModel", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 func (c *modelsServiceClient) ActivateModel(ctx context.Context, in *ActivateModelRequest, opts ...grpc.CallOption) (*ActivateModelResponse, error) {
 	out := new(ActivateModelResponse)
 	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ActivateModel", in, out, opts...)
@@ -100,6 +110,7 @@ type ModelsServiceServer interface {
 	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
 	CreateModel(context.Context, *CreateModelRequest) (*Model, error)
+	UpdateModel(context.Context, *UpdateModelRequest) (*Model, error)
 	ActivateModel(context.Context, *ActivateModelRequest) (*ActivateModelResponse, error)
 	DeactivateModel(context.Context, *DeactivateModelRequest) (*DeactivateModelResponse, error)
 	mustEmbedUnimplementedModelsServiceServer()
@@ -120,6 +131,9 @@ func (UnimplementedModelsServiceServer) DeleteModel(context.Context, *DeleteMode
 }
 func (UnimplementedModelsServiceServer) CreateModel(context.Context, *CreateModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateModel not implemented")
+}
+func (UnimplementedModelsServiceServer) UpdateModel(context.Context, *UpdateModelRequest) (*Model, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method UpdateModel not implemented")
 }
 func (UnimplementedModelsServiceServer) ActivateModel(context.Context, *ActivateModelRequest) (*ActivateModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method ActivateModel not implemented")
@@ -212,6 +226,24 @@ func _ModelsService_CreateModel_Handler(srv interface{}, ctx context.Context, de
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ModelsService_UpdateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(UpdateModelRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsServiceServer).UpdateModel(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsService/UpdateModel",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsServiceServer).UpdateModel(ctx, req.(*UpdateModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _ModelsService_ActivateModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(ActivateModelRequest)
 	if err := dec(in); err != nil {
@@ -270,6 +302,10 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "CreateModel",
 			Handler:    _ModelsService_CreateModel_Handler,
+		},
+		{
+			MethodName: "UpdateModel",
+			Handler:    _ModelsService_UpdateModel_Handler,
 		},
 		{
 			MethodName: "ActivateModel",
