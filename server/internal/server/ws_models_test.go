@@ -8,6 +8,7 @@ import (
 
 	"github.com/go-logr/logr/testr"
 	v1 "github.com/llmariner/model-manager/api/v1"
+	mid "github.com/llmariner/model-manager/common/pkg/id"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
@@ -542,6 +543,138 @@ func TestBaseModelCreation_ProjectScoped(t *testing.T) {
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, got.LoadingStatus)
 	assert.Equal(t, "path", got.Path)
 	assert.Equal(t, "gguf-path", got.GGUFModelPath)
+}
+
+func TestBaseModelCreation_ModelConfig(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	// No model to be acquired.
+	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
+	const modelID = "r/m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+		Config: &v1.ModelConfig{
+			RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+				Replicas: 2,
+			},
+			ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, resp.BaseModelId)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
+
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	got, err := st.GetBaseModel(k)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	convertedModelID := mid.ToLLMarinerModelID(modelID)
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            convertedModelID,
+		Path:          "path",
+		GgufModelPath: "gguf-path",
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id: convertedModelID,
+		LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{
+			Success: &v1.UpdateBaseModelLoadingStatusRequest_Success{},
+		},
+	})
+	assert.NoError(t, err)
+
+	m, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: convertedModelID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, m.LoadingStatus)
+	assert.Equal(t, int32(2), m.Config.RuntimeConfig.Replicas)
+}
+
+func TestBaseModelCreation_ModelConfig_HuggingFaceSingleModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	wsrv := NewWorkerServiceServer(st, testr.New(t))
+
+	// No model to be acquired.
+	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
+	const modelID = "r/m0"
+
+	m, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+		Config: &v1.ModelConfig{
+			RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+				Replicas: 2,
+			},
+			ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED, m.LoadingStatus)
+
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Equal(t, modelID, resp.BaseModelId)
+	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, resp.SourceRepository)
+
+	k := store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	}
+	got, err := st.GetBaseModel(k)
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	convertedModelID := "r-m0-model0.gguf"
+	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
+		Id:            convertedModelID,
+		Path:          "path",
+		GgufModelPath: "gguf-path",
+	})
+	assert.NoError(t, err)
+
+	_, err = wsrv.UpdateBaseModelLoadingStatus(ctx, &v1.UpdateBaseModelLoadingStatusRequest{
+		Id: convertedModelID,
+		LoadingResult: &v1.UpdateBaseModelLoadingStatusRequest_Success_{
+			Success: &v1.UpdateBaseModelLoadingStatusRequest_Success{},
+		},
+	})
+	assert.NoError(t, err)
+
+	m, err = srv.GetModel(ctx, &v1.GetModelRequest{
+		Id: convertedModelID,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED, m.LoadingStatus)
+	assert.Equal(t, int32(2), m.Config.RuntimeConfig.Replicas)
 }
 
 func TestBaseModelCreation_Failure(t *testing.T) {

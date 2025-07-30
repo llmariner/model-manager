@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/llmariner/common/pkg/id"
 	v1 "github.com/llmariner/model-manager/api/v1"
@@ -80,7 +81,8 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 	}, nil
 }
 
-// RegisterModel registers a model.
+// RegisterModel registers a fine-tuned model.
+// The model is created in the database, but not published yet.
 func (s *WS) RegisterModel(
 	ctx context.Context,
 	req *v1.RegisterModelRequest,
@@ -162,7 +164,7 @@ func (s *WS) RegisterModel(
 	}, nil
 }
 
-// PublishModel publishes a model.
+// PublishModel publishes a fine-tuned model.
 func (s *WS) PublishModel(
 	ctx context.Context,
 	req *v1.PublishModelRequest,
@@ -284,6 +286,28 @@ func (s *WS) CreateBaseModel(
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
 
+		// Find the original model that is in the loading status.
+		bms, err := s.store.ListLoadingBaseModels(clusterInfo.TenantID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "list loading base models: %s", err)
+		}
+		var originalBaseModel *store.BaseModel
+		for _, m := range bms {
+			if m.ProjectID != req.ProjectId {
+				continue
+			}
+			convertedModelID := mid.ToLLMarinerModelID(m.ModelID)
+			if convertedModelID == req.Id {
+				originalBaseModel = m
+				break
+			}
+			if strings.HasPrefix(req.Id, convertedModelID+"-") {
+				// Handle a case where a new model is created for each file in a Hugging Face model repository.
+				originalBaseModel = m
+				break
+			}
+		}
+
 		// Create a new base model.
 		var m *store.BaseModel
 		if err := s.store.Transaction(func(tx *gorm.DB) error {
@@ -300,6 +324,33 @@ func (s *WS) CreateBaseModel(
 				Status:    v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE,
 			}); err != nil {
 				return status.Errorf(codes.Internal, "create model activation status: %s", err)
+			}
+
+			// Copy the model config from the original base model if it exists.
+			if originalBaseModel != nil {
+				existing, err := s.store.GetModelConfig(store.ModelKey{
+					ModelID:   originalBaseModel.ModelID,
+					ProjectID: originalBaseModel.ProjectID,
+					TenantID:  originalBaseModel.TenantID,
+				})
+				if err != nil {
+					if !errors.Is(err, gorm.ErrRecordNotFound) {
+						return status.Errorf(codes.Internal, "get model config: %s", err)
+					}
+				} else {
+					s.log.Info("Copying model config from existing base model to new base model",
+						"originalBaseModelID", originalBaseModel.ModelID,
+						"newBaseModelID", k.ModelID,
+					)
+					if err := store.CreateModelConfigInTransaction(tx, &store.ModelConfig{
+						ModelID:       k.ModelID,
+						ProjectID:     k.ProjectID,
+						TenantID:      k.TenantID,
+						EncodedConfig: existing.EncodedConfig,
+					}); err != nil {
+						return status.Errorf(codes.Internal, "create model config: %s", err)
+					}
+				}
 			}
 
 			return nil
