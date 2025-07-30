@@ -727,6 +727,7 @@ func TestModelConfig_BaseModel(t *testing.T) {
 			RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
 				Replicas: 2,
 			},
+			ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 		},
 	})
 	assert.NoError(t, err)
@@ -783,6 +784,7 @@ func TestModelConfig_FineTunedModel(t *testing.T) {
 			RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
 				Replicas: 2,
 			},
+			ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 		},
 	})
 	assert.NoError(t, err)
@@ -836,6 +838,7 @@ func TestUpdateModel(t *testing.T) {
 				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
 					Replicas: 2,
 				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 			},
 		},
 		UpdateMask: &fieldmaskpb.FieldMask{
@@ -862,6 +865,7 @@ func TestUpdateModel(t *testing.T) {
 				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
 					Replicas: 3,
 				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 			},
 		},
 		UpdateMask: &fieldmaskpb.FieldMask{
@@ -995,6 +999,7 @@ func TestValidateModelConfig(t *testing.T) {
 					},
 					Replicas: 1,
 				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 			},
 		},
 		{
@@ -1005,6 +1010,7 @@ func TestValidateModelConfig(t *testing.T) {
 						Gpu: -1,
 					},
 				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 			},
 			wantErr: true,
 		},
@@ -1014,6 +1020,7 @@ func TestValidateModelConfig(t *testing.T) {
 				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
 					Replicas: 0,
 				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
 			},
 			wantErr: true,
 		},
@@ -1029,5 +1036,4 @@ func TestValidateModelConfig(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
-
 }

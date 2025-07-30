@@ -1091,18 +1091,24 @@ func validateModelConfig(c *v1.ModelConfig) error {
 		return nil
 	}
 
-	if rc := c.RuntimeConfig; rc != nil {
-		if r := rc.Resources; r != nil {
-			if r.Gpu < 0 {
-				return status.Error(codes.InvalidArgument, "gpu must be greater than or equal to 0")
-			}
-		}
-		if rc.Replicas <= 0 {
-			return status.Error(codes.InvalidArgument, "replicas must be greater than 0")
-		}
+	rc := c.RuntimeConfig
+	if rc == nil {
+		return status.Error(codes.InvalidArgument, "runtime config is required")
 	}
 
-	// TODO(kenji): Validate the specified clusters exist and belong to this tenant.
+	if r := rc.Resources; r != nil {
+		if r.Gpu < 0 {
+			return status.Error(codes.InvalidArgument, "gpu must be greater than or equal to 0")
+		}
+	}
+	if rc.Replicas <= 0 {
+		return status.Error(codes.InvalidArgument, "replicas must be greater than 0")
+	}
+
+	cap := c.ClusterAllocationPolicy
+	if cap == nil {
+		return status.Error(codes.InvalidArgument, "cluster allocation policy is required")
+	}
 
 	return nil
 }
