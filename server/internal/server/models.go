@@ -64,10 +64,8 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.InvalidArgument, "model file location must start with s3://, but got %s", req.ModelFileLocation)
 	}
 
-	if c := req.Config; c != nil {
-		if err := validateModelConfig(c); err != nil {
-			return nil, err
-		}
+	if err := validateModelConfig(req.Config); err != nil {
+		return nil, err
 	}
 
 	if _, found, err := getVisibleBaseModel(s.store, req.BaseModelId, userInfo, true /* includeLoadingModel */); err != nil {
@@ -154,10 +152,8 @@ func (s *S) createBaseModel(
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
-	if c := req.Config; c != nil {
-		if err := validateModelConfig(c); err != nil {
-			return nil, err
-		}
+	if err := validateModelConfig(req.Config); err != nil {
+		return nil, err
 	}
 
 	var projectID string
@@ -409,6 +405,82 @@ func (s *S) GetModel(
 	}
 
 	m, err := getVisibleModelProto(s.store, req.Id, userInfo, req.IncludeLoadingModel)
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
+// UpdateModel updates a model.
+func (s *S) UpdateModel(
+	ctx context.Context,
+	req *v1.UpdateModelRequest,
+) (*v1.Model, error) {
+	userInfo, ok := auth.ExtractUserInfoFromContext(ctx)
+	if !ok {
+		return nil, fmt.Errorf("failed to extract user info from context")
+	}
+
+	if req.Model == nil {
+		return nil, status.Error(codes.InvalidArgument, "model is required")
+	}
+
+	if req.Model.Id == "" {
+		return nil, status.Error(codes.InvalidArgument, "id is required")
+	}
+
+	if err := validateModelConfig(req.Model.Config); err != nil {
+		return nil, err
+	}
+
+	// Currently only support the update of the config field.
+	if req.UpdateMask == nil {
+		return nil, status.Error(codes.InvalidArgument, "update mask is required")
+	}
+	if len(req.UpdateMask.Paths) != 1 || req.UpdateMask.Paths[0] != "config" {
+		return nil, status.Error(codes.InvalidArgument, "only config field is supported for update")
+	}
+
+	k, err := getKeyForVisibleModel(s.store, req.Model.Id, userInfo, true /* includeLoadingModel */)
+	if err != nil {
+		return nil, err
+	}
+
+	existing, err := s.store.GetModelConfig(k)
+	if err != nil {
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, status.Errorf(codes.Internal, "get model config: %s", err)
+		}
+		existing = nil
+	}
+
+	if newC := req.Model.Config; newC != nil {
+		b, err := proto.Marshal(newC)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "marshal model config: %s", err)
+		}
+
+		if existing != nil {
+			if err := s.store.UpdateModelConfig(k, b); err != nil {
+				return nil, status.Errorf(codes.Internal, "update model config: %s", err)
+			}
+		} else {
+			if err := s.store.CreateModelConfig(&store.ModelConfig{
+				ModelID:       k.ModelID,
+				ProjectID:     k.ProjectID,
+				TenantID:      k.TenantID,
+				EncodedConfig: b,
+			}); err != nil {
+				return nil, status.Errorf(codes.Internal, "create model config: %s", err)
+			}
+		}
+	} else if existing != nil {
+		if err := s.store.DeleteModelConfig(k); err != nil {
+			return nil, status.Errorf(codes.Internal, "delete model config: %s", err)
+		}
+	}
+
+	m, err := getVisibleModelProto(s.store, req.Model.Id, userInfo, true /* includeLoadingModel */)
 	if err != nil {
 		return nil, err
 	}

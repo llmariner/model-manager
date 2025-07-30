@@ -59,6 +59,9 @@ export class ModelsService {
     static CreateModel(req, initReq) {
         return fm.fetchReq(`/v1/models`, Object.assign(Object.assign({}, initReq), { method: "POST", body: JSON.stringify(req) }));
     }
+    static UpdateModel(req, initReq) {
+        return fm.fetchReq(`/v1/models/${req["model.id"]}`, Object.assign(Object.assign({}, initReq), { method: "PATCH", body: JSON.stringify(req["model"]) }));
+    }
     static ActivateModel(req, initReq) {
         return fm.fetchReq(`/v1/models/${req["id"]}:activate`, Object.assign(Object.assign({}, initReq), { method: "POST" }));
     }

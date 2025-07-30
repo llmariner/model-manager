@@ -10,6 +10,9 @@ import (
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
+	"gorm.io/gorm"
 )
 
 func TestModels(t *testing.T) {
@@ -802,6 +805,100 @@ func TestModelConfig_FineTunedModel(t *testing.T) {
 	assert.NotNil(t, got.Config)
 	assert.NotNil(t, got.Config.RuntimeConfig)
 	assert.Equal(t, int32(2), got.Config.RuntimeConfig.Replicas)
+}
+
+func TestUpdateModel(t *testing.T) {
+	st, tearDown := store.NewTest(t)
+	defer tearDown()
+
+	srv := New(st, testr.New(t))
+	ctx := fakeAuthInto(context.Background())
+
+	const modelID = "r/m0"
+
+	_, err := srv.CreateModel(ctx, &v1.CreateModelRequest{
+		Id:               modelID,
+		SourceRepository: v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+	})
+	assert.NoError(t, err)
+
+	_, err = st.GetModelConfig(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
+
+	m, err := srv.UpdateModel(ctx, &v1.UpdateModelRequest{
+		Model: &v1.Model{
+			Id: modelID,
+			Config: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 2,
+				},
+			},
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"config"},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int32(2), m.Config.RuntimeConfig.Replicas)
+
+	c, err := st.GetModelConfig(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	})
+	assert.NoError(t, err)
+	var conf v1.ModelConfig
+	err = proto.Unmarshal(c.EncodedConfig, &conf)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(2), conf.RuntimeConfig.Replicas)
+
+	m, err = srv.UpdateModel(ctx, &v1.UpdateModelRequest{
+		Model: &v1.Model{
+			Id: modelID,
+			Config: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 3,
+				},
+			},
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"config"},
+		},
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, int32(3), m.Config.RuntimeConfig.Replicas)
+
+	c, err = st.GetModelConfig(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	})
+	assert.NoError(t, err)
+	err = proto.Unmarshal(c.EncodedConfig, &conf)
+	assert.NoError(t, err)
+	assert.Equal(t, int32(3), conf.RuntimeConfig.Replicas)
+
+	m, err = srv.UpdateModel(ctx, &v1.UpdateModelRequest{
+		Model: &v1.Model{
+			Id:     modelID,
+			Config: nil,
+		},
+		UpdateMask: &fieldmaskpb.FieldMask{
+			Paths: []string{"config"},
+		},
+	})
+	assert.NoError(t, err)
+	// Get the default value.
+	assert.Equal(t, int32(1), m.Config.RuntimeConfig.Replicas)
+
+	_, err = st.GetModelConfig(store.ModelKey{
+		ModelID:  modelID,
+		TenantID: defaultTenantID,
+	})
+	assert.Error(t, err)
+	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
 
 func TestValidateIdAndSourceRepository(t *testing.T) {
