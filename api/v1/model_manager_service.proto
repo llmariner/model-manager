@@ -226,7 +226,7 @@ service ModelsService {
       // This is required when the model ID might contain '/' characters.
       // (This happens only for a model that is being loaded. Once it is loaded,
       // the converted ID name does not containe '/').
-      get: "/v1/models/{id==**}"
+      get: "/v1/models/{id=**}"
     };
   }
 
