@@ -449,10 +449,6 @@ func (s *WS) AcquireUnloadedBaseModel(
 		return nil, err
 	}
 
-	// We used to return only models of the REQUESTED state, but we have changed the logic
-	// so that it returns modles of the both REQUESTEED and LOADING states. The latter
-	// is needed for the case where model-manager-loader is restarted while loading a model.
-
 	ms, err := s.store.ListUnloadedBaseModels(clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list unloaded base models: %s", err)
@@ -463,19 +459,17 @@ func (s *WS) AcquireUnloadedBaseModel(
 	}
 
 	m := ms[0]
-	if m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED {
-		k := store.ModelKey{
-			ModelID:   m.ModelID,
-			ProjectID: m.ProjectID,
-			TenantID:  m.TenantID,
+	k := store.ModelKey{
+		ModelID:   m.ModelID,
+		ProjectID: m.ProjectID,
+		TenantID:  m.TenantID,
+	}
+	if err := s.store.UpdateBaseModelToLoadingStatus(k); err != nil {
+		if errors.Is(err, store.ErrConcurrentUpdate) {
+			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
 		}
-		if err := s.store.UpdateBaseModelToLoadingStatus(k); err != nil {
-			if errors.Is(err, store.ErrConcurrentUpdate) {
-				return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
-			}
 
-			return nil, status.Errorf(codes.Internal, "update base model loading status: %s", err)
-		}
+		return nil, status.Errorf(codes.Internal, "update base model loading status: %s", err)
 	}
 
 	return &v1.AcquireUnloadedBaseModelResponse{
@@ -498,10 +492,6 @@ func (s *WS) AcquireUnloadedModel(
 		return nil, err
 	}
 
-	// We used to return only models of the REQUESTED state, but we have changed the logic
-	// so that it returns modles of the both REQUESTEED and LOADING states. The latter
-	// is needed for the case where model-manager-loader is restarted while loading a model.
-
 	ms, err := s.store.ListUnloadedModels(clusterInfo.TenantID)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "list unloaded models: %s", err)
@@ -512,14 +502,12 @@ func (s *WS) AcquireUnloadedModel(
 	}
 
 	m := ms[0]
-	if m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED {
-		if err := s.store.UpdateModelToLoadingStatus(m.ModelID, clusterInfo.TenantID); err != nil {
-			if errors.Is(err, store.ErrConcurrentUpdate) {
-				return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
-			}
-
-			return nil, status.Errorf(codes.Internal, "update model loading status: %s", err)
+	if err := s.store.UpdateModelToLoadingStatus(m.ModelID, clusterInfo.TenantID); err != nil {
+		if errors.Is(err, store.ErrConcurrentUpdate) {
+			return nil, status.Errorf(codes.FailedPrecondition, "concurrent update to model status")
 		}
+
+		return nil, status.Errorf(codes.Internal, "update model loading status: %s", err)
 	}
 
 	return &v1.AcquireUnloadedModelResponse{
@@ -568,7 +556,7 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 	case *v1.UpdateBaseModelLoadingStatusRequest_Success_:
 		// model-manager-loader calls this RPC after making the CreateBaseModel RPC request.
 		//
-		// If the model's loading status is still Loading, tahis indicates either
+		// If the model's loading status is still Loading, this indicates either
 		// model ID mismatch due to our internal conversion (e.g., "/" to "-") or
 		// a Hugging Face repo contains multiple models.
 		//

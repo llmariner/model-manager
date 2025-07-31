@@ -384,6 +384,11 @@ func TestBaseModelCreation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
 
+	// No model to be acquired as the model has already been acquired.
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
+
 	// Create a base model.
 	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
 		Id:            modelID,
@@ -509,6 +514,11 @@ func TestBaseModelCreation_ProjectScoped(t *testing.T) {
 	got, err := st.GetBaseModel(k)
 	assert.NoError(t, err)
 	assert.Equal(t, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING, got.LoadingStatus)
+
+	// No model to be acquired as the model has already been acquired.
+	resp, err = wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
+	assert.NoError(t, err)
+	assert.Empty(t, resp.BaseModelId)
 
 	// Create a base model.
 	_, err = wsrv.CreateBaseModel(ctx, &v1.CreateBaseModelRequest{
