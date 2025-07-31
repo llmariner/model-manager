@@ -157,6 +157,14 @@ func TestListUnloadedBaseModels(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Len(t, ms, 1)
 	assert.Equal(t, "m1", ms[0].ModelID)
+
+	err = st.UpdateBaseModelToLoadingStatus(k0)
+	assert.NoError(t, err)
+	// Still should be listed as it is in loading status.
+	ms, err = st.ListUnloadedBaseModels("t0")
+	assert.NoError(t, err)
+	assert.Len(t, ms, 1)
+	assert.Equal(t, "m0", ms[0].ModelID)
 }
 
 func TestListLoadingBaseModels(t *testing.T) {

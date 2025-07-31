@@ -229,10 +229,14 @@ func ListBaseModelsByActivationStatusWithPaginationInTransaction(
 	return models, hasMore, nil
 }
 
-// ListUnloadedBaseModels returns all unloaded base models with the requested loading status.
+// ListUnloadedBaseModels returns all unloaded base models with the requested or loading  status.
 func (s *S) ListUnloadedBaseModels(tenantID string) ([]*BaseModel, error) {
 	var ms []*BaseModel
-	if err := s.db.Where("tenant_id = ? AND loading_status = ?", tenantID, v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED).
+	if err := s.db.Where("tenant_id = ? AND loading_status IN (?, ?)",
+		tenantID,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_REQUESTED,
+		v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING,
+	).
 		Order("id ASC").Find(&ms).Error; err != nil {
 		return nil, err
 	}
