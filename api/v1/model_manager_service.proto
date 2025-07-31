@@ -222,11 +222,9 @@ service ModelsService {
 
   rpc GetModel(GetModelRequest) returns (Model) {
     option (google.api.http) = {
-      // Note: when '=**' is set, 'id' matchs the whole path including '/'.
-      // This is required when the model ID might contain '/' characters.
-      // (This happens only for a model that is being loaded. Once it is loaded,
-      // the converted ID name does not containe '/').
-      get: "/v1/models/{id=**}"
+      // TODO(kenji): We used to have '=**' so that 'id' matchs the whole path including '/',
+      // but it doesn't work as it also matches with requests for ListModels.
+      get: "/v1/models/{id}"
     };
   }
 
