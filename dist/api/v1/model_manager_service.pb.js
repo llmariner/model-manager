@@ -47,11 +47,11 @@ export var QuantizationType;
     QuantizationType["QUANTIZATION_TYPE_AWQ"] = "QUANTIZATION_TYPE_AWQ";
 })(QuantizationType || (QuantizationType = {}));
 export class ModelsService {
+    static GetModel(req, initReq) {
+        return fm.fetchReq(`/v1/models/${req["id=**"]}?${fm.renderURLSearchParams(req, ["id=**"])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
+    }
     static ListModels(req, initReq) {
         return fm.fetchReq(`/v1/models?${fm.renderURLSearchParams(req, [])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
-    }
-    static GetModel(req, initReq) {
-        return fm.fetchReq(`/v1/models/${req["id"]}?${fm.renderURLSearchParams(req, ["id"])}`, Object.assign(Object.assign({}, initReq), { method: "GET" }));
     }
     static DeleteModel(req, initReq) {
         return fm.fetchReq(`/v1/models/${req["id=**"]}`, Object.assign(Object.assign({}, initReq), { method: "DELETE" }));

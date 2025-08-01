@@ -214,17 +214,23 @@ message DeactivateModelResponse {
 
 service ModelsService {
 
-  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
+  rpc GetModel(GetModelRequest) returns (Model) {
     option (google.api.http) = {
-      get: "/v1/models"
+      // Note: when '=**' is set, 'id' matchs the whole path including '/'.
+      // This is required when the model ID might contain '/' characters.
+      // (This happens only for a model that is being loaded. Once it is loaded,
+      // the converted ID name does not containe '/').
+      get: "/v1/models/{id=**}"
     };
   }
 
-  rpc GetModel(GetModelRequest) returns (Model) {
+  // This must be defined below GetModel so that gRPC gateway puts a higher priority to ListModels than GetModel.
+  //
+  // With {id=**}, GetModel matches with path "/v1/models" for some reason. Thus we need to make sure ListModels
+  // is called when "id" is empty.
+  rpc ListModels(ListModelsRequest) returns (ListModelsResponse) {
     option (google.api.http) = {
-      // TODO(kenji): We used to have '=**' so that 'id' matchs the whole path including '/',
-      // but it doesn't work as it also matches with requests for ListModels.
-      get: "/v1/models/{id}"
+      get: "/v1/models"
     };
   }
 

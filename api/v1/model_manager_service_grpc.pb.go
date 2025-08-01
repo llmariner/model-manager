@@ -18,8 +18,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ModelsServiceClient interface {
-	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
+	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
 	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
@@ -37,18 +37,18 @@ func NewModelsServiceClient(cc grpc.ClientConnInterface) ModelsServiceClient {
 	return &modelsServiceClient{cc}
 }
 
-func (c *modelsServiceClient) ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error) {
-	out := new(ListModelsResponse)
-	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ListModels", in, out, opts...)
+func (c *modelsServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
+	out := new(Model)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/GetModel", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
 	return out, nil
 }
 
-func (c *modelsServiceClient) GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error) {
-	out := new(Model)
-	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/GetModel", in, out, opts...)
+func (c *modelsServiceClient) ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error) {
+	out := new(ListModelsResponse)
+	err := c.cc.Invoke(ctx, "/llmariner.models.server.v1.ModelsService/ListModels", in, out, opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -104,8 +104,8 @@ func (c *modelsServiceClient) DeactivateModel(ctx context.Context, in *Deactivat
 // All implementations must embed UnimplementedModelsServiceServer
 // for forward compatibility
 type ModelsServiceServer interface {
-	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
+	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
 	// CreateModel creates a new model. The model becomes available once
 	// its model file is loaded to an object store.
@@ -120,11 +120,11 @@ type ModelsServiceServer interface {
 type UnimplementedModelsServiceServer struct {
 }
 
-func (UnimplementedModelsServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
-	return nil, status.Errorf(codes.Unimplemented, "method ListModels not implemented")
-}
 func (UnimplementedModelsServiceServer) GetModel(context.Context, *GetModelRequest) (*Model, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetModel not implemented")
+}
+func (UnimplementedModelsServiceServer) ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "method ListModels not implemented")
 }
 func (UnimplementedModelsServiceServer) DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method DeleteModel not implemented")
@@ -154,24 +154,6 @@ func RegisterModelsServiceServer(s grpc.ServiceRegistrar, srv ModelsServiceServe
 	s.RegisterService(&ModelsService_ServiceDesc, srv)
 }
 
-func _ModelsService_ListModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
-	in := new(ListModelsRequest)
-	if err := dec(in); err != nil {
-		return nil, err
-	}
-	if interceptor == nil {
-		return srv.(ModelsServiceServer).ListModels(ctx, in)
-	}
-	info := &grpc.UnaryServerInfo{
-		Server:     srv,
-		FullMethod: "/llmariner.models.server.v1.ModelsService/ListModels",
-	}
-	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
-		return srv.(ModelsServiceServer).ListModels(ctx, req.(*ListModelsRequest))
-	}
-	return interceptor(ctx, in, info, handler)
-}
-
 func _ModelsService_GetModel_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetModelRequest)
 	if err := dec(in); err != nil {
@@ -186,6 +168,24 @@ func _ModelsService_GetModel_Handler(srv interface{}, ctx context.Context, dec f
 	}
 	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
 		return srv.(ModelsServiceServer).GetModel(ctx, req.(*GetModelRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ModelsService_ListModels_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(ListModelsRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ModelsServiceServer).ListModels(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/llmariner.models.server.v1.ModelsService/ListModels",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ModelsServiceServer).ListModels(ctx, req.(*ListModelsRequest))
 	}
 	return interceptor(ctx, in, info, handler)
 }
@@ -288,12 +288,12 @@ var ModelsService_ServiceDesc = grpc.ServiceDesc{
 	HandlerType: (*ModelsServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
 		{
-			MethodName: "ListModels",
-			Handler:    _ModelsService_ListModels_Handler,
-		},
-		{
 			MethodName: "GetModel",
 			Handler:    _ModelsService_GetModel_Handler,
+		},
+		{
+			MethodName: "ListModels",
+			Handler:    _ModelsService_ListModels_Handler,
 		},
 		{
 			MethodName: "DeleteModel",
