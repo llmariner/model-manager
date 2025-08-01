@@ -1138,6 +1138,7 @@ func patchModelConfig(
 	}
 
 	for _, path := range updateMask.Paths {
+		origPath := path
 		switch {
 		case strings.HasPrefix(path, "config"):
 			if patch == nil {
@@ -1190,11 +1191,11 @@ func patchModelConfig(
 						}
 						config.RuntimeConfig.Resources.Gpu = v
 					default:
-						return fmt.Errorf("unsupported update mask path: %s", path)
+						return fmt.Errorf("unsupported update mask path: %s", origPath)
 					}
 					// TODO(kenji): support extra_args
 				default:
-					return fmt.Errorf("unsupported update mask path: %s", path)
+					return fmt.Errorf("unsupported update mask path: %s", origPath)
 				}
 			case strings.HasPrefix(path, "cluster_allocation_policy"):
 				rc := patch.ClusterAllocationPolicy
@@ -1213,22 +1214,19 @@ func patchModelConfig(
 					config.ClusterAllocationPolicy.EnableOnDemandAllocation = rc.EnableOnDemandAllocation
 					// TODO(kenji): Support allowed_cluster_ids
 				default:
-					return fmt.Errorf("unsupported update mask path: %s", path)
+					return fmt.Errorf("unsupported update mask path: %s", origPath)
 				}
 			default:
-				return fmt.Errorf("unsupported update mask path: %s", path)
+				return fmt.Errorf("unsupported update mask path: %s", origPath)
 			}
 		default:
-			return fmt.Errorf("unsupported update mask path: %s", path)
+			return fmt.Errorf("unsupported update mask path: %s", origPath)
 		}
 	}
 
 	d := defaultModelConfig()
 
 	// Set default values to nil fields.
-	if config == nil {
-		*config = *d
-	}
 	if config.RuntimeConfig == nil {
 		config.RuntimeConfig = d.RuntimeConfig
 	}
