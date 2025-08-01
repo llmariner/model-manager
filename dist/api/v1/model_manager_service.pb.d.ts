@@ -238,8 +238,8 @@ export type UpdateModelLoadingStatusRequest = BaseUpdateModelLoadingStatusReques
 }>;
 export type UpdateModelLoadingStatusResponse = {};
 export declare class ModelsService {
-    static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse>;
     static GetModel(req: GetModelRequest, initReq?: fm.InitReq): Promise<Model>;
+    static ListModels(req: ListModelsRequest, initReq?: fm.InitReq): Promise<ListModelsResponse>;
     static DeleteModel(req: DeleteModelRequest, initReq?: fm.InitReq): Promise<DeleteModelResponse>;
     static CreateModel(req: CreateModelRequest, initReq?: fm.InitReq): Promise<Model>;
     static UpdateModel(req: UpdateModelRequest, initReq?: fm.InitReq): Promise<Model>;
