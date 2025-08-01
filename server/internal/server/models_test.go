@@ -1135,9 +1135,9 @@ func TestPatchModelConfig(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			err := patchModelConfig(tc.config, tc.patch, tc.updateMask)
+			got, err := patchModelConfig(tc.config, tc.patch, tc.updateMask)
 			assert.NoError(t, err)
-			assert.True(t, proto.Equal(tc.want, tc.config), cmp.Diff(tc.want, tc.config, protocmp.Transform()))
+			assert.True(t, proto.Equal(tc.want, got), cmp.Diff(tc.want, got, protocmp.Transform()))
 		})
 	}
 

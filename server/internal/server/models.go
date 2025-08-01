@@ -465,11 +465,12 @@ func (s *S) UpdateModel(
 		}
 	}
 
-	if err := patchModelConfig(&config, req.Model.Config, req.UpdateMask); err != nil {
+	patchedConfig, err := patchModelConfig(&config, req.Model.Config, req.UpdateMask)
+	if err != nil {
 		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
-	b, err := proto.Marshal(&config)
+	b, err := proto.Marshal(patchedConfig)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "marshal model config: %s", err)
 	}
@@ -1126,7 +1127,7 @@ func patchModelConfig(
 	config *v1.ModelConfig,
 	patch *v1.ModelConfig,
 	updateMask *fieldmaskpb.FieldMask,
-) error {
+) (*v1.ModelConfig, error) {
 	if config.RuntimeConfig == nil {
 		config.RuntimeConfig = &v1.ModelConfig_RuntimeConfig{}
 	}
@@ -1138,89 +1139,88 @@ func patchModelConfig(
 	}
 
 	for _, path := range updateMask.Paths {
-		origPath := path
 		switch {
 		case strings.HasPrefix(path, "config"):
 			if patch == nil {
-				return fmt.Errorf("config is required")
+				return nil, fmt.Errorf("config is required")
 			}
 
 			if path == "config" {
-				*config = *patch
+				config = patch
 				break
 			}
 
-			path := path[len("config."):]
+			cpath := path[len("config."):]
 			switch {
-			case strings.HasPrefix(path, "runtime_config"):
+			case strings.HasPrefix(cpath, "runtime_config"):
 				rc := patch.RuntimeConfig
 				if rc == nil {
-					return fmt.Errorf("runtime_config is required")
+					return nil, fmt.Errorf("runtime_config is required")
 				}
 
-				if path == "runtime_config" {
+				if cpath == "runtime_config" {
 					config.RuntimeConfig = rc
 					break
 				}
 
-				path := path[len("runtime_config."):]
+				rpath := cpath[len("runtime_config."):]
 				switch {
-				case path == "replicas":
+				case rpath == "replicas":
 					r := rc.Replicas
 					if r <= 0 {
-						return fmt.Errorf("runtime_config.replicas must be positive, but got %d", r)
+						return nil, fmt.Errorf("runtime_config.replicas must be positive, but got %d", r)
 					}
 					config.RuntimeConfig.Replicas = r
-				case strings.HasPrefix(path, "resources"):
+				case strings.HasPrefix(rpath, "resources"):
 					r := rc.Resources
 					if r == nil {
-						return fmt.Errorf("runtime_config.resources is required")
+						return nil, fmt.Errorf("runtime_config.resources is required")
 					}
 
-					if path == "resources" {
+					if rpath == "resources" {
 						config.RuntimeConfig.Resources = rc.Resources
 						break
 					}
 
-					path := path[len("resources."):]
+					rrpath := rpath[len("resources."):]
 					switch {
-					case path == "gpu":
+					case rrpath == "gpu":
 						v := r.Gpu
 						if v < 0 {
-							return fmt.Errorf("runtime_config.resources.gpu must be non-negative, but got %d", v)
+							return nil, fmt.Errorf("runtime_config.resources.gpu must be non-negative, but got %d", v)
 						}
 						config.RuntimeConfig.Resources.Gpu = v
 					default:
-						return fmt.Errorf("unsupported update mask path: %s", origPath)
+						return nil, fmt.Errorf("unsupported update mask path: %s", path)
 					}
 					// TODO(kenji): support extra_args
 				default:
-					return fmt.Errorf("unsupported update mask path: %s", origPath)
+					return nil, fmt.Errorf("unsupported update mask path: %s", path)
 				}
-			case strings.HasPrefix(path, "cluster_allocation_policy"):
+			case strings.HasPrefix(cpath, "cluster_allocation_policy"):
 				rc := patch.ClusterAllocationPolicy
 				if rc == nil {
-					return fmt.Errorf("cluster_allocation_policy is required")
+					return nil, fmt.Errorf("cluster_allocation_policy is required")
 				}
 
-				if path == "cluster_allocation_policy" {
+				if cpath == "cluster_allocation_policy" {
 					config.ClusterAllocationPolicy = rc
 					break
 				}
 
-				path := path[len("cluster_allocation_policy."):]
+				ppath := cpath[len("cluster_allocation_policy."):]
 				switch {
-				case path == "enable_on_demand_allocation":
+				case ppath == "enable_on_demand_allocation":
 					config.ClusterAllocationPolicy.EnableOnDemandAllocation = rc.EnableOnDemandAllocation
 					// TODO(kenji): Support allowed_cluster_ids
 				default:
-					return fmt.Errorf("unsupported update mask path: %s", origPath)
+					return nil, fmt.Errorf("unsupported update mask path: %s", path)
 				}
 			default:
-				return fmt.Errorf("unsupported update mask path: %s", origPath)
+				return nil, fmt.Errorf("unsupported update mask path: %s", path)
 			}
 		default:
-			return fmt.Errorf("unsupported update mask path: %s", origPath)
+			return nil, fmt.Errorf("unsupported update mask path: %s", path)
 		}
 	}
 
@@ -1234,5 +1234,5 @@ func patchModelConfig(
 		config.ClusterAllocationPolicy = d.ClusterAllocationPolicy
 	}
 
-	return nil
+	return config, nil
 }
