@@ -13,6 +13,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"gorm.io/gorm"
 )
 
@@ -437,8 +438,10 @@ func (s *S) UpdateModel(
 	if req.UpdateMask == nil {
 		return nil, status.Error(codes.InvalidArgument, "update mask is required")
 	}
-	if len(req.UpdateMask.Paths) != 1 || req.UpdateMask.Paths[0] != "config" {
-		return nil, status.Error(codes.InvalidArgument, "only config field is supported for update")
+
+	// Only allow updating the config field and the config must be present.
+	if req.Model.Config == nil {
+		return nil, status.Error(codes.InvalidArgument, "model config is required")
 	}
 
 	k, err := getKeyForVisibleModel(s.store, req.Model.Id, userInfo, true /* includeLoadingModel */)
@@ -446,37 +449,43 @@ func (s *S) UpdateModel(
 		return nil, err
 	}
 
-	existing, err := s.store.GetModelConfig(k)
-	if err != nil {
+	var (
+		hasExisting bool
+		config      v1.ModelConfig
+	)
+	if c, err := s.store.GetModelConfig(k); err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, status.Errorf(codes.Internal, "get model config: %s", err)
 		}
-		existing = nil
+		config = *defaultModelConfig()
+	} else {
+		hasExisting = true
+		if err := proto.Unmarshal(c.EncodedConfig, &config); err != nil {
+			return nil, err
+		}
 	}
 
-	if newC := req.Model.Config; newC != nil {
-		b, err := proto.Marshal(newC)
-		if err != nil {
-			return nil, status.Errorf(codes.Internal, "marshal model config: %s", err)
-		}
+	if err := patchModelConfig(&config, req.Model.Config, req.UpdateMask); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
+	}
 
-		if existing != nil {
-			if err := s.store.UpdateModelConfig(k, b); err != nil {
-				return nil, status.Errorf(codes.Internal, "update model config: %s", err)
-			}
-		} else {
-			if err := s.store.CreateModelConfig(&store.ModelConfig{
-				ModelID:       k.ModelID,
-				ProjectID:     k.ProjectID,
-				TenantID:      k.TenantID,
-				EncodedConfig: b,
-			}); err != nil {
-				return nil, status.Errorf(codes.Internal, "create model config: %s", err)
-			}
+	b, err := proto.Marshal(&config)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "marshal model config: %s", err)
+	}
+
+	if hasExisting {
+		if err := s.store.UpdateModelConfig(k, b); err != nil {
+			return nil, status.Errorf(codes.Internal, "update model config: %s", err)
 		}
-	} else if existing != nil {
-		if err := s.store.DeleteModelConfig(k); err != nil {
-			return nil, status.Errorf(codes.Internal, "delete model config: %s", err)
+	} else {
+		if err := s.store.CreateModelConfig(&store.ModelConfig{
+			ModelID:       k.ModelID,
+			ProjectID:     k.ProjectID,
+			TenantID:      k.TenantID,
+			EncodedConfig: b,
+		}); err != nil {
+			return nil, status.Errorf(codes.Internal, "create model config: %s", err)
 		}
 	}
 
@@ -1108,6 +1117,123 @@ func validateModelConfig(c *v1.ModelConfig) error {
 	cap := c.ClusterAllocationPolicy
 	if cap == nil {
 		return status.Error(codes.InvalidArgument, "cluster allocation policy is required")
+	}
+
+	return nil
+}
+
+func patchModelConfig(
+	config *v1.ModelConfig,
+	patch *v1.ModelConfig,
+	updateMask *fieldmaskpb.FieldMask,
+) error {
+	if config.RuntimeConfig == nil {
+		config.RuntimeConfig = &v1.ModelConfig_RuntimeConfig{}
+	}
+	if config.RuntimeConfig.Resources == nil {
+		config.RuntimeConfig.Resources = &v1.ModelConfig_RuntimeConfig_Resources{}
+	}
+	if config.ClusterAllocationPolicy == nil {
+		config.ClusterAllocationPolicy = &v1.ModelConfig_ClusterAllocationPolicy{}
+	}
+
+	for _, path := range updateMask.Paths {
+		switch {
+		case strings.HasPrefix(path, "config"):
+			if patch == nil {
+				return fmt.Errorf("config is required")
+			}
+
+			if path == "config" {
+				*config = *patch
+				break
+			}
+
+			path := path[len("config."):]
+			switch {
+			case strings.HasPrefix(path, "runtime_config"):
+				rc := patch.RuntimeConfig
+				if rc == nil {
+					return fmt.Errorf("runtime_config is required")
+				}
+
+				if path == "runtime_config" {
+					config.RuntimeConfig = rc
+					break
+				}
+
+				path := path[len("runtime_config."):]
+				switch {
+				case path == "replicas":
+					r := rc.Replicas
+					if r <= 0 {
+						return fmt.Errorf("runtime_config.replicas must be positive, but got %d", r)
+					}
+					config.RuntimeConfig.Replicas = r
+				case strings.HasPrefix(path, "resources"):
+					r := rc.Resources
+					if r == nil {
+						return fmt.Errorf("runtime_config.resources is required")
+					}
+
+					if path == "resources" {
+						config.RuntimeConfig.Resources = rc.Resources
+						break
+					}
+
+					path := path[len("resources."):]
+					switch {
+					case path == "gpu":
+						v := r.Gpu
+						if v < 0 {
+							return fmt.Errorf("runtime_config.resources.gpu must be non-negative, but got %d", v)
+						}
+						config.RuntimeConfig.Resources.Gpu = v
+					default:
+						return fmt.Errorf("unsupported update mask path: %s", path)
+					}
+					// TODO(kenji): support extra_args
+				default:
+					return fmt.Errorf("unsupported update mask path: %s", path)
+				}
+			case strings.HasPrefix(path, "cluster_allocation_policy"):
+				rc := patch.ClusterAllocationPolicy
+				if rc == nil {
+					return fmt.Errorf("cluster_allocation_policy is required")
+				}
+
+				if path == "cluster_allocation_policy" {
+					config.ClusterAllocationPolicy = rc
+					break
+				}
+
+				path := path[len("cluster_allocation_policy."):]
+				switch {
+				case path == "enable_on_demand_allocation":
+					config.ClusterAllocationPolicy.EnableOnDemandAllocation = rc.EnableOnDemandAllocation
+					// TODO(kenji): Support allowed_cluster_ids
+				default:
+					return fmt.Errorf("unsupported update mask path: %s", path)
+				}
+			default:
+				return fmt.Errorf("unsupported update mask path: %s", path)
+			}
+		default:
+			return fmt.Errorf("unsupported update mask path: %s", path)
+		}
+	}
+
+	d := defaultModelConfig()
+
+	// Set default values to nil fields.
+	if config == nil {
+		*config = *d
+	}
+	if config.RuntimeConfig == nil {
+		config.RuntimeConfig = d.RuntimeConfig
+	}
+	if config.ClusterAllocationPolicy == nil {
+		config.ClusterAllocationPolicy = d.ClusterAllocationPolicy
 	}
 
 	return nil

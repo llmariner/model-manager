@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/go-logr/logr/testr"
+	"github.com/google/go-cmp/cmp"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 	"google.golang.org/protobuf/types/known/fieldmaskpb"
 	"gorm.io/gorm"
 )
@@ -842,7 +844,7 @@ func TestUpdateModel(t *testing.T) {
 			},
 		},
 		UpdateMask: &fieldmaskpb.FieldMask{
-			Paths: []string{"config"},
+			Paths: []string{"config.runtime_config.replicas"},
 		},
 	})
 	assert.NoError(t, err)
@@ -869,7 +871,7 @@ func TestUpdateModel(t *testing.T) {
 			},
 		},
 		UpdateMask: &fieldmaskpb.FieldMask{
-			Paths: []string{"config"},
+			Paths: []string{"config.runtime_config.replicas"},
 		},
 	})
 	assert.NoError(t, err)
@@ -883,26 +885,6 @@ func TestUpdateModel(t *testing.T) {
 	err = proto.Unmarshal(c.EncodedConfig, &conf)
 	assert.NoError(t, err)
 	assert.Equal(t, int32(3), conf.RuntimeConfig.Replicas)
-
-	m, err = srv.UpdateModel(ctx, &v1.UpdateModelRequest{
-		Model: &v1.Model{
-			Id:     modelID,
-			Config: nil,
-		},
-		UpdateMask: &fieldmaskpb.FieldMask{
-			Paths: []string{"config"},
-		},
-	})
-	assert.NoError(t, err)
-	// Get the default value.
-	assert.Equal(t, int32(1), m.Config.RuntimeConfig.Replicas)
-
-	_, err = st.GetModelConfig(store.ModelKey{
-		ModelID:  modelID,
-		TenantID: defaultTenantID,
-	})
-	assert.Error(t, err)
-	assert.ErrorIs(t, err, gorm.ErrRecordNotFound)
 }
 
 func TestValidateIdAndSourceRepository(t *testing.T) {
@@ -1036,4 +1018,127 @@ func TestValidateModelConfig(t *testing.T) {
 			assert.NoError(t, err)
 		})
 	}
+}
+
+func TestPatchModelConfig(t *testing.T) {
+	tcs := []struct {
+		name       string
+		config     *v1.ModelConfig
+		patch      *v1.ModelConfig
+		updateMask *fieldmaskpb.FieldMask
+		want       *v1.ModelConfig
+	}{
+		{
+			name: "default",
+			config: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 3,
+				},
+			},
+			patch: &v1.ModelConfig{},
+			updateMask: &fieldmaskpb.FieldMask{
+				Paths: []string{"config"},
+			},
+			want: defaultModelConfig(),
+		},
+		{
+			name: "runtime_config.resources.gpu",
+			config: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 3,
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: 1,
+					},
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+			},
+			patch: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: 2,
+					},
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+			},
+			updateMask: &fieldmaskpb.FieldMask{
+				Paths: []string{"config.runtime_config.resources.gpu"},
+			},
+			want: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 3,
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: 2,
+					},
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+			},
+		},
+		{
+			name: "runtime_config.replicas",
+			config: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 3,
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: 1,
+					},
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+			},
+			patch: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 2,
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+			},
+			updateMask: &fieldmaskpb.FieldMask{
+				Paths: []string{"config.runtime_config.replicas"},
+			},
+			want: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 2,
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{
+						Gpu: 1,
+					},
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{},
+			},
+		},
+		{
+			name: "cluster_allocation_policy.enable_on_demand_allocation",
+			config: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas: 1,
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{
+					EnableOnDemandAllocation: true,
+				},
+			},
+			patch: &v1.ModelConfig{
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{
+					EnableOnDemandAllocation: false,
+				},
+			},
+			updateMask: &fieldmaskpb.FieldMask{
+				Paths: []string{"config.cluster_allocation_policy.enable_on_demand_allocation"},
+			},
+			want: &v1.ModelConfig{
+				RuntimeConfig: &v1.ModelConfig_RuntimeConfig{
+					Replicas:  1,
+					Resources: &v1.ModelConfig_RuntimeConfig_Resources{},
+				},
+				ClusterAllocationPolicy: &v1.ModelConfig_ClusterAllocationPolicy{
+					EnableOnDemandAllocation: false,
+				},
+			},
+		},
+	}
+
+	for _, tc := range tcs {
+		t.Run(tc.name, func(t *testing.T) {
+			err := patchModelConfig(tc.config, tc.patch, tc.updateMask)
+			assert.NoError(t, err)
+			assert.True(t, proto.Equal(tc.want, tc.config), cmp.Diff(tc.want, tc.config, protocmp.Transform()))
+		})
+	}
+
 }
