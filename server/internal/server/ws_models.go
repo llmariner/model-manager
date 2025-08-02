@@ -29,20 +29,13 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 		return nil, status.Errorf(codes.Internal, "list base models: %s", err)
 	}
 
-	found := map[string]bool{}
+	// When the same base model exists for multiple projects, we return all of them.
+	// A caller (e.g., inference-manager-engine) decides which one to be loaded.
 	var modelProtos []*v1.Model
 	for _, m := range bms {
 		if !isBaseModelLoaded(m) {
 			continue
 		}
-
-		if found[m.ModelID] {
-			// The same model is already found (with different project IDs or global scope).
-			// TODO(kenji): Prefer project-scoped models over global ones?
-			continue
-		}
-
-		found[m.ModelID] = true
 
 		mp, err := convertBaseModelToProto(s.store, m)
 		if err != nil {
