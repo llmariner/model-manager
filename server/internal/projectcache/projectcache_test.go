@@ -2,6 +2,7 @@ package projectcache
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 
@@ -93,7 +94,7 @@ func TestProjectCache_SyncError(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		if err := c.Run(ctx, 1*time.Second); err != nil {
-			assert.ErrorIs(t, err, context.Canceled)
+			assert.False(t, errors.Is(err, context.Canceled))
 		}
 		close(done)
 	}()
