@@ -85,6 +85,32 @@ message ModelConfig {
   ClusterAllocationPolicy cluster_allocation_policy = 2;
 }
 
+message ProjectAssignment {
+  message NodeSelector {
+    string key = 1;
+    string value = 2;
+  }
+
+  // cluster_id specifies a cluster assigned to this project. It is empty
+  // when the namespace of any registered clusters is assigned to this project.
+  string cluster_id = 1;
+  string namespace = 2;
+
+  // kueue_queue_name is the name of the Kueue queue assigned to this project.
+  string kueue_queue_name = 3;
+
+  // node_selector specifies nodes where this project can run its workloads.
+  repeated NodeSelector node_selector = 4;
+}
+
+message Project {
+  // assignments is the list of assigned clusters and namespaces for the project.
+  repeated ProjectAssignment assignments = 1;
+
+  // kubernetes_namespace is the namespace where the fine-tuning jobs for the project run.
+  string kubernetes_namespace = 2;
+}
+
 message Model {
   string id = 1;
   int64 created = 2;
@@ -121,7 +147,9 @@ message Model {
 
   ModelConfig config = 12;
 
-  // Next ID: 14
+  Project project = 14;
+
+  // Next ID: 15
 }
 
 message CreateModelRequest {
