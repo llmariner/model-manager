@@ -385,7 +385,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 		if status.Code(err) != codes.NotFound {
 			return err
 		}
-		// The model does not exist. Download the model.
+		// The model does not exist. Proceed with model setup.
 	} else {
 		l.log.Info("Already model exists", "modelID", convertedModelID)
 		return nil
