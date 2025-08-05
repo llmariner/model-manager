@@ -95,6 +95,7 @@ export type ProjectAssignment = {
 }
 
 export type Project = {
+  id?: string
   assignments?: ProjectAssignment[]
   kubernetes_namespace?: string
 }
