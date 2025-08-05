@@ -124,6 +124,13 @@ workerServiceGrpcPort: 8082
 # Delay before shutting down the server.
 gracefulShutdownDelay: 0s
 
+# projectCache is the configuration of the project cache.
+projectCache:
+  # The address of the user-manager-server to call internal APIs.
+  userManagerInternalServerAddr: user-manager-server-internal-grpc:8081
+  # Specify how often the cache is refreshed.
+  refreshInterval: 5m
+
 # Override the "model-manager-server.fullname" value. This value is used
 # as part of most of the names of the resources created by this Helm chart.
 # +docs:property

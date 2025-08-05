@@ -37,7 +37,7 @@ func TestInternalGetModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	ctx := fakeAuthInto(context.Background())
 	got, err := wsrv.GetModel(ctx, &v1.GetModelRequest{
@@ -63,8 +63,8 @@ func TestRegisterAndPublishModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
@@ -124,7 +124,7 @@ func TestGetModelPath(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
@@ -170,7 +170,7 @@ func TestGetModelAttributes(t *testing.T) {
 		orgID   = "o0"
 	)
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.GetModelPath(ctx, &v1.GetModelPathRequest{
 		Id: modelID,
@@ -218,7 +218,7 @@ func TestBaseModels(t *testing.T) {
 	defer tearDown()
 
 	ctx := fakeAuthInto(context.Background())
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	const modelID = "m0"
 
@@ -326,7 +326,7 @@ func TestGetBaseModelPath(t *testing.T) {
 			defer tearDown()
 
 			ctx := fakeAuthInto(context.Background())
-			wsrv := NewWorkerServiceServer(st, testr.New(t))
+			wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 			_, err := wsrv.CreateBaseModel(ctx, tc.createReq)
 			assert.NoError(t, err)
@@ -348,10 +348,10 @@ func TestBaseModelCreation(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	// No model to be acquired.
 	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
@@ -416,10 +416,10 @@ func TestBaseModelCreation_CreateModelOfDifferentID(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	const modelID = "r/m0"
 
@@ -476,10 +476,10 @@ func TestBaseModelCreation_ProjectScoped(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	// No model to be acquired.
 	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
@@ -549,10 +549,10 @@ func TestBaseModelCreation_ModelConfig(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	// No model to be acquired.
 	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
@@ -615,10 +615,10 @@ func TestBaseModelCreation_ModelConfig_HuggingFaceSingleModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	// No model to be acquired.
 	resp, err := wsrv.AcquireUnloadedBaseModel(ctx, &v1.AcquireUnloadedBaseModelRequest{})
@@ -681,10 +681,10 @@ func TestBaseModelCreation_Failure(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	const modelID = "r/m0"
 
@@ -728,7 +728,7 @@ func TestBaseModelCreation_Duplicate(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	const modelID = "r/m0"
@@ -752,8 +752,8 @@ func TestFineTunedModelCreation(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
@@ -835,8 +835,8 @@ func TestFineTunedModelCreation_Failure(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
@@ -899,8 +899,8 @@ func TestFineTunedModelCreation_CreateModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
@@ -1013,7 +1013,7 @@ func TestListModels(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	got, err := wsrv.ListModels(ctx, &v1.ListModelsRequest{})
@@ -1030,10 +1030,10 @@ func TestBaseModelUpdateLoadingStatusMessage(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	const modelID = "repo/m0"
 
@@ -1061,9 +1061,9 @@ func TestFineTunedModelUpdateLoadingStatusMessage(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	_, err := wsrv.CreateStorageConfig(ctx, &v1.CreateStorageConfigRequest{
 		PathPrefix: "models",

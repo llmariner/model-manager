@@ -16,7 +16,7 @@ func TestStorageConfig(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := context.Background()
 
 	_, err := wsrv.GetStorageConfig(ctx, &v1.GetStorageConfigRequest{})

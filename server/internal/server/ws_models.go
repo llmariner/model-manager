@@ -37,7 +37,7 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		mp, err := convertBaseModelToProto(s.store, m)
+		mp, err := convertBaseModelToProto(s.store, s.pcache, m)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 		}
@@ -59,7 +59,7 @@ func (s *WS) ListModels(ctx context.Context, req *v1.ListModelsRequest) (*v1.Lis
 			continue
 		}
 
-		mp, err := convertFineTunedModelToProto(s.store, m)
+		mp, err := convertFineTunedModelToProto(s.store, s.pcache, m)
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "model to proto: %s", err)
 		}
@@ -703,7 +703,7 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 		return nil, status.Errorf(codes.Internal, "get loaded base model: %s", err)
 	}
 	if found {
-		return convertBaseModelToProto(s.store, bm)
+		return convertBaseModelToProto(s.store, s.pcache, bm)
 	}
 
 	// Try a fine-tuned model next.
@@ -719,7 +719,7 @@ func (s *WS) GetModel(ctx context.Context, req *v1.GetModelRequest) (*v1.Model, 
 		return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 	}
 
-	return convertFineTunedModelToProto(s.store, fm)
+	return convertFineTunedModelToProto(s.store, s.pcache, fm)
 }
 
 func toBaseModelProto(m *store.BaseModel) *v1.BaseModel {

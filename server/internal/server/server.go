@@ -25,11 +25,16 @@ const (
 	maxPageSize     = 500
 )
 
+type pcache interface {
+	GetProject(projectID string) (*v1.Project, error)
+}
+
 // New creates a server.
-func New(store *store.S, log logr.Logger) *S {
+func New(store *store.S, pcache pcache, log logr.Logger) *S {
 	return &S{
-		store: store,
-		log:   log.WithName("grpc"),
+		store:  store,
+		pcache: pcache,
+		log:    log.WithName("grpc"),
 	}
 }
 
@@ -39,8 +44,9 @@ type S struct {
 
 	srv *grpc.Server
 
-	store *store.S
-	log   logr.Logger
+	store  *store.S
+	pcache pcache
+	log    logr.Logger
 }
 
 // Run starts the gRPC server.

@@ -10,6 +10,24 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// ProjectCacheConfig is the project cache configuration.
+type ProjectCacheConfig struct {
+	UserManagerInternalServerAddr string `yaml:"userManagerInternalServerAddr"`
+
+	RefreshInterval time.Duration `yaml:"refreshInterval"`
+}
+
+// validate validates the project cache configuration.
+func (c *ProjectCacheConfig) validate() error {
+	if c.UserManagerInternalServerAddr == "" {
+		return fmt.Errorf("userManagerInternalServerAddr must be set")
+	}
+	if c.RefreshInterval <= 0 {
+		return fmt.Errorf("refreshInterval must be greater than 0")
+	}
+	return nil
+}
+
 // DebugConfig is the debug configuration.
 type DebugConfig struct {
 	Standalone bool   `yaml:"standalone"`
@@ -23,7 +41,7 @@ type AuthConfig struct {
 }
 
 // Validate validates the configuration.
-func (c *AuthConfig) Validate() error {
+func (c *AuthConfig) validate() error {
 	if !c.Enable {
 		return nil
 	}
@@ -38,6 +56,8 @@ type Config struct {
 	HTTPPort              int `yaml:"httpPort"`
 	GRPCPort              int `yaml:"grpcPort"`
 	WorkerServiceGRPCPort int `yaml:"workerServiceGrpcPort"`
+
+	ProjectCache ProjectCacheConfig `yaml:"projectCache"`
 
 	// GracefulShutdownDelay is the delay before shutting down the server.
 	GracefulShutdownDelay time.Duration `yaml:"gracefulShutdownDelay"`
@@ -60,6 +80,11 @@ func (c *Config) Validate() error {
 	if c.WorkerServiceGRPCPort <= 0 {
 		return fmt.Errorf("workerServiceGrpcPort must be greater than 0")
 	}
+
+	if err := c.ProjectCache.validate(); err != nil {
+		return fmt.Errorf("projectCache: %s", err)
+	}
+
 	if c.GracefulShutdownDelay < 0 {
 		return fmt.Errorf("gracefulShutdownDelay must be greater than or equal to 0")
 	}
@@ -74,7 +99,7 @@ func (c *Config) Validate() error {
 		}
 	}
 
-	if err := c.AuthConfig.Validate(); err != nil {
+	if err := c.AuthConfig.validate(); err != nil {
 		return fmt.Errorf("auth: %s", err)
 	}
 	if err := c.UsageSender.Validate(); err != nil {
