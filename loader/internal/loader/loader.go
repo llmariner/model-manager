@@ -19,6 +19,8 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+const huggingFaceDownloadCache = ".cache/huggingface/download"
+
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
 	download(ctx context.Context, modelPath, filename, destDir string) error
@@ -508,6 +510,11 @@ func (l *L) downloadAndUploadModel(
 			if info.Name() == "blobs" {
 				hasOllamaLayerDir = true
 			}
+			return nil
+		}
+
+		// Ignore the HuggingFace cache directory.
+		if strings.Contains(path, huggingFaceDownloadCache) {
 			return nil
 		}
 
