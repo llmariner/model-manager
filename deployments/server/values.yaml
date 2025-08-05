@@ -127,7 +127,7 @@ gracefulShutdownDelay: 0s
 # projectCache is the configuration of the project cache.
 projectCache:
   # The address of the user-manager-server to call internal APIs.
-  userManagerInternalServerAddr: user-manager-server-internal-grpc:8081
+  userManagerInternalServerAddr: user-manager-server-internal-grpc:8082
   # Specify how often the cache is refreshed.
   refreshInterval: 5m
 
