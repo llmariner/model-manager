@@ -22,7 +22,7 @@ func New(projectLister projectLister, log logr.Logger) *C {
 		projectLister: projectLister,
 		log:           log.WithName("projectcache"),
 		projectsByID:  make(map[string]*v1.Project),
-		ready:         make(chan struct{}),
+		ready:         make(chan error),
 	}
 }
 
@@ -33,7 +33,7 @@ type C struct {
 
 	projectsByID map[string]*v1.Project
 
-	ready              chan struct{}
+	ready              chan error
 	lastSuccessfulSync time.Time
 
 	// mu protects projectsByID and lastSuccessfulSync.
@@ -45,10 +45,13 @@ func (c *C) Run(ctx context.Context, interval time.Duration) error {
 	c.log.Info("Starting project cache...")
 
 	if err := c.sync(ctx); err != nil {
-		return fmt.Errorf("sync project cache: %s", err)
+		err := fmt.Errorf("sync project cache: %s", err)
+		c.ready <- err
+		return err
 	}
 
-	close(c.ready)
+	// Signal that the initial sync is complete.
+	c.ready <- nil
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -95,7 +98,10 @@ func (c *C) WaitForInitialSync(ctx context.Context) error {
 	select {
 	case <-ctx.Done():
 		return ctx.Err()
-	case <-c.ready:
+	case err := <-c.ready:
+		if err != nil {
+			return fmt.Errorf("initial sync: %s", err)
+		}
 	}
 
 	c.log.Info("Initial sync completed")
