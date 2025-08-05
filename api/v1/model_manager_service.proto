@@ -104,11 +104,12 @@ message ProjectAssignment {
 }
 
 message Project {
+  string id = 1;
   // assignments is the list of assigned clusters and namespaces for the project.
-  repeated ProjectAssignment assignments = 1;
+  repeated ProjectAssignment assignments = 2;
 
   // kubernetes_namespace is the namespace where the fine-tuning jobs for the project run.
-  string kubernetes_namespace = 2;
+  string kubernetes_namespace = 3;
 }
 
 message Model {

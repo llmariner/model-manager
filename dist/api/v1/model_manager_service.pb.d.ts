@@ -74,6 +74,7 @@ export type ProjectAssignment = {
     node_selector?: ProjectAssignmentNodeSelector[];
 };
 export type Project = {
+    id?: string;
     assignments?: ProjectAssignment[];
     kubernetes_namespace?: string;
 };
