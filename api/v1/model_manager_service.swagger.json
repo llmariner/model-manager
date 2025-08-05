@@ -21,6 +21,8 @@
   "paths": {
     "/v1/models": {
       "get": {
+        "summary": "This must be defined below GetModel so that gRPC gateway puts a higher priority to ListModels than GetModel.",
+        "description": "With {id=**}, GetModel matches with path \"/v1/models\" for some reason. Thus we need to make sure ListModels\nis called when \"id\" is empty.",
         "operationId": "ModelsService_ListModels",
         "responses": {
           "200": {
@@ -306,6 +308,17 @@
         }
       }
     },
+    "ProjectAssignmentNodeSelector": {
+      "type": "object",
+      "properties": {
+        "key": {
+          "type": "string"
+        },
+        "value": {
+          "type": "string"
+        }
+      }
+    },
     "RuntimeConfigResources": {
       "type": "object",
       "properties": {
@@ -573,6 +586,9 @@
         },
         "config": {
           "$ref": "#/definitions/v1ModelConfig"
+        },
+        "project": {
+          "$ref": "#/definitions/v1Project"
         }
       }
     },
@@ -629,6 +645,45 @@
       ],
       "default": "MODEL_LOADING_STATUS_UNSPECIFIED",
       "description": " - MODEL_LOADING_STATUS_REQUESTED: Intial status when the model creation is requested.\n - MODEL_LOADING_STATUS_LOADING: Loading status when the model is being loaded.\n - MODEL_LOADING_STATUS_SUCCEEDED: Succeeded status when the model loading is succeeded.\n - MODEL_LOADING_STATUS_FAILED: Failed status when the model loading is failed."
+    },
+    "v1Project": {
+      "type": "object",
+      "properties": {
+        "assignments": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/v1ProjectAssignment"
+          },
+          "description": "assignments is the list of assigned clusters and namespaces for the project."
+        },
+        "kubernetesNamespace": {
+          "type": "string",
+          "description": "kubernetes_namespace is the namespace where the fine-tuning jobs for the project run."
+        }
+      }
+    },
+    "v1ProjectAssignment": {
+      "type": "object",
+      "properties": {
+        "clusterId": {
+          "type": "string",
+          "description": "cluster_id specifies a cluster assigned to this project. It is empty\nwhen the namespace of any registered clusters is assigned to this project."
+        },
+        "namespace": {
+          "type": "string"
+        },
+        "kueueQueueName": {
+          "type": "string",
+          "description": "kueue_queue_name is the name of the Kueue queue assigned to this project."
+        },
+        "nodeSelector": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/ProjectAssignmentNodeSelector"
+          },
+          "description": "node_selector specifies nodes where this project can run its workloads."
+        }
+      }
     },
     "v1PublishModelResponse": {
       "type": "object"

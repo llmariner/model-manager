@@ -82,6 +82,23 @@ export type ModelConfig = {
   cluster_allocation_policy?: ModelConfigClusterAllocationPolicy
 }
 
+export type ProjectAssignmentNodeSelector = {
+  key?: string
+  value?: string
+}
+
+export type ProjectAssignment = {
+  cluster_id?: string
+  namespace?: string
+  kueue_queue_name?: string
+  node_selector?: ProjectAssignmentNodeSelector[]
+}
+
+export type Project = {
+  assignments?: ProjectAssignment[]
+  kubernetes_namespace?: string
+}
+
 export type Model = {
   id?: string
   created?: string
@@ -96,6 +113,7 @@ export type Model = {
   base_model_id?: string
   activation_status?: ActivationStatus
   config?: ModelConfig
+  project?: Project
 }
 
 export type CreateModelRequest = {

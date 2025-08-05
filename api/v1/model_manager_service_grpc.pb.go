@@ -19,6 +19,10 @@ const _ = grpc.SupportPackageIsVersion7
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type ModelsServiceClient interface {
 	GetModel(ctx context.Context, in *GetModelRequest, opts ...grpc.CallOption) (*Model, error)
+	// This must be defined below GetModel so that gRPC gateway puts a higher priority to ListModels than GetModel.
+	//
+	// With {id=**}, GetModel matches with path "/v1/models" for some reason. Thus we need to make sure ListModels
+	// is called when "id" is empty.
 	ListModels(ctx context.Context, in *ListModelsRequest, opts ...grpc.CallOption) (*ListModelsResponse, error)
 	DeleteModel(ctx context.Context, in *DeleteModelRequest, opts ...grpc.CallOption) (*DeleteModelResponse, error)
 	// CreateModel creates a new model. The model becomes available once
@@ -105,6 +109,10 @@ func (c *modelsServiceClient) DeactivateModel(ctx context.Context, in *Deactivat
 // for forward compatibility
 type ModelsServiceServer interface {
 	GetModel(context.Context, *GetModelRequest) (*Model, error)
+	// This must be defined below GetModel so that gRPC gateway puts a higher priority to ListModels than GetModel.
+	//
+	// With {id=**}, GetModel matches with path "/v1/models" for some reason. Thus we need to make sure ListModels
+	// is called when "id" is empty.
 	ListModels(context.Context, *ListModelsRequest) (*ListModelsResponse, error)
 	DeleteModel(context.Context, *DeleteModelRequest) (*DeleteModelResponse, error)
 	// CreateModel creates a new model. The model becomes available once
