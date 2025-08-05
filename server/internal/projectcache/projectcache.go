@@ -45,10 +45,13 @@ func (c *C) Run(ctx context.Context, interval time.Duration) error {
 	c.log.Info("Starting project cache...")
 
 	if err := c.sync(ctx); err != nil {
-		c.ready <- fmt.Errorf("sync project cache: %s", err)
+		err := fmt.Errorf("sync project cache: %s", err)
+		c.ready <- err
+		return err
 	}
 
-	close(c.ready)
+	// Signal that the initial sync is complete.
+	c.ready <- nil
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
