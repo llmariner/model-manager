@@ -119,7 +119,7 @@ func (s *WS) RegisterModel(
 		if err != nil {
 			return nil, status.Errorf(codes.Internal, "get storage config: %s", err)
 		}
-		path = fmt.Sprintf("%s/%s/%s", sc.PathPrefix, clusterInfo.TenantID, id)
+		path = fmt.Sprintf("%s/%s/%s/%s", sc.PathPrefix, clusterInfo.TenantID, req.ProjectId, id)
 	}
 
 	if err := s.store.Transaction(func(tx *gorm.DB) error {

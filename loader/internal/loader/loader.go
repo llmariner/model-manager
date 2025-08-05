@@ -19,7 +19,12 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-const huggingFaceDownloadCache = ".cache/huggingface/download"
+const (
+	huggingFaceDownloadCache = ".cache/huggingface/download"
+
+	// projectDirForGlobalScopedModel is the project directory for global scoped based models.
+	projectDirForGlobalScopedModel = "global"
+)
 
 // ModelDownloader is an interface for downloading a model.
 type ModelDownloader interface {
@@ -309,7 +314,14 @@ func (l *L) loadBaseModel(
 		}
 	}
 
-	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix, toKeyModelID(modelIDToDownload))
+	var projDir string
+	if projectID != "" {
+		projDir = projectID
+	} else {
+		projDir = projectDirForGlobalScopedModel
+	}
+
+	pathPrefix := filepath.Join(l.objectStorePathPrefix, l.baseModelPathPrefix, projDir, toKeyModelID(modelIDToDownload))
 	modelInfos, err := l.downloadAndUploadModel(
 		ctx,
 		modelIDToDownload,
@@ -392,7 +404,7 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 	}
 
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
-	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID, toKeyModelID(model.Model))
+	pathPrefix := filepath.Join(l.objectStorePathPrefix, tenantID, projectID, toKeyModelID(model.Model))
 	modelInfos, err := l.downloadAndUploadModel(
 		ctx,
 		model.Model,

@@ -46,10 +46,10 @@ func TestLoadBaseModel(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/google/gemma-2b/dir0/dir2/file3",
-		"models/base-models/google/gemma-2b/dir0/file1.gguf",
-		"models/base-models/google/gemma-2b/dir1/file2",
-		"models/base-models/google/gemma-2b/file0",
+		"models/base-models/global/google/gemma-2b/dir0/dir2/file3",
+		"models/base-models/global/google/gemma-2b/dir0/file1.gguf",
+		"models/base-models/global/google/gemma-2b/dir1/file2",
+		"models/base-models/global/google/gemma-2b/file0",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -58,8 +58,8 @@ func TestLoadBaseModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
-	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
-	assert.Equal(t, "models/base-models/google/gemma-2b/dir0/file1.gguf", got.GgufModelPath)
+	assert.Equal(t, "models/base-models/global/google/gemma-2b", got.Path)
+	assert.Equal(t, "models/base-models/global/google/gemma-2b/dir0/file1.gguf", got.GgufModelPath)
 }
 
 func TestLoadBaseModel_HuggingFace(t *testing.T) {
@@ -86,7 +86,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/google/gemma-2b/config.json",
+		"models/base-models/global/google/gemma-2b/config.json",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -95,7 +95,7 @@ func TestLoadBaseModel_HuggingFace(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
-	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+	assert.Equal(t, "models/base-models/global/google/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 }
 
@@ -127,10 +127,10 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/gemma-2b/blobs/sha256-1234",
-		"models/base-models/gemma-2b/blobs/sha256-5678",
-		"models/base-models/gemma-2b/blobs/sha256-abcd",
-		"models/base-models/gemma-2b/manifests/registry.ollama.ai/library/gemma/2b",
+		"models/base-models/global/gemma-2b/blobs/sha256-1234",
+		"models/base-models/global/gemma-2b/blobs/sha256-5678",
+		"models/base-models/global/gemma-2b/blobs/sha256-abcd",
+		"models/base-models/global/gemma-2b/manifests/registry.ollama.ai/library/gemma/2b",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -139,7 +139,7 @@ func TestLoadBaseModel_Ollama(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_OLLAMA}, got.Formats)
-	assert.Equal(t, "models/base-models/gemma-2b", got.Path)
+	assert.Equal(t, "models/base-models/global/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 }
 
@@ -171,7 +171,7 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton/repo/llama3/tensorrt_llm/config.pbtxt",
+		"models/base-models/global/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton/repo/llama3/tensorrt_llm/config.pbtxt",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -180,7 +180,7 @@ func TestLoadBaseModel_NvidiaTriton(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_NVIDIA_TRITON}, got.Formats)
-	assert.Equal(t, "models/base-models/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", got.Path)
+	assert.Equal(t, "models/base-models/global/meta-llama/Meta-Llama-3.1-70B-Instruct-awq-triton", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 }
 
@@ -209,8 +209,8 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
-		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf",
+		"models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
+		"models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -228,8 +228,8 @@ func TestLoadBaseModel_MultipleGGUFFiles(t *testing.T) {
 		})
 		assert.NoError(t, err)
 		assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
-		assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q, got.Path)
-		assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q+".gguf", got.GgufModelPath)
+		assert.Equal(t, "models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q, got.Path)
+		assert.Equal(t, "models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_"+q+".gguf", got.GgufModelPath)
 	}
 
 	_, err = mc.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{Name: "lmstudio-community/phi-4-GGUF"})
@@ -260,7 +260,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf",
+		"models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -269,8 +269,8 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
-	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF", got.Path)
-	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", got.GgufModelPath)
+	assert.Equal(t, "models/base-models/global/lmstudio-community/phi-4-GGUF", got.Path)
+	assert.Equal(t, "models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_M.gguf", got.GgufModelPath)
 
 	// Download another file.
 
@@ -282,7 +282,7 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	assert.NoError(t, err)
 
 	want = []string{
-		"models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
+		"models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -291,8 +291,45 @@ func TestLoadBaseModel_SelectedGGUFFile(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
-	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF", got.Path)
-	assert.Equal(t, "models/base-models/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", got.GgufModelPath)
+	assert.Equal(t, "models/base-models/global/lmstudio-community/phi-4-GGUF", got.Path)
+	assert.Equal(t, "models/base-models/global/lmstudio-community/phi-4-GGUF/phi-4-Q3_K_L.gguf", got.GgufModelPath)
+}
+
+func TestLoadBaseModel_ProjectScoped(t *testing.T) {
+	downloader := &fakeDownloader{
+		dirs: []string{},
+		files: []string{
+			"config.json",
+		},
+	}
+
+	s3Client := &mockS3Client{}
+	mc := NewFakeModelClient()
+	ld := New(
+		"bucket",
+		"models",
+		"base-models",
+		&fakeDownloaderFactory{d: downloader},
+		s3Client,
+		mc,
+		testr.New(t),
+	)
+	ld.tmpDir = "/tmp"
+	err := ld.loadBaseModel(context.Background(), "google/gemma-2b", "proj0", v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE, nil)
+	assert.NoError(t, err)
+
+	want := []string{
+		"models/base-models/proj0/google/gemma-2b/config.json",
+	}
+	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
+
+	got, err := mc.GetBaseModelPath(context.Background(), &v1.GetBaseModelPathRequest{
+		Id: "google-gemma-2b",
+	})
+	assert.NoError(t, err)
+	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
+	assert.Equal(t, "models/base-models/proj0/google/gemma-2b", got.Path)
+	assert.Empty(t, got.GgufModelPath)
 }
 
 func TestLoadModelFronConfig_HuggingFace(t *testing.T) {
@@ -323,8 +360,8 @@ func TestLoadModelFronConfig_HuggingFace(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/google/gemma-2b/adapter_config.json",
-		"models/default-tenant-id/abc/lora1/adapter_config.json",
+		"models/base-models/default/google/gemma-2b/adapter_config.json",
+		"models/default-tenant-id/default/abc/lora1/adapter_config.json",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -333,14 +370,14 @@ func TestLoadModelFronConfig_HuggingFace(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_HUGGING_FACE}, got.Formats)
-	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+	assert.Equal(t, "models/base-models/default/google/gemma-2b", got.Path)
 	assert.Empty(t, got.GgufModelPath)
 
 	ret, err := mc.GetModelPath(context.Background(), &v1.GetModelPathRequest{
 		Id: "abc-lora1",
 	})
 	assert.NoError(t, err)
-	assert.Equal(t, "models/default-tenant-id/abc/lora1", ret.Path)
+	assert.Equal(t, "models/default-tenant-id/default/abc/lora1", ret.Path)
 }
 
 func TestLoadModel_InvalidFileFormat(t *testing.T) {
@@ -446,7 +483,7 @@ func TestPullAndLoadBaseModels(t *testing.T) {
 	assert.NoError(t, err)
 
 	want := []string{
-		"models/base-models/google/gemma-2b/file0.gguf",
+		"models/base-models/global/google/gemma-2b/file0.gguf",
 	}
 	assert.ElementsMatch(t, want, s3Client.uploadedKeys)
 
@@ -455,7 +492,7 @@ func TestPullAndLoadBaseModels(t *testing.T) {
 	})
 	assert.NoError(t, err)
 	assert.ElementsMatch(t, []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, got.Formats)
-	assert.Equal(t, "models/base-models/google/gemma-2b", got.Path)
+	assert.Equal(t, "models/base-models/global/google/gemma-2b", got.Path)
 }
 
 func TestPullAndLoadBaseModels_NoRequestedModel(t *testing.T) {

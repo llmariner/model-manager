@@ -805,7 +805,7 @@ func TestFineTunedModelCreation(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE, resp.SourceRepository)
 	assert.Equal(t, "s3://bucket0/path0", resp.ModelFileLocation)
-	assert.Equal(t, "models/default-tenant-id/ft:bm0:suffix0", resp.DestPath)
+	assert.Equal(t, "models/default-tenant-id/default/ft:bm0:suffix0", resp.DestPath)
 
 	modelID := resp.ModelId
 
