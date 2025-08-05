@@ -9,11 +9,13 @@ import (
 	uv1 "github.com/llmariner/user-manager/api/v1"
 	"github.com/stretchr/testify/assert"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func TestProjectCache(t *testing.T) {
 	lister := &fakeProjectLister{
-		[]*uv1.Project{
+		projects: []*uv1.Project{
 			{
 				Id: "proj0",
 				Assignments: []*uv1.ProjectAssignment{
@@ -78,11 +80,41 @@ func TestProjectCache(t *testing.T) {
 	<-done
 }
 
+func TestProjectCache_SyncError(t *testing.T) {
+	lister := &fakeProjectLister{
+		hasErr: true,
+	}
+
+	c := New(lister, testr.New(t))
+
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+
+	done := make(chan struct{})
+	go func() {
+		if err := c.Run(ctx, 1*time.Second); err != nil {
+			assert.ErrorIs(t, err, context.Canceled)
+		}
+		close(done)
+	}()
+
+	err := c.WaitForInitialSync(ctx)
+	assert.Error(t, err)
+
+	cancel()
+	<-done
+}
+
 type fakeProjectLister struct {
 	projects []*uv1.Project
+	hasErr   bool
 }
 
 func (l *fakeProjectLister) ListProjects(context.Context, *uv1.ListProjectsRequest, ...grpc.CallOption) (*uv1.ListProjectsResponse, error) {
+	if l.hasErr {
+		return nil, status.Errorf(codes.Internal, "fake error")
+	}
+
 	return &uv1.ListProjectsResponse{
 		Projects: l.projects,
 	}, nil
