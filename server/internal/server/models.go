@@ -82,7 +82,7 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.Internal, "get storage config: %s", err)
 	}
 
-	path := fmt.Sprintf("%s/%s/%s", sc.PathPrefix, userInfo.TenantID, id)
+	path := fmt.Sprintf("%s/%s/%s/%s", sc.PathPrefix, userInfo.TenantID, userInfo.ProjectID, id)
 
 	var m *store.Model
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
