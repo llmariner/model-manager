@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 	"time"
 
@@ -131,6 +132,12 @@ func (s *statusSender) getNumDownloadedFiles() (int, error) {
 		if info.IsDir() {
 			return nil
 		}
+
+		// Ignore the HuggingFace cache directory as we don't upload these files.
+		if strings.Contains(path, huggingFaceDownloadCache) {
+			return nil
+		}
+
 		n++
 		return nil
 	}); err != nil {
