@@ -381,13 +381,14 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 
 	// First check if the model exists in the database.
 	ctx = auth.AppendWorkerAuthorization(ctx)
-	_, err := l.modelClient.GetModelPath(ctx, &v1.GetModelPathRequest{Id: convertedModelID})
-	if err == nil {
+	if _, err := l.modelClient.GetModelPath(ctx, &v1.GetModelPathRequest{Id: convertedModelID}); err != nil {
+		if status.Code(err) != codes.NotFound {
+			return err
+		}
+		// The model does not exist. Proceed with model setup.
+	} else {
 		l.log.Info("Already model exists", "modelID", convertedModelID)
 		return nil
-	}
-	if status.Code(err) != codes.NotFound {
-		return err
 	}
 
 	// TODO(guangrui): make tenant-id configurable. The path should match with the path generated in RegisterModel.
