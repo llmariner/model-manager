@@ -131,7 +131,12 @@ func (s *S) createFineTunedModel(
 		return nil, err
 	}
 
-	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config), nil
+	proj, err := s.pcache.GetProject(userInfo.ProjectID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get project: %s", err)
+	}
+
+	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config, proj), nil
 }
 
 func (s *S) createBaseModel(
@@ -202,7 +207,16 @@ func (s *S) createBaseModel(
 		return nil, err
 	}
 
-	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config)
+	var proj *v1.Project
+	if projectID != "" {
+		var err error
+		proj, err = s.pcache.GetProject(projectID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get project: %s", err)
+		}
+	}
+
+	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config, proj)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 	}
@@ -316,6 +330,7 @@ func (s *S) ListModels(
 			cat := categories[i]
 			mps, more, err := listModelsByActivationStatus(
 				tx,
+				s.pcache,
 				userInfo.ProjectID,
 				userInfo.TenantID,
 				req.IncludeLoadingModels,
@@ -341,6 +356,7 @@ func (s *S) ListModels(
 					cat := categories[j]
 					mps, _, err := listModelsByActivationStatus(
 						tx,
+						s.pcache,
 						userInfo.ProjectID,
 						userInfo.TenantID,
 						req.IncludeLoadingModels,
@@ -405,7 +421,7 @@ func (s *S) GetModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	m, err := getVisibleModelProto(s.store, req.Id, userInfo, req.IncludeLoadingModel)
+	m, err := getVisibleModelProto(s.store, s.pcache, req.Id, userInfo, req.IncludeLoadingModel)
 	if err != nil {
 		return nil, err
 	}
@@ -490,7 +506,7 @@ func (s *S) UpdateModel(
 		}
 	}
 
-	m, err := getVisibleModelProto(s.store, req.Model.Id, userInfo, true /* includeLoadingModel */)
+	m, err := getVisibleModelProto(s.store, s.pcache, req.Model.Id, userInfo, true /* includeLoadingModel */)
 	if err != nil {
 		return nil, err
 	}
@@ -657,6 +673,7 @@ func (s *S) DeactivateModel(ctx context.Context, req *v1.DeactivateModelRequest)
 // This is a helper function called by ListModels.
 func listModelsByActivationStatus(
 	tx *gorm.DB,
+	pcache pcache,
 	projectID string,
 	tenantID string,
 	includeLoadingModels bool,
@@ -690,7 +707,15 @@ func listModelsByActivationStatus(
 				return nil, false, fmt.Errorf("get model config: %s", err)
 			}
 
-			mp, err := baseToModelProto(m, activationStatus, mc)
+			var proj *v1.Project
+			if m.ProjectID != "" {
+				proj, err = pcache.GetProject(m.ProjectID)
+				if err != nil {
+					return nil, false, fmt.Errorf("get project: %s", err)
+				}
+			}
+
+			mp, err := baseToModelProto(m, activationStatus, mc, proj)
 			if err != nil {
 				return nil, false, fmt.Errorf("to proto: %s", err)
 			}
@@ -722,7 +747,13 @@ func listModelsByActivationStatus(
 		if err != nil {
 			return nil, false, fmt.Errorf("get model config: %s", err)
 		}
-		modelProtos = append(modelProtos, toModelProto(m, activationStatus, mc))
+
+		proj, err := pcache.GetProject(m.ProjectID)
+		if err != nil {
+			return nil, false, fmt.Errorf("get project: %s", err)
+		}
+
+		modelProtos = append(modelProtos, toModelProto(m, activationStatus, mc, proj))
 	}
 
 	return modelProtos, more, nil
@@ -759,6 +790,7 @@ func getKeyForVisibleModel(
 
 func getVisibleModelProto(
 	st *store.S,
+	pcache pcache,
 	modelID string,
 	userInfo *auth.UserInfo,
 	includeLoadingModel bool,
@@ -772,14 +804,15 @@ func getVisibleModelProto(
 	}
 
 	if bm != nil {
-		return convertBaseModelToProto(st, bm)
+		return convertBaseModelToProto(st, pcache, bm)
 	}
 
-	return convertFineTunedModelToProto(st, fm)
+	return convertFineTunedModelToProto(st, pcache, fm)
 }
 
 func convertBaseModelToProto(
 	st *store.S,
+	pcache pcache,
 	m *store.BaseModel,
 ) (*v1.Model, error) {
 	var projectID string
@@ -802,7 +835,15 @@ func convertBaseModelToProto(
 		return nil, status.Errorf(codes.Internal, "get model config: %s", err)
 	}
 
-	mp, err := baseToModelProto(m, as, mc)
+	var proj *v1.Project
+	if projectID != "" {
+		proj, err = pcache.GetProject(projectID)
+		if err != nil {
+			return nil, status.Errorf(codes.Internal, "get project: %s", err)
+		}
+	}
+
+	mp, err := baseToModelProto(m, as, mc, proj)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "to proto: %s", err)
 	}
@@ -811,6 +852,7 @@ func convertBaseModelToProto(
 
 func convertFineTunedModelToProto(
 	st *store.S,
+	pcache pcache,
 	m *store.Model,
 ) (*v1.Model, error) {
 	k := store.ModelKey{
@@ -831,7 +873,12 @@ func convertFineTunedModelToProto(
 		return nil, status.Errorf(codes.Internal, "get model config: %s", err)
 	}
 
-	return toModelProto(m, as, mc), nil
+	proj, err := pcache.GetProject(m.ProjectID)
+	if err != nil {
+		return nil, status.Errorf(codes.Internal, "get project: %s", err)
+	}
+
+	return toModelProto(m, as, mc, proj), nil
 }
 
 func getModelActivationStatus(st *store.S, k store.ModelKey) (v1.ActivationStatus, error) {
@@ -985,7 +1032,7 @@ func getVisibleBaseModel(
 	return nil, false, nil
 }
 
-func toModelProto(m *store.Model, as v1.ActivationStatus, config *v1.ModelConfig) *v1.Model {
+func toModelProto(m *store.Model, as v1.ActivationStatus, config *v1.ModelConfig, project *v1.Project) *v1.Model {
 	var statusMsg string
 	if m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING || m.LoadingStatus == v1.ModelLoadingStatus_MODEL_LOADING_STATUS_FAILED {
 		statusMsg = m.LoadingStatusMessage
@@ -1008,10 +1055,12 @@ func toModelProto(m *store.Model, as v1.ActivationStatus, config *v1.ModelConfig
 		ActivationStatus: as,
 
 		Config: config,
+
+		Project: project,
 	}
 }
 
-func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus, config *v1.ModelConfig) (*v1.Model, error) {
+func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus, config *v1.ModelConfig, project *v1.Project) (*v1.Model, error) {
 	formats, err := store.UnmarshalModelFormats(m.Formats)
 	if err != nil {
 		return nil, err
@@ -1042,6 +1091,8 @@ func baseToModelProto(m *store.BaseModel, as v1.ActivationStatus, config *v1.Mod
 		ActivationStatus: as,
 
 		Config: config,
+
+		Project: project,
 	}, nil
 }
 

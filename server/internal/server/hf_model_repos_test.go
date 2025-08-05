@@ -20,7 +20,7 @@ func TestHFModelRepo(t *testing.T) {
 		repoName = "r0/m0"
 	)
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{
 		Name: repoName,
@@ -54,7 +54,7 @@ func TestHFModelRepo_Project(t *testing.T) {
 		projectID = "p0"
 	)
 
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err := wsrv.GetHFModelRepo(ctx, &v1.GetHFModelRepoRequest{
 		Name:      repoName,

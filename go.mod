@@ -14,6 +14,7 @@ require (
 	github.com/llmariner/cluster-manager v1.5.1
 	github.com/llmariner/common v0.19.0
 	github.com/llmariner/rbac-manager v1.9.1
+	github.com/llmariner/user-manager v1.9.0
 	github.com/spf13/cobra v1.8.1
 	github.com/stretchr/testify v1.9.0
 	golang.org/x/sync v0.12.0

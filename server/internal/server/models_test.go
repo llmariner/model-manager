@@ -51,7 +51,7 @@ func TestModels(t *testing.T) {
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "m1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
@@ -174,7 +174,7 @@ func TestModels_Pagination(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			srv := New(st, testr.New(t))
+			srv := New(st, &fakeProjectCache{}, testr.New(t))
 			ctx := fakeAuthInto(context.Background())
 
 			got, err := srv.ListModels(ctx, tc.req)
@@ -300,7 +300,7 @@ func TestModels_Pagination_ProjectScoped(t *testing.T) {
 
 	for _, tc := range tcs {
 		t.Run(tc.name, func(t *testing.T) {
-			srv := New(st, testr.New(t))
+			srv := New(st, &fakeProjectCache{}, testr.New(t))
 			ctx := fakeAuthInto(context.Background())
 
 			got, err := srv.ListModels(ctx, tc.req)
@@ -375,7 +375,7 @@ func TestListModels_ActivationOrder(t *testing.T) {
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "m1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	resp, err := srv.ListModels(ctx, &v1.ListModelsRequest{})
@@ -404,7 +404,7 @@ func TestDeleteModel_BaseModel(t *testing.T) {
 	)
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
@@ -452,7 +452,7 @@ func TestDeleteModel_BaseModelAndHFModelRepo(t *testing.T) {
 	err = st.CreateHFModelRepo(r)
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	_, err = srv.GetModel(ctx, &v1.GetModelRequest{Id: modelID})
@@ -494,7 +494,7 @@ func TestDeleteModel_ActiveBaseModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
@@ -524,7 +524,7 @@ func TestDeleteModel_ActiveFineTunedModel(t *testing.T) {
 	})
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	_, err = srv.DeleteModel(ctx, &v1.DeleteModelRequest{
 		Id: "m0",
@@ -564,7 +564,7 @@ func TestGetAndListModels(t *testing.T) {
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: baseModelID, TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 	getResp, err := srv.GetModel(ctx, &v1.GetModelRequest{
 		Id: modelID,
@@ -614,7 +614,7 @@ func TestIncludeLoadingModels(t *testing.T) {
 	err = st.CreateModelActivationStatus(&store.ModelActivationStatus{ModelID: "bm1", TenantID: defaultTenantID, Status: v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE})
 	assert.NoError(t, err)
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	tcs0 := []struct {
@@ -668,7 +668,7 @@ func TestActivateModelAndDeactivateModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	const modelID = "r/m0"
@@ -717,7 +717,7 @@ func TestModelConfig_BaseModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	const modelID = "r/m0"
@@ -758,8 +758,8 @@ func TestModelConfig_FineTunedModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
-	wsrv := NewWorkerServiceServer(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
+	wsrv := NewWorkerServiceServer(st, &fakeProjectCache{}, testr.New(t))
 
 	ctx := fakeAuthInto(context.Background())
 
@@ -815,7 +815,7 @@ func TestUpdateModel(t *testing.T) {
 	st, tearDown := store.NewTest(t)
 	defer tearDown()
 
-	srv := New(st, testr.New(t))
+	srv := New(st, &fakeProjectCache{}, testr.New(t))
 	ctx := fakeAuthInto(context.Background())
 
 	const modelID = "r/m0"
@@ -1141,4 +1141,11 @@ func TestPatchModelConfig(t *testing.T) {
 		})
 	}
 
+}
+
+type fakeProjectCache struct {
+}
+
+func (c *fakeProjectCache) GetProject(projectID string) (*v1.Project, error) {
+	return &v1.Project{}, nil
 }

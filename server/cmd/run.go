@@ -16,9 +16,11 @@ import (
 	"github.com/llmariner/common/pkg/db"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/server/internal/config"
+	"github.com/llmariner/model-manager/server/internal/projectcache"
 	"github.com/llmariner/model-manager/server/internal/server"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/llmariner/rbac-manager/pkg/auth"
+	uv1 "github.com/llmariner/user-manager/api/v1"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
@@ -74,6 +76,19 @@ func run(ctx context.Context, c *config.Config) error {
 		return err
 	}
 
+	uconn, err := grpc.NewClient(c.ProjectCache.UserManagerInternalServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	pcache := projectcache.New(uv1.NewUsersInternalServiceClient(uconn), logger)
+	errCh := make(chan error)
+	go func() {
+		errCh <- pcache.Run(ctx, c.ProjectCache.RefreshInterval)
+	}()
+	if err := pcache.WaitForInitialSync(ctx); err != nil {
+		return fmt.Errorf("wait for initial sync: %s", err)
+	}
+
 	addr := fmt.Sprintf("localhost:%d", c.GRPCPort)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	conn, err := grpc.NewClient(addr, opts...)
@@ -113,18 +128,17 @@ func run(ctx context.Context, c *config.Config) error {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 
-	errCh := make(chan error)
 	go func() {
 		log.Info("Starting HTTP server...", "port", c.HTTPPort)
 		errCh <- http.ListenAndServe(fmt.Sprintf(":%d", c.HTTPPort), mux)
 	}()
 
-	s := server.New(st, logger)
+	s := server.New(st, pcache, logger)
 	go func() {
 		errCh <- s.Run(ctx, c.GRPCPort, c.AuthConfig, usageSetter)
 	}()
 
-	ws := server.NewWorkerServiceServer(st, logger)
+	ws := server.NewWorkerServiceServer(st, pcache, logger)
 	go func() {
 		errCh <- ws.Run(ctx, c.WorkerServiceGRPCPort, c.AuthConfig)
 	}()

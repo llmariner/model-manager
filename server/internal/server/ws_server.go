@@ -21,10 +21,11 @@ const (
 )
 
 // NewWorkerServiceServer creates a new worker service server.
-func NewWorkerServiceServer(s *store.S, log logr.Logger) *WS {
+func NewWorkerServiceServer(s *store.S, pcache pcache, log logr.Logger) *WS {
 	return &WS{
-		store: s,
-		log:   log.WithName("worker"),
+		store:  s,
+		pcache: pcache,
+		log:    log.WithName("worker"),
 	}
 }
 
@@ -32,9 +33,10 @@ func NewWorkerServiceServer(s *store.S, log logr.Logger) *WS {
 type WS struct {
 	v1.UnimplementedModelsWorkerServiceServer
 
-	srv   *grpc.Server
-	store *store.S
-	log   logr.Logger
+	srv    *grpc.Server
+	store  *store.S
+	pcache pcache
+	log    logr.Logger
 
 	enableAuth bool
 }
