@@ -1234,8 +1234,8 @@ func patchModelConfig(
 					}
 
 					rrpath := rpath[len("resources."):]
-					switch {
-					case rrpath == "gpu":
+					switch rrpath {
+					case "gpu":
 						v := r.Gpu
 						if v < 0 {
 							return nil, fmt.Errorf("runtime_config.resources.gpu must be non-negative, but got %d", v)
@@ -1260,8 +1260,8 @@ func patchModelConfig(
 				}
 
 				ppath := cpath[len("cluster_allocation_policy."):]
-				switch {
-				case ppath == "enable_on_demand_allocation":
+				switch ppath {
+				case "enable_on_demand_allocation":
 					config.ClusterAllocationPolicy.EnableOnDemandAllocation = rc.EnableOnDemandAllocation
 					// TODO(kenji): Support allowed_cluster_ids
 				default:
