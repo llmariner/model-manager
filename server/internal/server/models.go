@@ -261,7 +261,7 @@ func (s *S) ListModels(
 		}
 	}
 
-	totalItems, err := s.getTotalItems(userInfo)
+	totalItems, err := s.getTotalItems(userInfo, req.IncludeLoadingModels)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "get total items: %s", err)
 	}
@@ -394,13 +394,13 @@ func (s *S) ListModels(
 	}, nil
 }
 
-func (s *S) getTotalItems(userInfo *auth.UserInfo) (int32, error) {
-	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true)
+func (s *S) getTotalItems(userInfo *auth.UserInfo, includeLoadingModels bool) (int32, error) {
+	totalModels, err := s.store.CountModelsByProjectID(userInfo.ProjectID, true, includeLoadingModels)
 	if err != nil {
 		return 0, err
 	}
 
-	totalBaseModels, err := s.store.CountBaseModels(userInfo.ProjectID, userInfo.TenantID)
+	totalBaseModels, err := s.store.CountBaseModels(userInfo.ProjectID, userInfo.TenantID, includeLoadingModels)
 	if err != nil {
 		return 0, err
 	}

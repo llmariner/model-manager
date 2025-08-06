@@ -73,9 +73,13 @@ func TestModel(t *testing.T) {
 	assert.Equal(t, a1.ID, gotMs[0].ID)
 	assert.Equal(t, m0.ID, gotMs[1].ID)
 
-	c, err := st.CountModelsByProjectID(projectID, true)
+	c, err := st.CountModelsByProjectID(projectID, true /* onlyPublished */, true /* includeLoadingModels */)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(2), c)
+
+	c, err = st.CountModelsByProjectID(projectID, true /* onlyPublished */, false /* includeLoadingModels */)
+	assert.NoError(t, err)
+	assert.Equal(t, int64(0), c)
 
 	err = st.DeleteModel(modelID, tenantID)
 	assert.NoError(t, err)
