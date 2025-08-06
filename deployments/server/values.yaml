@@ -129,7 +129,7 @@ projectCache:
   # The address of the user-manager-server to call internal APIs.
   userManagerInternalServerAddr: user-manager-server-internal-grpc:8082
   # Specify how often the cache is refreshed.
-  refreshInterval: 5m
+  refreshInterval: 1m
 
 # Override the "model-manager-server.fullname" value. This value is used
 # as part of most of the names of the resources created by this Helm chart.
