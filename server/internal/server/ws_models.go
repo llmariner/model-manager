@@ -399,7 +399,7 @@ func (s *WS) GetBaseModelPath(
 			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
 		}
 		if !isBaseModelLoaded(m) {
-			return nil, status.Error(codes.FailedPrecondition, "model is not loaded")
+			return nil, status.Errorf(codes.NotFound, "model %q not found", req.Id)
 		}
 	} else {
 		var found bool
