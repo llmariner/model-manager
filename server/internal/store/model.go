@@ -269,10 +269,20 @@ func (s *S) UpdateModelPublishingStatus(modelID string, tenantID string, isPubli
 }
 
 // CountModelsByProjectID counts the total number of models by project ID.
-func (s *S) CountModelsByProjectID(projectID string, onlyPublished bool) (int64, error) {
+func (s *S) CountModelsByProjectID(
+	projectID string,
+	onlyPublished bool,
+	includeLoadingModels bool,
+) (int64, error) {
+	q := s.db.Model(&Model{}).Where("project_id = ? AND is_published = ?", projectID, onlyPublished)
+	if !includeLoadingModels {
+		q = q.Where("(loading_status IS NULL OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	}
+
 	var count int64
-	if err := s.db.Model(&Model{}).Where("project_id = ? AND is_published = ?", projectID, onlyPublished).Count(&count).Error; err != nil {
+	if err := q.Count(&count).Error; err != nil {
 		return 0, err
 	}
+
 	return count, nil
 }

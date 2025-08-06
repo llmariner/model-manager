@@ -330,15 +330,19 @@ func (s *S) UpdateBaseModelLoadingStatusMessage(k ModelKey, msg string) error {
 }
 
 // CountBaseModels counts the total number of base models.
-func (s *S) CountBaseModels(projectID, tenantID string) (int64, error) {
-	var count int64
-	if err := s.db.Model(&BaseModel{}).
+func (s *S) CountBaseModels(projectID, tenantID string, includeLoadingModels bool) (int64, error) {
+	q := s.db.Model(&BaseModel{}).
 		Distinct("model_id").
 		// Find all models that are either globally scoped (project_id is NULL) or
 		// scoped to the given project.
 		Where("(project_id IS NULL OR project_id = '' OR project_id = ?)", projectID).
-		Where("tenant_id = ? ", tenantID).
-		Count(&count).Error; err != nil {
+		Where("tenant_id = ? ", tenantID)
+	if !includeLoadingModels {
+		q = q.Where("(loading_status IS NULL OR loading_status = ?)", v1.ModelLoadingStatus_MODEL_LOADING_STATUS_SUCCEEDED)
+	}
+
+	var count int64
+	if err := q.Count(&count).Error; err != nil {
 		return 0, err
 	}
 	return count, nil

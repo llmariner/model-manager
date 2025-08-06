@@ -63,7 +63,7 @@ func TestBaseModel(t *testing.T) {
 	assert.Equal(t, "path", gotMs[0].Path)
 	assert.Equal(t, "gguf_model_path", gotMs[0].GGUFModelPath)
 
-	c, err := st.CountBaseModels("", tenantID)
+	c, err := st.CountBaseModels("", tenantID, true)
 	assert.NoError(t, err)
 	assert.Equal(t, int64(1), c)
 
@@ -466,38 +466,61 @@ func TestCountBaseModels(t *testing.T) {
 	}
 
 	for _, k := range keys {
-		_, err := st.CreateBaseModel(k, "path", []v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF}, "gguf", v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE)
+		_, err := st.CreateBaseModel(
+			k,
+			"path",
+			[]v1.ModelFormat{v1.ModelFormat_MODEL_FORMAT_GGUF},
+			"gguf",
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+		)
 		assert.NoError(t, err)
 	}
 
+	// Set the loading status of the last model to LOADING.
+	m, err := st.GetBaseModel(keys[4])
+	assert.NoError(t, err)
+	m.LoadingStatus = v1.ModelLoadingStatus_MODEL_LOADING_STATUS_LOADING
+	st.db.Save(&m)
+
 	tcs := []struct {
-		projectID string
-		tenantID  string
-		want      int64
+		projectID            string
+		tenantID             string
+		includeLoadingModels bool
+		want                 int64
 	}{
 		{
-			projectID: "",
-			tenantID:  tenantID,
-			want:      2, // bm0 and bm1
+			projectID:            "",
+			tenantID:             tenantID,
+			includeLoadingModels: true,
+			want:                 2, // bm0 and bm1
 		},
 		{
-			projectID: "p0",
-			tenantID:  tenantID,
-			want:      3, // bm0, bm1, and bm2
+			projectID:            "p0",
+			tenantID:             tenantID,
+			includeLoadingModels: true,
+			want:                 3, // bm0, bm1, and bm2
 		},
 		{
-			projectID: "p1",
-			tenantID:  tenantID,
-			want:      2, // bm0 and bm1
+			projectID:            "p1",
+			tenantID:             tenantID,
+			includeLoadingModels: true,
+			want:                 2, // bm0 and bm1
 		},
 		{
-			projectID: "",
-			tenantID:  "t1",
-			want:      1,
+			projectID:            "",
+			tenantID:             "t1",
+			includeLoadingModels: true,
+			want:                 1,
+		},
+		{
+			projectID:            "",
+			tenantID:             "t1",
+			includeLoadingModels: false,
+			want:                 0,
 		},
 	}
 	for _, tc := range tcs {
-		got, err := st.CountBaseModels(tc.projectID, tc.tenantID)
+		got, err := st.CountBaseModels(tc.projectID, tc.tenantID, tc.includeLoadingModels)
 		assert.NoError(t, err)
 		assert.Equal(t, tc.want, got)
 	}
