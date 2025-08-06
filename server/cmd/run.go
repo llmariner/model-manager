@@ -76,19 +76,6 @@ func run(ctx context.Context, c *config.Config) error {
 		return err
 	}
 
-	uconn, err := grpc.NewClient(c.ProjectCache.UserManagerInternalServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
-	if err != nil {
-		return err
-	}
-	pcache := projectcache.New(uv1.NewUsersInternalServiceClient(uconn), logger)
-	errCh := make(chan error)
-	go func() {
-		errCh <- pcache.Run(ctx, c.ProjectCache.RefreshInterval)
-	}()
-	if err := pcache.WaitForInitialSync(ctx); err != nil {
-		return fmt.Errorf("wait for initial sync: %s", err)
-	}
-
 	addr := fmt.Sprintf("localhost:%d", c.GRPCPort)
 	opts := []grpc.DialOption{grpc.WithTransportCredentials(insecure.NewCredentials())}
 	conn, err := grpc.NewClient(addr, opts...)
@@ -127,6 +114,17 @@ func run(ctx context.Context, c *config.Config) error {
 
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
+
+	errCh := make(chan error)
+
+	uconn, err := grpc.NewClient(c.ProjectCache.UserManagerInternalServerAddr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	if err != nil {
+		return err
+	}
+	pcache := projectcache.New(uv1.NewUsersInternalServiceClient(uconn), logger)
+	go func() {
+		errCh <- pcache.Run(ctx, c.ProjectCache.RefreshInterval)
+	}()
 
 	go func() {
 		log.Info("Starting HTTP server...", "port", c.HTTPPort)
