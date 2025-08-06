@@ -18,12 +18,15 @@ type projectLister interface {
 
 // New creates a new project cache instance.
 func New(projectLister projectLister, log logr.Logger) *C {
-	return &C{
+	c := &C{
 		projectLister: projectLister,
 		log:           log.WithName("projectcache"),
 		projectsByID:  make(map[string]*v1.Project),
-		ready:         make(chan error),
 	}
+
+	c.readyCond = sync.NewCond(&c.mu)
+
+	return c
 }
 
 // C is a cache for project data.
@@ -31,13 +34,12 @@ type C struct {
 	projectLister projectLister
 	log           logr.Logger
 
-	projectsByID map[string]*v1.Project
-
-	ready              chan error
+	projectsByID       map[string]*v1.Project
+	ready              bool
 	lastSuccessfulSync time.Time
 
-	// mu protects projectsByID and lastSuccessfulSync.
-	mu sync.Mutex
+	mu        sync.Mutex
+	readyCond *sync.Cond
 }
 
 // Run starts the project cache.
@@ -45,13 +47,8 @@ func (c *C) Run(ctx context.Context, interval time.Duration) error {
 	c.log.Info("Starting project cache...")
 
 	if err := c.sync(ctx); err != nil {
-		err := fmt.Errorf("sync project cache: %s", err)
-		c.ready <- err
-		return err
+		return fmt.Errorf("sync project cache: %s", err)
 	}
-
-	// Signal that the initial sync is complete.
-	c.ready <- nil
 
 	ticker := time.NewTicker(interval)
 	defer ticker.Stop()
@@ -85,26 +82,12 @@ func (c *C) sync(ctx context.Context) error {
 	defer c.mu.Unlock()
 	c.projectsByID = projectsByID
 	c.lastSuccessfulSync = time.Now()
+	c.ready = true
+
+	c.readyCond.Broadcast()
 
 	c.log.Info("Projects synced", "count", len(c.projectsByID))
 
-	return nil
-}
-
-// WaitForInitialSync waits for the initial sync to complete.
-func (c *C) WaitForInitialSync(ctx context.Context) error {
-	c.log.Info("Waiting for initial sync to complete...")
-
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-c.ready:
-		if err != nil {
-			return fmt.Errorf("initial sync: %s", err)
-		}
-	}
-
-	c.log.Info("Initial sync completed")
 	return nil
 }
 
@@ -112,6 +95,12 @@ func (c *C) WaitForInitialSync(ctx context.Context) error {
 func (c *C) GetProject(projectID string) (*v1.Project, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	for !c.ready {
+		c.log.Info("Waiting for project cache to be ready...")
+		c.readyCond.Wait()
+		c.log.Info("Project cache is ready")
+	}
 
 	p, ok := c.projectsByID[projectID]
 	if !ok {

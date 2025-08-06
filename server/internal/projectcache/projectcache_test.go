@@ -59,9 +59,6 @@ func TestProjectCache(t *testing.T) {
 		close(done)
 	}()
 
-	err := c.WaitForInitialSync(ctx)
-	assert.NoError(t, err)
-
 	got, err := c.GetProject("proj0")
 	assert.NoError(t, err)
 	ns := got.Assignments[0].NodeSelector[0]
@@ -98,9 +95,6 @@ func TestProjectCache_SyncError(t *testing.T) {
 		}
 		close(done)
 	}()
-
-	err := c.WaitForInitialSync(ctx)
-	assert.Error(t, err)
 
 	cancel()
 	<-done
