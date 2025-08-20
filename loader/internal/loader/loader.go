@@ -9,6 +9,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/avast/retry-go"
 	"github.com/go-logr/logr"
 	v1 "github.com/llmariner/model-manager/api/v1"
 	"github.com/llmariner/model-manager/common/pkg/id"
@@ -110,6 +111,23 @@ type L struct {
 
 // Run runs the loader.
 func (l *L) Run(
+	ctx context.Context,
+	baseModels []string,
+	models []config.ModelConfig,
+	sourceRepository v1.SourceRepository,
+	interval time.Duration,
+) error {
+	return retry.Do(
+		func() error {
+			return l.run(ctx, baseModels, models, sourceRepository, interval)
+		},
+		retry.Context(ctx),
+		retry.Attempts(5),
+		retry.Delay(30*time.Second),
+	)
+}
+
+func (l *L) run(
 	ctx context.Context,
 	baseModels []string,
 	models []config.ModelConfig,
