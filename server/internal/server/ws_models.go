@@ -567,6 +567,9 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 						return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
 					}
 				}
+
+				// TODO(eknji): Delete the model config.
+
 				return nil
 			}); err != nil {
 				return nil, err
