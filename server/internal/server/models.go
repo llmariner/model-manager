@@ -570,14 +570,10 @@ func (s *S) deleteFineTunedModel(ctx context.Context, k store.ModelKey) (*v1.Del
 			}
 			return status.Errorf(codes.Internal, "delete model: %s", err)
 		}
-		if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
-			// Gracefully handle a not found error for backward compatibility.
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.NotFound, "model activation status %q not found", k.ModelID)
-			}
-		}
 
-		// TODO(kenji): Delete model config
+		if err := deleteModelActivationStatusAndConfig(tx, k); err != nil {
+			return status.Errorf(codes.Internal, "delete model activation status and config: %s", err)
+		}
 
 		return nil
 	}); err != nil {
@@ -616,14 +612,9 @@ func (s *S) deleteBaseModel(ctx context.Context, k store.ModelKey) (*v1.DeleteMo
 			// Ignore. The HFModelRepo does not exist for old models or non-HF models.
 		}
 
-		if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
-			// Gracefully handle a not found error for backward compatibility.
-			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				return status.Errorf(codes.NotFound, "model activation status for %q not found", k.ModelID)
-			}
+		if err := deleteModelActivationStatusAndConfig(tx, k); err != nil {
+			return status.Errorf(codes.Internal, "delete model activation status and config: %s", err)
 		}
-
-		// TODO(kenji): Delete model config.
 
 		return nil
 	}); err != nil {
@@ -1300,4 +1291,21 @@ func patchModelConfig(
 	}
 
 	return config, nil
+}
+
+func deleteModelActivationStatusAndConfig(tx *gorm.DB, k store.ModelKey) error {
+	if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
+		// Gracefully handle a not-found error for backward compatibility.
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
+
+	if err := store.DeleteModelConfigInTransaction(tx, k); err != nil {
+		// Gracefully handle a not-found error for backward compatibility.
+		if !errors.Is(err, gorm.ErrRecordNotFound) {
+			return err
+		}
+	}
+	return nil
 }
