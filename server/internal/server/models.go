@@ -53,17 +53,8 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.InvalidArgument, "suffix must not be more than 18 characters")
 	}
 
-	// Only support S3 as a source repository for now.
-	if req.SourceRepository != v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE {
-		return nil, status.Errorf(codes.InvalidArgument, "unsupported source repository: %s", req.SourceRepository)
-	}
-
-	// TODO(kenji): Revisit.
-	if req.ModelFileLocation == "" {
-		return nil, status.Error(codes.InvalidArgument, "model_file_location is required")
-	}
-	if !strings.HasPrefix(req.ModelFileLocation, "s3://") {
-		return nil, status.Errorf(codes.InvalidArgument, "model file location must start with s3://, but got %s", req.ModelFileLocation)
+	if err := validateModelFileLocationAndSourceRepository(req.ModelFileLocation, req.SourceRepository); err != nil {
+		return nil, status.Errorf(codes.InvalidArgument, "%s", err)
 	}
 
 	if err := validateModelConfig(req.Config); err != nil {
@@ -1126,12 +1117,8 @@ func validateIDAndSourceRepository(id string, sourceRepository v1.SourceReposito
 			return fmt.Errorf("id must not include s3://<bucket>")
 		}
 	case v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE:
-		l := strings.Split(id, "/")
-		if len(l) <= 1 || len(l) > 3 {
-			return fmt.Errorf("unexpected model ID format: %s. The format should be <org>/<repo> or <org>/<repo>/<file>", id)
-		}
-		if l[0] == "" || l[1] == "" {
-			return fmt.Errorf("unexpected model ID format: %s. The format should be <org>/<repo> or <org>/<repo>/<file>", id)
+		if err := validateHuggingFaceRepoFile(id); err != nil {
+			return err
 		}
 	case v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA:
 		l := strings.Split(id, ":")
@@ -1147,6 +1134,41 @@ func validateIDAndSourceRepository(id string, sourceRepository v1.SourceReposito
 			v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
 			v1.SourceRepository_SOURCE_REPOSITORY_OLLAMA,
 		})
+	}
+	return nil
+}
+
+func validateModelFileLocationAndSourceRepository(modelFileLocation string, sourceRepository v1.SourceRepository) error {
+	if modelFileLocation == "" {
+		return fmt.Errorf("model_file_location is required")
+	}
+
+	switch sourceRepository {
+	case v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE:
+		if !strings.HasPrefix(modelFileLocation, "s3://") {
+			return fmt.Errorf("model file location must start with s3://, but got %s", modelFileLocation)
+		}
+	case v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE:
+		if err := validateHuggingFaceRepoFile(modelFileLocation); err != nil {
+			return err
+		}
+	default:
+		// Ollama is not currently supported.
+		return fmt.Errorf("source_repository must be one of %v", []v1.SourceRepository{
+			v1.SourceRepository_SOURCE_REPOSITORY_OBJECT_STORE,
+			v1.SourceRepository_SOURCE_REPOSITORY_HUGGING_FACE,
+		})
+	}
+	return nil
+}
+
+func validateHuggingFaceRepoFile(s string) error {
+	l := strings.Split(s, "/")
+	if len(l) <= 1 || len(l) > 3 {
+		return fmt.Errorf("unexpected model ID format: %s. The format should be <org>/<repo> or <org>/<repo>/<file>", s)
+	}
+	if l[0] == "" || l[1] == "" {
+		return fmt.Errorf("unexpected model ID format: %s. The format should be <org>/<repo> or <org>/<repo>/<file>", s)
 	}
 	return nil
 }
