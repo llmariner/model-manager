@@ -440,13 +440,22 @@ func (l *L) loadModelFromConfig(ctx context.Context, model config.ModelConfig, s
 	}
 	mi := modelInfos[0]
 
-	if _, err := l.modelClient.RegisterModel(ctx, &v1.RegisterModelRequest{
-		Id:           convertedModelID,
-		BaseModel:    id.ToLLMarinerModelID(model.BaseModel),
-		Adapter:      config.ToAdapterType(model.AdapterType),
-		Quantization: config.ToQuantizationType(model.QuantizationType),
-		Path:         mi.path,
+	// Use ggufModelPath if exists.
+	// TODO(kenji): This is a workaround as the puller in inference-manager-engine
+	// downloads a GGUF file from the "path" field while it download all files under "path" for
+	// other formats.
+	// The contract of this API is not very clear. We need to revisit this.
+	path := mi.path
+	if mi.ggufModelPath != "" {
+		path = mi.ggufModelPath
+	}
 
+	if _, err := l.modelClient.RegisterModel(ctx, &v1.RegisterModelRequest{
+		Id:             convertedModelID,
+		BaseModel:      id.ToLLMarinerModelID(model.BaseModel),
+		Adapter:        config.ToAdapterType(model.AdapterType),
+		Quantization:   config.ToQuantizationType(model.QuantizationType),
+		Path:           path,
 		ProjectId:      projectID,
 		OrganizationId: organizationID,
 	}); err != nil {
