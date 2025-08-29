@@ -168,7 +168,7 @@ func (s *S) createBaseModel(
 		projectID = userInfo.ProjectID
 	}
 
-	// Check if the model already exists (with the original name as we as the converted name).
+	// Check if the model already exists (with the original name as well as the converted name).
 	for _, modelID := range []string{req.Id, id.ToLLMarinerModelID(req.Id)} {
 		k := store.ModelKey{
 			ModelID:   modelID,
