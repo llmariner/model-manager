@@ -8,6 +8,7 @@ import (
 
 	gerrors "github.com/llmariner/common/pkg/gormlib/errors"
 	v1 "github.com/llmariner/model-manager/api/v1"
+	"github.com/llmariner/model-manager/common/pkg/id"
 	"github.com/llmariner/model-manager/server/internal/store"
 	"github.com/llmariner/rbac-manager/pkg/auth"
 	"google.golang.org/grpc/codes"
@@ -167,21 +168,29 @@ func (s *S) createBaseModel(
 		projectID = userInfo.ProjectID
 	}
 
-	k := store.ModelKey{
-		ModelID:   req.Id,
-		ProjectID: projectID,
-		TenantID:  userInfo.TenantID,
-	}
-	if _, err := s.store.GetBaseModel(k); err != nil {
-		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+	// Check if the model already exists (with the original name as we as the converted name).
+	for _, modelID := range []string{req.Id, id.ToLLMarinerModelID(req.Id)} {
+		k := store.ModelKey{
+			ModelID:   modelID,
+			ProjectID: projectID,
+			TenantID:  userInfo.TenantID,
 		}
-	} else {
-		return nil, status.Errorf(codes.AlreadyExists, "base model %q already exists", req.Id)
+		if _, err := s.store.GetBaseModel(k); err != nil {
+			if !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, status.Errorf(codes.Internal, "get base model: %s", err)
+			}
+		} else {
+			return nil, status.Errorf(codes.AlreadyExists, "base model %q already exists", req.Id)
+		}
 	}
 
 	var m *store.BaseModel
 	if err := s.store.Transaction(func(tx *gorm.DB) error {
+		k := store.ModelKey{
+			ModelID:   req.Id,
+			ProjectID: projectID,
+			TenantID:  userInfo.TenantID,
+		}
 		var err error
 		m, err = store.CreateBaseModelWithLoadingRequestedInTransaction(tx, k, req.SourceRepository)
 		if err != nil {
@@ -567,6 +576,9 @@ func (s *S) deleteFineTunedModel(ctx context.Context, k store.ModelKey) (*v1.Del
 				return status.Errorf(codes.NotFound, "model activation status %q not found", k.ModelID)
 			}
 		}
+
+		// TODO(kenji): Delete model config
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -610,6 +622,8 @@ func (s *S) deleteBaseModel(ctx context.Context, k store.ModelKey) (*v1.DeleteMo
 				return status.Errorf(codes.NotFound, "model activation status for %q not found", k.ModelID)
 			}
 		}
+
+		// TODO(kenji): Delete model config.
 
 		return nil
 	}); err != nil {
