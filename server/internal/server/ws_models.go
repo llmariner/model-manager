@@ -561,14 +561,9 @@ func (s *WS) UpdateBaseModelLoadingStatus(
 					return status.Errorf(codes.Internal, "delete model: %s", err)
 				}
 
-				if err := store.DeleteModelActivationStatusInTransaction(tx, k); err != nil {
-					// Gracefully handle a not-found error for backward compatibility.
-					if !errors.Is(err, gorm.ErrRecordNotFound) {
-						return status.Errorf(codes.NotFound, "model activation status for %q not found", req.Id)
-					}
+				if err := deleteModelActivationStatusAndConfig(tx, k); err != nil {
+					return status.Errorf(codes.Internal, "delete model activation status and config: %s", err)
 				}
-
-				// TODO(eknji): Delete the model config.
 
 				return nil
 			}); err != nil {
