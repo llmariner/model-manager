@@ -446,10 +446,6 @@ func (s *S) UpdateModel(
 		return nil, status.Error(codes.InvalidArgument, "id is required")
 	}
 
-	if err := validateModelConfig(req.Model.Config); err != nil {
-		return nil, err
-	}
-
 	// Currently only support the update of the config field.
 	if req.UpdateMask == nil {
 		return nil, status.Error(codes.InvalidArgument, "update mask is required")
