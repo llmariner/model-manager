@@ -1267,7 +1267,8 @@ func patchModelConfig(
 					default:
 						return nil, fmt.Errorf("unsupported update mask path: %s", path)
 					}
-					// TODO(kenji): support extra_args
+				case rpath == "extra_args":
+					config.RuntimeConfig.ExtraArgs = rc.ExtraArgs
 				default:
 					return nil, fmt.Errorf("unsupported update mask path: %s", path)
 				}
