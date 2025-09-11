@@ -3,6 +3,7 @@ syntax = "proto3";
 package llmariner.models.server.v1;
 
 import "google/api/annotations.proto";
+import "google/api/client.proto";
 import "google/protobuf/field_mask.proto";
 
 option go_package = "github.com/llmariner/model-manager/api/v1";
@@ -289,6 +290,7 @@ service ModelsService {
       patch: "/v1/models/{model.id}"
       body: "model"
     };
+    option (google.api.method_signature) = "model,update_mask";
   }
 
   rpc ActivateModel(ActivateModelRequest) returns (ActivateModelResponse) {
