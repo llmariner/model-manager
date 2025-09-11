@@ -288,9 +288,8 @@ service ModelsService {
   rpc UpdateModel(UpdateModelRequest) returns (Model) {
     option (google.api.http) = {
       patch: "/v1/models/{model.id}"
-      body: "model"
+      body: "*"
     };
-    option (google.api.method_signature) = "model,update_mask";
   }
 
   rpc ActivateModel(ActivateModelRequest) returns (ActivateModelResponse) {

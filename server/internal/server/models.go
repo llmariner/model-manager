@@ -1229,7 +1229,8 @@ func patchModelConfig(
 			case strings.HasPrefix(cpath, "runtime_config"):
 				rc := patch.RuntimeConfig
 				if rc == nil {
-					return nil, fmt.Errorf("runtime_config is required")
+					// RuntimeConfig is nil when the "extra_args" field is cleared.
+					rc = &v1.ModelConfig_RuntimeConfig{}
 				}
 
 				if cpath == "runtime_config" {
