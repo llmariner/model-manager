@@ -341,7 +341,7 @@ export class ModelsService {
     return fm.fetchReq<CreateModelRequest, Model>(`/v1/models`, {...initReq, method: "POST", body: JSON.stringify(req)})
   }
   static UpdateModel(req: UpdateModelRequest, initReq?: fm.InitReq): Promise<Model> {
-    return fm.fetchReq<UpdateModelRequest, Model>(`/v1/models/${req["model.id"]}`, {...initReq, method: "PATCH", body: JSON.stringify(req["model"])})
+    return fm.fetchReq<UpdateModelRequest, Model>(`/v1/models/${req["model.id"]}`, {...initReq, method: "PATCH", body: JSON.stringify(req)})
   }
   static ActivateModel(req: ActivateModelRequest, initReq?: fm.InitReq): Promise<ActivateModelResponse> {
     return fm.fetchReq<ActivateModelRequest, ActivateModelResponse>(`/v1/models/${req["id"]}:activate`, {...initReq, method: "POST"})

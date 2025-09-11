@@ -3,6 +3,7 @@ syntax = "proto3";
 package llmariner.models.server.v1;
 
 import "google/api/annotations.proto";
+import "google/api/client.proto";
 import "google/protobuf/field_mask.proto";
 
 option go_package = "github.com/llmariner/model-manager/api/v1";
@@ -287,7 +288,7 @@ service ModelsService {
   rpc UpdateModel(UpdateModelRequest) returns (Model) {
     option (google.api.http) = {
       patch: "/v1/models/{model.id}"
-      body: "model"
+      body: "*"
     };
   }
 

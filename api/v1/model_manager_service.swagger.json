@@ -249,19 +249,11 @@
           },
           {
             "name": "body",
-            "description": "model is the model to update.\n\nThe model's id is used to identify the key to update.",
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/v1Model"
+              "$ref": "#/definitions/v1UpdateModelRequest"
             }
-          },
-          {
-            "name": "updateMask",
-            "description": "The list of fields to update.",
-            "in": "query",
-            "required": false,
-            "type": "string"
           }
         ],
         "tags": [
@@ -758,6 +750,19 @@
     },
     "v1UpdateModelLoadingStatusResponse": {
       "type": "object"
+    },
+    "v1UpdateModelRequest": {
+      "type": "object",
+      "properties": {
+        "model": {
+          "$ref": "#/definitions/v1Model",
+          "description": "model is the model to update.\n\nThe model's id is used to identify the key to update."
+        },
+        "updateMask": {
+          "type": "string",
+          "description": "The list of fields to update."
+        }
+      }
     }
   }
 }
