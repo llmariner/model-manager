@@ -128,7 +128,11 @@ func (s *S) createFineTunedModel(
 		return nil, status.Errorf(codes.Internal, "get project: %s", err)
 	}
 
-	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config, proj), nil
+	config := req.Config
+	if config == nil {
+		config = defaultModelConfig()
+	}
+	return toModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, config, proj), nil
 }
 
 func (s *S) createBaseModel(
@@ -216,7 +220,11 @@ func (s *S) createBaseModel(
 		}
 	}
 
-	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, req.Config, proj)
+	config := req.Config
+	if config == nil {
+		config = defaultModelConfig()
+	}
+	mp, err := baseToModelProto(m, v1.ActivationStatus_ACTIVATION_STATUS_INACTIVE, config, proj)
 	if err != nil {
 		return nil, status.Errorf(codes.Internal, "base model to proto: %s", err)
 	}
