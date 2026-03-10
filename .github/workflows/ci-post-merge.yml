@@ -22,6 +22,7 @@ jobs:
       uses: actions/setup-go@v6
       with:
         go-version: oldstable
+        check-latest: true
     - name: Re-test
       run: make test
 
