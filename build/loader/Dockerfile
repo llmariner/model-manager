@@ -1,5 +1,5 @@
 FROM --platform=$BUILDPLATFORM ollama/ollama AS ollama
-FROM --platform=$BUILDPLATFORM golang:1.23 AS builder
+FROM --platform=$BUILDPLATFORM golang:1.25 AS builder
 ARG TARGETARCH
 
 WORKDIR /workspace
